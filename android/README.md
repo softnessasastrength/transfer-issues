@@ -48,3 +48,7 @@ See `docs/architecture/android-native-offline-routing.md`. The main screen now o
 ## Native offline street routing (draft)
 
 See `docs/architecture/android-native-street-routing.md`. Build `streets.sqlite` on the Mac mini and manually copy it into the Android app-private `files/offline/` folder for debug testing. The native planner then uses graph-derived walking transfer times. This is not an in-app street pack installer or a verified safe pedestrian route. Seven Kotlin synthetic tests committed, not executed.
+
+## Step 6 visual journey planner (draft)
+
+The native offline planner now supports stop-name/ID search, map-tap origin/destination selection and readable itinerary legs. It draws geographic stop points without internet; no offline street basemap yet. See `docs/architecture/android-visual-journey-planner.md`. Nine synthetic Kotlin tests committed, not executed.
