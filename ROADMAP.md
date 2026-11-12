@@ -104,3 +104,7 @@ User selected regional offline architecture B, with the first proof of concept s
 ## Authorized Android offline client proof of concept (IN PROGRESS)
 
 Build a Kotlin Android Studio project that starts without a network connection, reads the shared CT/PVTA SQLite pack, and supports an exploration-first roadmap. Initial shell reads route inventory from local SQLite and needs Android Studio/device acceptance testing. Subsequent milestones: secure pack import and hash verification, native timetable/routing, offline vector map and paths, native GPS, optional live feeds, airplane-mode route-planning tests. Preserve web/Termux and iOS work; no claim of completed offline journey planning.
+
+## M0.P — User-controlled offline package manager POC (IMPLEMENTATION IN PROGRESS)
+
+Authorized on 2026-11-12: a Python standard-library backend proof of concept for the Choose Your Transit Network flow. `offline_packages.py` and synthetic tests cover explicit consent, agency/dependency planning, local payload checksums, staged content-addressed installation and update eligibility. Initial owner-selected agencies are CTtransit, CTrail Hartford Line, PVTA and Amtrak; actual data availability must be verified separately. Auto-update policy never authorizes new agencies. See `docs/architecture/offline-pack-manager-poc.md`. No native Android UI, downloader, catalog authentication, verified offline maps/graphs, or device tests yet. Preserve M0 core atlas priorities; this is a parallel scoped proof of concept, not a claim of finished offline support.
