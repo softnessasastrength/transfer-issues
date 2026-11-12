@@ -26,7 +26,11 @@ case "${1:-doctor}" in
   packs)
     [[ -s data/atlas.sqlite ]] || { echo "No data/atlas.sqlite; run bash atlas.sh first." >&2; exit 1; }
     python3 scripts/build_lan_packs.py --database data/atlas.sqlite --output build/lan-packs
-    python3 scripts/verify_lan_catalog.py --packs build/lan-packs
+    if [[ -f scripts/verify_lan_catalog.py ]]; then
+      python3 scripts/verify_lan_catalog.py --packs build/lan-packs
+    else
+      echo "WARNING: Optional Stage 2 pack validator not installed. Exported packs are not independently verified." >&2
+    fi
     ;;
   android-test|android-build)
     command -v gradle >/dev/null || { echo "Install compatible Gradle 8.9; CI can build APK if local SDK unavailable." >&2; exit 1; }
