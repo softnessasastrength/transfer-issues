@@ -21,7 +21,16 @@ class RoutingGoldenParityTest {
             if (line.isBlank() || line.startsWith("#")) continue
             val p = line.split("|")
             require(p.size == 10) { "Invalid golden fixture: $line" }
-            val (name, origin, destination, start, deadline, buffer, rawLinks, rawTransfers, expected, modes) = p
+            val name = p[0]
+            val origin = p[1]
+            val destination = p[2]
+            val start = p[3]
+            val deadline = p[4]
+            val buffer = p[5]
+            val rawLinks = p[6]
+            val rawTransfers = p[7]
+            val expected = p[8]
+            val modes = p[9]
             val links = if (rawLinks == "-") emptyList() else rawLinks.split(";").map { raw ->
                 val l = raw.split(",")
                 OfflineRouter.Link(l[0], l[1], l[2].toInt(), l[3].toInt(), l[4],
