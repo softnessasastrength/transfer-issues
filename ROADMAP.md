@@ -89,3 +89,9 @@ Acceptance: representative verified interstate/local-bus/commuter-rail/Amtrak/in
 ### M0.D status — implemented, acceptance blocked
 
 Desktop controller and loopback launcher are implemented. 17 Python regressions/HTTP tests pass; JS syntax and compilation pass. Real-data Hartford–Springfield outbound/return queries pass. Browser acceptance is blocked by Chromium's denied Unix-domain socket in this executor; the repeatable browser smoke test is supplied but unverified. No macOS execution claim. Do not mark this milestone complete until browser interactions are exercised successfully. No source feeds or existing database were modified during this work.
+
+## M0.T — Same-phone Termux launch (AUTHORIZED; device validation pending)
+
+User requested Android/Termux execution of the current proof of concept. Scope: reuse Python/SQLite in Termux with Chrome on the same phone through loopback; document package setup, private repository authentication, first import, subsequent launches, stopping and browser-local data. `TERMUX.md` supplies the runbook. This does not authorize the deferred PWA/native-app/Apache milestones or mobile design overhaul. No backend restructuring is necessary for this launch path.
+
+Acceptance pending: successful first import on Android, HTTP page and map interaction on that phone, timetable and return-trip query, journal persistence across restart. No Android device is attached here, so instructions are not a claim of successful phone execution. Preserve the current M0.D/core work and queued M0.R expansion.

@@ -14,6 +14,8 @@ An independent, local-first transit exploration project for Connecticut, Massach
 
 **Not yet implemented or accepted:** reviewed PDF fallback, unified PDF/GTFS provenance tables, safe versioned refresh/rollback, complete source discovery, comprehensive validation, browser acceptance and macOS hardware checks. Apache/macOS production hosting, PWA, native iOS and the New Hampshire/intercity expansion remain later milestones.
 
+For same-phone Android hosting in Termux, see [TERMUX.md](TERMUX.md). Device validation remains pending.
+
 ## Try the desktop proof of concept
 
 On your Mac mini, use a checkout of the `feature/browser-proof-of-concept` branch and Python 3.11 or newer. In Terminal, inside this repository:
