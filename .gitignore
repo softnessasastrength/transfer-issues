@@ -1,0 +1,44 @@
+# Raw/normalized/derived transit data and audit snapshots remain local.
+/data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.zip
+*.pdf
+*.tar
+*.tar.gz
+/backups/
+/downloads/
+/output/
+/tmp/
+# Runtime, tooling and generated builds
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+node_modules/
+dist/
+build/
+*.log
+.DS_Store
+# Secrets and device-local records
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+secrets*.json
+journal*.json
+bookmarks*.json
+# Editor/session state
+.idea/
+.vscode/
+.codex/

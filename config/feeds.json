@@ -1,0 +1,38 @@
+[
+  {
+    "id": "cttransit",
+    "url": "https://www.cttransit.com/sites/default/files/gtfs/googlect_transit.zip",
+    "official_page": "https://www.cttransit.com/about/developers",
+    "status": "not_downloaded"
+  },
+  {
+    "id": "hartford",
+    "url": "https://ctrides.com/hlgtfs.zip",
+    "official_page": "https://www.cttransit.com/about/developers",
+    "status": "not_downloaded"
+  },
+  {
+    "id": "pvta",
+    "url": "https://www.pvta.com/g_trans/google_transit.zip",
+    "official_page": "https://pvta.com/bus_service/real_time_data.php",
+    "status": "not_downloaded"
+  },
+  {
+    "id": "wrta",
+    "url": "https://gtfs.wrta.cadavl.com/WRTA/GTFS/GTFS_WRTA.zip",
+    "official_page": "https://therta.com/",
+    "status": "not_downloaded"
+  },
+  {
+    "id": "amtrak",
+    "url": "https://content.amtrak.com/content/gtfs/GTFS.zip",
+    "official_page": "https://www.cttransit.com/about/developers",
+    "status": "not_downloaded"
+  },
+  {
+    "id": "mbta",
+    "url": "https://cdn.mbta.com/MBTA_GTFS.zip",
+    "official_page": "https://www.mbta.com/developers/gtfs",
+    "status": "not_downloaded"
+  }
+]
