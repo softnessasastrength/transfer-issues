@@ -1,5 +1,5 @@
 """Connection scan routing. No live data; geographic transfers are estimates."""
-import math, functools, collections, heapq
+import math, functools, collections, heapq, itertools
 from transfer_edges import edges, transfer_rules
 from database import query,connections,coverage
 INF=10**15
@@ -29,9 +29,10 @@ def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=()):
  arrivals={origin:start};paths={origin:()};onboard={};ready={origin:start}
  def relax(sid,time,path,initial=False):
   # Dijkstra closure: allow consecutive walking transfers; only improve arrival.
-  heap=[(time,sid,path,initial)]
+  order=itertools.count()
+  heap=[(time,next(order),sid,path,initial)]
   while heap:
-   at,node,current,first=heapq.heappop(heap)
+   at,_,node,current,first=heapq.heappop(heap)
    if at>deadline or at>arrivals.get(node,INF):continue
    if at<arrivals.get(node,INF):
     arrivals[node]=at;paths[node]=current
@@ -44,7 +45,7 @@ def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=()):
     leg=dict(kind=mode,from_stop=node,to_stop=dest,departure=at,arrival=t,
              meters=edge['meters'],estimated=True,transfer_source=edge['source'])
     arrivals[dest]=t;paths[dest]=current+(leg,)
-    heapq.heappush(heap,(t,dest,paths[dest],False))
+    heapq.heappush(heap,(t,next(order),dest,paths[dest],False))
  relax(origin,start,(),True)
  for dep,arr,a,b,trip,route,head,pu,do,seq in connections(day):
   if dep<start:continue
