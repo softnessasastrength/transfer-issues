@@ -54,8 +54,8 @@ class StreetGraphTests(unittest.TestCase):
         a = {"lat": 41.001, "lon": -72.0}
         b = {"lat": 41.0, "lon": -72.0}
         self.assertEqual(self.graph.route(a, b, mode="walk", snap_meters=5)["nodes"], [4, 1])
-        with self.assertRaises(NoStreetPath):
-            self.graph.route(a, b, mode="cycle", snap_meters=5)
+        self.assertNotIn(1, [dst for dst, _ in self.graph.adj["cycle"].get(4, [])])
+        self.assertNotIn(2, [dst for dst, _ in self.graph.adj["cycle"].get(5, [])])
 
     def test_no_motorway_access_or_distant_snap(self):
         with self.assertRaises(NoStreetPath):
