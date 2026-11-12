@@ -11,7 +11,8 @@ FIXTURES = pathlib.Path(__file__).parent / "fixtures" / "routing_golden.psv"
 def cases():
     for line in FIXTURES.read_text().splitlines():
         if not line or line.startswith("#"):
-            fields = line.split("|")
+            continue
+        fields = line.split("|")
             assert len(fields) == 10, line
             yield fields
 
