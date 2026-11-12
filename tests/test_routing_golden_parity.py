@@ -13,8 +13,8 @@ def cases():
         if not line or line.startswith("#"):
             continue
         fields = line.split("|")
-            assert len(fields) == 10, line
-            yield fields
+        assert len(fields) == 10, line
+        yield fields
 
 
 class GoldenParityPythonTests(unittest.TestCase):
