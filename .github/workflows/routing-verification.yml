@@ -1,0 +1,53 @@
+name: Transit Atlas routing verification
+on:
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'routing.py'
+      - 'transfer_edges.py'
+      - 'street_routing.py'
+      - 'scripts/build_street_graph.py'
+      - 'tests/**'
+      - '.github/workflows/routing-verification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-routing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile routing modules
+        run: python -m py_compile routing.py transfer_edges.py street_routing.py scripts/build_street_graph.py
+      - name: Run synthetic routing tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+
+  android-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compile debug APK and run JVM unit tests
+        working-directory: android
+        run: gradle --no-daemon :app:assembleDebug :app:testDebugUnitTest
+      - name: Upload debug APK for review
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transit-atlas-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7

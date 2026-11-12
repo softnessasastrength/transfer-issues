@@ -2,17 +2,39 @@
 
 An independent, local-first transit exploration project for Connecticut, Massachusetts and Rhode Island, with priority attention to Hartford, Springfield, Enfield, Windsor Locks, Manchester, Holyoke, Chicopee, Westfield, New Haven and Worcester.
 
-**Status: early implementation checkpoint, not a completed or travel-ready atlas.** This repository preserves the work already underway. Read [ROADMAP.md](ROADMAP.md) for authoritative priorities and acceptance criteria, and [DECISIONS.md](DECISIONS.md) for implementation evidence and unresolved issues.
+**Status: desktop proof of concept implemented; browser acceptance is blocked in the build environment. Not a completed or travel-ready atlas.** This repository preserves the work already underway. Read [ROADMAP.md](ROADMAP.md) for authoritative priorities and acceptance criteria, and [DECISIONS.md](DECISIONS.md) for implementation evidence and unresolved issues.
 
 ## What exists
 
 - Original `prototype.html`: a standalone interactive **schematic**, not geographic routing or a timetable.
 - Python standard-library GTFS importer and a generated local SQLite database, with feed metadata, checksums and basic validation reports.
 - Separate database queries, an initial connection-scan router, and `/api/v1/` HTTP endpoints.
-- Initial map/planner/journal page markup and responsive CSS; Leaflet 1.9.4 is vendored.
+- Desktop controller for geographic route/stop browsing, timetables, outbound/return/latest/reachability searches, source cards, browser-local bookmarks/journal and JSON backups; Leaflet 1.9.4 is vendored.
 - Authoritative roadmap and persistent agent/workflow instructions.
 
-**Not yet implemented or accepted:** `web/app.js` (referenced by the page but not yet written), functioning map/controller interactions, browser bookmarks/journal persistence, reviewed PDF fallback, unified PDF/GTFS provenance tables, safe versioned refresh/rollback, complete source discovery, comprehensive validation and browser/end-to-end testing. The frontend shell will not function as a complete application at this checkpoint.
+**Not yet implemented or accepted:** reviewed PDF fallback, unified PDF/GTFS provenance tables, safe versioned refresh/rollback, complete source discovery, comprehensive validation, browser acceptance and macOS hardware checks. Apache/macOS production hosting, PWA, native iOS and the New Hampshire/intercity expansion remain later milestones.
+
+For same-phone Android hosting in Termux, see [TERMUX.md](TERMUX.md). Device validation remains pending.
+
+## Try the desktop proof of concept
+
+On your Mac mini, use a checkout of the `feature/browser-proof-of-concept` branch and Python 3.11 or newer. In Terminal, inside this repository:
+
+```bash
+python3 --version
+# First run only: downloads official feeds and creates the local database.
+python3 scripts/prepare_data.py
+# Subsequent launches reuse your existing database without downloads.
+python3 scripts/run_local.py
+```
+
+Open **http://127.0.0.1:8000** in your desktop browser. Stop the server with Control-C. No Apache, Node, paid hosting or cloud backend is required to run it. This is a portable local launch procedure, not a verified macOS deployment package.
+
+Start with **Browse routes → 905**, select a trip for its timetable, or click **Hartford** to zoom to published stops. For a rail example, choose **HARTFORD [hartford:6]** to **SPRINGFIELD [hartford:9]**. Pick a date within the downloaded feed's service period (see Data & sources); expired feeds may correctly yield no trips. The `2026-11-12` example was checked directly against the development database, not as a live service guarantee. Network access is needed for street tiles, but official shape/stop layers are local. Missing tiles show a visible notice.
+
+Bookmarks and journal entries are device/browser/origin-local; use **My discoveries → Export my data** before clearing browser storage or moving machines. Import appends entries to preserve existing records. No personal records are committed to Git.
+
+A failed agency download can leave coverage incomplete. PVTA is currently missing. An empty result is not proof that no real journey exists. Reservation/seat availability and fares are not checked.
 
 ## Feed coverage at the checkpoint
 
@@ -39,7 +61,7 @@ Official GTFS ZIP -> import_gtfs.py -> local SQLite
                                     |
                           server.py /api/v1/
                                     |
-                        web/ (controller pending)
+                        web/ (desktop controller)
 ```
 
 - `import_gtfs.py`: CSV/ZIP parsing, calendar and exception normalization, basic validation.
@@ -64,7 +86,7 @@ python3 server.py
 
 The first command seeds `data/sources.json` only if missing, downloads feeds and rebuilds `data/atlas.sqlite`. Downloads may be blocked by agency websites. It does not create recurring jobs. **The current refresh implementation overwrites local archives and database rather than retaining audit versions. Back up `data/` before refreshing an existing installation; versioned refresh/rollback is an open core requirement.** Stop the server before rebuilding because its connection cache is process-local.
 
-Open `http://127.0.0.1:8000/api/v1/meta` to inspect the API. The page at `/` is unfinished. Open `prototype.html` directly for the original schematic only.
+Open `http://127.0.0.1:8000/api/v1/meta` to inspect the API. The page at `/` is the desktop proof of concept. Open `prototype.html` directly for the original schematic only.
 
 For an existing database, the server accepts `ATLAS_DATA_DIR=/absolute/data/path`; the importer currently writes to the repository's `data/` folder. Do not expose this development server on an unsecured remote interface.
 

@@ -1,5 +1,5 @@
 """Build the atlas database from official GTFS archives. Python 3.11+, stdlib only."""
-import csv, io, zipfile, sqlite3, json, hashlib, datetime, pathlib, collections, argparse, urllib.request
+import csv, io, zipfile, sqlite3, json, hashlib, datetime, pathlib, collections, argparse, urllib.request, urllib.error, time
 ROOT=pathlib.Path(__file__).resolve().parent
 DATA=ROOT/'data'
 DAYS=['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
@@ -91,14 +91,52 @@ def build():
   r=next(x for x in reports if x['feed']==source['id']);source['validation']=r
  db.close();tmp.replace(DATA/'atlas.sqlite');(DATA/'sources.json').write_text(json.dumps(sources,indent=2));(DATA/'validation.json').write_text(json.dumps(reports,indent=2));print(json.dumps(reports,indent=2))
 
+def download_gtfs(source):
+ """Try the publisher's known static GTFS URLs; never substitute unverified schedules."""
+ urls=[source['url']]
+ if source['id']=='pvta':
+  # PVTA publishes the same feed on HTTP and HTTPS; some hosts reject one scheme.
+  urls=['https://www.pvta.com/g_trans/google_transit.zip',
+        'http://www.pvta.com/g_trans/google_transit.zip']
+ errors=[]
+ for url in dict.fromkeys(urls):
+  try:
+   req=urllib.request.Request(url,headers={
+    'User-Agent':'Mozilla/5.0 (compatible; SouthernNewEnglandTransitAtlas/0.1; GTFS download)',
+    'Accept':'application/zip, application/octet-stream, */*'})
+   with urllib.request.urlopen(req,timeout=90) as response:
+    content=response.read(60*1024*1024+1)
+    last_modified=response.headers.get('Last-Modified')
+    final_url=response.geturl()
+   if len(content)>60*1024*1024:raise ValueError('GTFS archive exceeds 60 MiB safety limit')
+   with zipfile.ZipFile(io.BytesIO(content)) as archive:
+    bad=archive.testzip()
+    if bad:raise ValueError('Corrupt GTFS member: '+bad)
+    names={name.rsplit('/',1)[-1] for name in archive.namelist()}
+    required={'agency.txt','stops.txt','routes.txt','trips.txt','stop_times.txt'}
+    if not required.issubset(names):raise ValueError('GTFS missing required files: '+str(sorted(required-names)))
+   return content,last_modified,final_url
+  except (OSError,ValueError,zipfile.BadZipFile) as exc:
+   errors.append(url+': '+str(exc))
+ raise RuntimeError('All official GTFS download attempts failed: '+'; '.join(errors))
+
 def refresh():
  sources=json.loads((DATA/'sources.json').read_text())
- for s in sources:
+ for source in sources:
   try:
-   with urllib.request.urlopen(s['url'],timeout=90) as r:content=r.read();lm=r.headers.get('Last-Modified')
-   with zipfile.ZipFile(io.BytesIO(content)) as z:z.testzip()
-   (DATA/(s['id']+'.zip')).write_bytes(content);s.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),last_modified=lm,bytes=len(content));s.pop('error',None)
-  except Exception as e:s['refresh_error']=str(e);print(s['id'],e)
+   content,last_modified,final_url=download_gtfs(source)
+   # Write only after successful archive validation. Keep the prior ZIP on failure.
+   target=DATA/(source['id']+'.zip')
+   temporary=target.with_suffix('.download')
+   temporary.write_bytes(content)
+   temporary.replace(target)
+   source.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                 last_modified=last_modified,bytes=len(content),download_url=final_url)
+   source.pop('refresh_error',None)
+   source.pop('error',None)
+  except Exception as exc:
+   source['refresh_error']=str(exc)
+   print(source['id'],exc)
  (DATA/'sources.json').write_text(json.dumps(sources,indent=2))
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--refresh',action='store_true');a=p.parse_args()

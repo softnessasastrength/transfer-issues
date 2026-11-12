@@ -16,7 +16,7 @@ class CalendarTests(unittest.TestCase):
 class RoutingTests(unittest.TestCase):
  def setUp(self):
   self.stops={k:dict(id=k,lat=42.,lon=-72.,parent='') for k in ['a','b','c']}
-  for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
+  for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'transfer_graph',return_value={}),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
  def c(self,dep,arr,a,b,trip,seq=0,pu=0,do=0):return (dep,arr,a,b,trip,'test:route','Test',pu,do,seq)
  def test_through_ride(self):
   with patch.object(routing,'connections',return_value=[self.c(100,200,'a','b','t'),self.c(200,300,'b','c','t',1)]):
@@ -33,7 +33,7 @@ class RoutingTests(unittest.TestCase):
  def test_latest(self):
   with patch.object(routing,'connections',return_value=[self.c(600,700,'a','b','t'),self.c(1200,1300,'a','b','u')]):self.assertEqual(routing.latest('2026-11-12','a','b',0,1400)['latest_start_minute'],1200)
  def test_ground_estimate(self):
-  with patch.object(routing,'connections',return_value=[]),patch.object(routing,'neighbors',side_effect=lambda s,r,m:[('b',120,150)] if s=='a' else []):
+  with patch.object(routing,'connections',return_value=[]),patch.object(routing,'transfer_graph',return_value={'a':[{'to':'b','seconds':120,'meters':150,'estimated':True,'source':'synthetic'}]}):
    r=routing.plan('2026-11-12','a','b',0,400);self.assertTrue(r['legs'][0]['estimated']);self.assertEqual(r['estimated_ground_meters'],150)
 class ApiTests(unittest.TestCase):
  def test_invalid_date(self):
