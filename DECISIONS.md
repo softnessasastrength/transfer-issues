@@ -51,3 +51,7 @@ User selected B: build walking/cycling street graphs from OpenStreetMap on the M
 ## Step 4 native Android routing (2026-11-12)
 
 User selected A: prioritize native Android Kotlin offline journey calculations, preserving Python as the Mac mini preparation/LAN backend. Draft Android code reads installed selected GTFS agency SQLite packs and calculates scheduled journeys without network. Tests and device validation outstanding. Next decision is validation, Kotlin OSM integration, unified pack installer, or user-facing stop/map UI.
+
+## Native Android street graph integration (2026-11-12)
+
+User selected B: integrate the existing OSM/SQLite street graph into Kotlin Android journey routing. A local street graph replaces geometric transfer estimates when installed; missing graph paths are rejected rather than silently approximated. No network routing, implicit agency downloads, or claims of verified sidewalks. Validation, pack delivery and scale are pending.
