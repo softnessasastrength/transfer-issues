@@ -148,3 +148,7 @@ User selected B. Inspected failed Step 7 CI: seven Python test fixture errors du
 ## M0.R — Step 9 Android build and parity CI verification (DRAFT)
 
 User selected A. Step 8 CI successfully built the Android debug APK and passed Python tests, but Kotlin unit-test compilation failed on ten-element list destructuring. Replaced with explicit indices in shared golden fixture reader. Step 9 acceptance requires both Python and Android Gradle JUnit jobs green; device, real-feed and airplane-mode tests remain outstanding. See `docs/architecture/android-parity-ci-verification-step9.md`.
+
+## M0.T — Phone-only Termux bridge (AUTHORIZED; staged drafts)
+
+Stage 1: explicit loopback-only Termux Python pack server using existing validated GTFS exporter and Android debug pack installer. Stage 2: source-aware official GTFS import and deterministic catalog integration tests. Stage 3: optional Termux development and wireless ADB debugging. All stages use separate draft PRs; no merges. Device acceptance requires verified stop installation and airplane-mode planner operation. See `docs/architecture/termux-phone-only-stages.md`.
