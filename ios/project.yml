@@ -19,8 +19,12 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Transit Atlas
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Connect to your own Transit Atlas server on your local network."
-        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
-    scheme:
-      testTargets: []
+    info:
+      path: TransitAtlas/Info.plist
+      properties:
+        CFBundleDisplayName: Transit Atlas
+        NSLocalNetworkUsageDescription: Connect to your own Transit Atlas server on your local network.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
