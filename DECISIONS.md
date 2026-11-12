@@ -59,3 +59,7 @@ User selected B: integrate the existing OSM/SQLite street graph into Kotlin Andr
 ## Step 6 visual Android journey planner (2026-11-12)
 
 User chose D: prioritize stop search, map-based origin/destination selection and visual itinerary presentation. Preserve all existing transit/OSM routing and LAN download functionality. Native geographic stop canvas is offline, but does not imply a street basemap or verified pedestrian route. Tests committed but not executed.
+
+## Step 7 validation-first routing (2026-11-12)
+
+User chose A: prioritize compilation, synthetic tests, timetable correctness and reproducible verification over feature growth. Repair existing defects in a separate stacked draft PR, configure CI, and clearly distinguish committed tests from executed/passing tests. Do not merge.
