@@ -67,3 +67,7 @@ User chose A: prioritize compilation, synthetic tests, timetable correctness and
 ## Step 8 parity-first validation (2026-11-12)
 
 User selected B: validate Python and Kotlin with identical golden fixtures and expected journey results. Inspect/fix blocking Step 7 CI failures first. Preserve all existing code and draft PRs; no merge. Golden parity does not replace real feed and device testing.
+
+## Step 9 CI gate (2026-11-12)
+
+User selected A: fix Kotlin test compilation and establish passing Android debug build and Python/Kotlin golden parity CI before expanding routing. Keep all prior work and stacked draft PRs unmerged.
