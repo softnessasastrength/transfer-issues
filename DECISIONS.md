@@ -71,3 +71,7 @@ User selected B: validate Python and Kotlin with identical golden fixtures and e
 ## Step 9 CI gate (2026-11-12)
 
 User selected A: fix Kotlin test compilation and establish passing Android debug build and Python/Kotlin golden parity CI before expanding routing. Keep all prior work and stacked draft PRs unmerged.
+
+## Experimental Android prereleases (2026-11-12)
+
+Owner explicitly authorized auto-publishing private GitHub Releases when CI passes to simplify phone testing. Use prerelease tags per commit, no merges, no public store, no bundled GTFS data. Release only after Python and Android CI success. Document that ephemeral CI debug signing prevents reliable in-place updates until a stable signing-key workflow is added.
