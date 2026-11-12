@@ -2,6 +2,7 @@
 
 **Status:** captured ideas only, not approved product claims or a release submission. Recorded 2026-11-12.
 
+- [Map-first product vision](product-vision.md)
 - [Google Play listing draft](google-play-listing.md)
 - [Visual identity and icon brief](visual-identity.md)
 - [Publication checklist](release-checklist.md)
