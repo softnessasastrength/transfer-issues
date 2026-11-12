@@ -19,3 +19,46 @@ th{background:var(--button)}.badge{background:var(--button)}
 :root[data-theme="dark"] .leaflet-popup-content-wrapper,:root[data-theme="dark"] .leaflet-popup-tip{background:#1c2a27;color:#e6f1e9}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-popup-content-wrapper,:root:not([data-theme="light"]) .leaflet-popup-tip{background:#1c2a27;color:#e6f1e9}}
 @media(max-width:650px){.preferences{width:100%;justify-content:flex-end}.preferences select{min-width:72px}}
+
+
+/* Dark-mode contrast repair: override original light-only foreground/background rules. */
+:root[data-theme="dark"] .selected,
+:root[data-theme="dark"] .primary,
+:root[data-theme="dark"] #loading{background:#315c52!important;color:#ffffff!important;border-color:#6b988a}
+:root[data-theme="dark"] .primary:hover{background:#417669!important}
+:root[data-theme="dark"] button:hover{background:#344c43;color:#f2faf5}
+:root[data-theme="dark"] nav button:not(.selected){background:transparent;color:#e6f1e9}
+:root[data-theme="dark"] .mapTitle small,
+:root[data-theme="dark"] .intro,
+:root[data-theme="dark"] .small,
+:root[data-theme="dark"] .asideFoot,
+:root[data-theme="dark"] .edition b{color:#bac9c2}
+:root[data-theme="dark"] .eyebrow{color:#bbd6ad}
+:root[data-theme="dark"] .notice{color:#f4e4cb;border-left-color:#e4ac71}
+:root[data-theme="dark"] .tileNotice{background:#463924;color:#fff2d9}
+:root[data-theme="dark"] .leaflet-control-zoom a{background:#1c2a27;color:#e6f1e9;border-color:#40534d}
+:root[data-theme="dark"] .leaflet-popup-content-wrapper,
+:root[data-theme="dark"] .leaflet-popup-tip{background:#1c2a27;color:#e6f1e9}
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder{color:#b1c3ba;opacity:1}
+:root[data-theme="dark"] .cityMarker{color:#e6f1e9}
+@media(prefers-color-scheme:dark){
+ :root:not([data-theme="light"]) .selected,
+ :root:not([data-theme="light"]) .primary,
+ :root:not([data-theme="light"]) #loading{background:#315c52!important;color:#fff!important;border-color:#6b988a}
+ :root:not([data-theme="light"]) .primary:hover{background:#417669!important}
+ :root:not([data-theme="light"]) button:hover{background:#344c43;color:#f2faf5}
+ :root:not([data-theme="light"]) nav button:not(.selected){background:transparent;color:#e6f1e9}
+ :root:not([data-theme="light"]) .mapTitle small,
+ :root:not([data-theme="light"]) .intro,
+ :root:not([data-theme="light"]) .small,
+ :root:not([data-theme="light"]) .asideFoot,
+ :root:not([data-theme="light"]) .edition b{color:#bac9c2}
+ :root:not([data-theme="light"]) .eyebrow{color:#bbd6ad}
+ :root:not([data-theme="light"]) .notice{color:#f4e4cb;border-left-color:#e4ac71}
+ :root:not([data-theme="light"]) .tileNotice{background:#463924;color:#fff2d9}
+ :root:not([data-theme="light"]) .leaflet-control-zoom a{background:#1c2a27;color:#e6f1e9;border-color:#40534d}
+ :root:not([data-theme="light"]) input::placeholder,
+ :root:not([data-theme="light"]) textarea::placeholder{color:#b1c3ba;opacity:1}
+ :root:not([data-theme="light"]) .cityMarker{color:#e6f1e9}
+}
