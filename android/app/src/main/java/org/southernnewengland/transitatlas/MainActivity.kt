@@ -42,7 +42,7 @@ class MainActivity : Activity() {
         checks = names.associateWith { name ->
             CheckBox(this).apply {
                 text = name
-                isChecked = name in listOf("cttransit", "hartford", "pvta", "amtrak")
+                isChecked = false // No globally imposed selection; user explicitly opts in
                 outer.addView(this)
             }
         }
@@ -97,18 +97,46 @@ class MainActivity : Activity() {
         thread {
             try {
                 val catalog = JSONObject(URL("$base/api/v1/packs/catalog").readText())
+                require(catalog.optString("format") == "transit-atlas-lan-v1") {
+                    "Unsupported catalog format"
+                }
                 val packages = catalog.getJSONObject("packages")
-                val available = chosen.filter { packages.has(it) }
-                val missing = chosen - available.toSet()
-                val total = available.sumOf { packages.getJSONObject(it).getLong("bytes") }
+                val parsed = mutableMapOf<String, NetworkDownloadPlan.Pack>()
+                val keys = packages.keys()
+                while (keys.hasNext()) {
+                    val id = keys.next()
+                    val entry = packages.getJSONObject(id)
+                    val deps = entry.optJSONArray("dependencies")
+                    parsed[id] = NetworkDownloadPlan.Pack(
+                        id = entry.getString("id"),
+                        bytes = entry.getLong("bytes"),
+                        sha256 = entry.getString("sha256"),
+                        dependencies = if (deps == null) emptyList() else
+                            (0 until deps.length()).map { deps.getString(it) },
+                        scope = entry.getString("scope"),
+                        version = entry.getString("version")
+                    )
+                }
+                val plan = NetworkDownloadPlan.resolve(chosen, parsed)
                 runOnUiThread {
-                    val message = "Install: ${available.joinToString()}\nSize: ${total / 1048576.0} MiB\nUnavailable: ${missing.joinToString().ifEmpty { "none" }}\nThis test build downloads only selected available packs, directly from your Mac mini."
-                    android.app.AlertDialog.Builder(this)
-                        .setTitle("Confirm offline package download")
+                    val detail = plan.packs.joinToString("\\n") {
+                        "• ${it.id} · ${it.bytes} bytes · v${it.version}\\n  ${it.scope}"
+                    }
+                    val message = "Packages and shared dependencies:\\n" +
+                        detail.ifEmpty { "None available" } +
+                        "\\nTotal: ${plan.totalBytes} bytes" +
+                        "\\nUnavailable: ${plan.unavailable.joinToString().ifEmpty { "none" }}" +
+                        "\\n\\nDevelopment LAN catalog only. SHA-256 from the same server does not authenticate its publisher. Use only a trusted private network. No offline basemap is included."
+                    val dialog = android.app.AlertDialog.Builder(this)
+                        .setTitle("Review offline network installation")
                         .setMessage(message)
                         .setNegativeButton("Cancel", null)
-                        .setPositiveButton("Download") { _, _ -> downloadPacks(base, packages, available) }
-                        .show()
+                    if (plan.packs.isNotEmpty()) {
+                        dialog.setPositiveButton("Confirm download") { _, _ ->
+                            downloadPacks(base, packages, plan.packs.map { it.id })
+                        }
+                    }
+                    dialog.show()
                 }
             } catch (e: Exception) { runOnUiThread { status.text = "Catalog unavailable: ${e.message}" } }
         }
