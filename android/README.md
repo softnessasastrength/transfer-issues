@@ -40,3 +40,7 @@ No API keys, credentials, databases, GTFS ZIPs or generated build outputs should
 ## Experimental Mac mini LAN client (new)
 
 See `docs/architecture/lan-android-poc.md`. Build the debug Android variant, run `bash atlas-lan.sh` on the Mac mini, enter its private LAN URL, select agencies and explicitly confirm package downloads. The app can use the existing server planner over Wi-Fi and display a rough native offline GTFS shape/stop map after downloading. It is not a full offline route planner or street map; no device compilation was verified.
+
+## Native Kotlin offline journey planner (Step 4 draft)
+
+See `docs/architecture/android-native-offline-routing.md`. The main screen now opens a native offline journey planner that reads previously installed GTFS agency SQLite files without a Mac mini or network connection. Enter GTFS stop IDs, date and HH:MM. This is a scheduled journey POC with estimated walking transfers; it does not yet consume the OSM street graph. Seven synthetic Kotlin JUnit tests are committed but not executed. Compile and run `testDebugUnitTest` before claiming device readiness.
