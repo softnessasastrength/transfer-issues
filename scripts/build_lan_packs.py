@@ -44,7 +44,7 @@ def build(source, destination):
                     if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                         raise ValueError("SQLite integrity failure")
                     target.execute("VACUUM")
-                sha = hashlib.file_digest(tmp.open("rb"), "sha256").hexdigest()
+                with tmp.open("rb") as payload:\n                    sha = hashlib.file_digest(payload, "sha256").hexdigest()
                 filename = agency + "-" + sha[:16] + ".sqlite"
                 os.replace(tmp, destination / filename)
                 manifest["packages"][agency] = {"id": agency, "kind": "agency", "agency": agency,
