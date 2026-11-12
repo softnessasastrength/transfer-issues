@@ -21,7 +21,7 @@ internal object OfflineRouter {
 
     private val dateFormat = DateTimeFormatter.BASIC_ISO_DATE
 
-    fun read(files: List<File>, day: LocalDate): Data {
+    fun read(files: List<File>, day: LocalDate, streetGraph: OfflineStreetGraph? = null): Data {
         val stops = linkedMapOf<String, Stop>()
         val links = mutableListOf<Link>()
         val rules = linkedMapOf<Pair<String, String>, Pair<Int, Int>>()
@@ -96,7 +96,18 @@ internal object OfflineRouter {
         require(stops.isNotEmpty()) { "Install at least one offline agency pack" }
         val explicit = rules.mapNotNull { (pair, rule) ->
             if (rule.first == 3 || pair.first !in stops || pair.second !in stops) null
-            else Transfer(pair.first, pair.second, max(60, rule.second), "official")
+            else {
+                val a = stops.getValue(pair.first)
+                val b = stops.getValue(pair.second)
+                val path = if (streetGraph == null) null else try {
+                    streetGraph.route(OfflineStreetGraph.Point(a.lat, a.lon),
+                        OfflineStreetGraph.Point(b.lat, b.lon))
+                } catch (_: OfflineStreetGraph.NoPath) { null }
+                if (streetGraph != null && path == null) null
+                else Transfer(pair.first, pair.second,
+                    max(if (streetGraph != null) path!!.seconds else 60, rule.second),
+                    if (streetGraph != null) "osm-graph-estimate" else "official")
+            }
         }
         // Explicit forbidden transfers suppress proximity links in that direction.
         val transfers = explicit.toMutableList()
@@ -112,7 +123,16 @@ internal object OfflineRouter {
                     if (a == b || (a to b) in rules) continue
                     val distance = distance(stop, stops.getValue(b))
                     if (distance <= 500.0) {
-                        transfers.add(Transfer(a, b, max(60, ceil(distance * 1.3 / 1.25).toInt()), "proximity-estimate"))
+                        if (streetGraph == null) {
+                            transfers.add(Transfer(a, b, max(60, ceil(distance * 1.3 / 1.25).toInt()), "proximity-estimate"))
+                        } else {
+                            val target = stops.getValue(b)
+                            val path = try {
+                                streetGraph.route(OfflineStreetGraph.Point(stop.lat, stop.lon),
+                                    OfflineStreetGraph.Point(target.lat, target.lon))
+                            } catch (_: OfflineStreetGraph.NoPath) { null }
+                            if (path != null) transfers.add(Transfer(a, b, path.seconds, "osm-graph-estimate"))
+                        }
                     }
                 }
             }
