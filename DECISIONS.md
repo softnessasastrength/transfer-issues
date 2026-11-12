@@ -43,3 +43,7 @@ User selected B: Python for Mac mini GTFS preparation/LAN backend and native Kot
 ## Step 2 transfer policy (2026-11-12)
 
 User chose B: official transfers plus clearly labeled estimated walking transfers. Explicit forbidden rules win over proximity, directed transfer rules remain directed, and published minimum transfer times and the 3-minute personal buffer must be respected. Implementation is draft Python for Mac mini testing; do not describe geometric paths as verified sidewalks. Next decision is offline pedestrian/cycling graph strategy.
+
+## Step 3 offline street routing choice (2026-11-12)
+
+User selected B: build walking/cycling street graphs from OpenStreetMap on the Mac mini and store in SQLite for eventual shared Python/Kotlin consumption. Implemented a limited local XML builder and Python Dijkstra router, optionally replacing proximity estimates when configured. Fail closed on missing graph paths; do not claim safe sidewalks, scooter legality, accessibility or a native offline Android routing engine. Next decision: Kotlin port versus strengthening regional graph import first.
