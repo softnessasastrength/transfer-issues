@@ -71,3 +71,7 @@ User selected B: validate Python and Kotlin with identical golden fixtures and e
 ## Step 9 CI gate (2026-11-12)
 
 User selected A: fix Kotlin test compilation and establish passing Android debug build and Python/Kotlin golden parity CI before expanding routing. Keep all prior work and stacked draft PRs unmerged.
+
+## Chromebook Crostini development (2026-11-12)
+
+Owner requested a Chromebook development workflow in addition to Termux. Separate draft PR from main for local tests, Python backend, GTFS pack export, optional Android build and ADB device inspection. Do not depend on unmerged Termux PRs for core commands; independently verified pack catalogs require Stage 2 validator. No automatic network exposure or merge.
