@@ -6,6 +6,23 @@ const clock = seconds => `${Math.floor(seconds / 3600) % 24}`.padStart(2, '0') +
 const seconds = value => { const [h,m] = value.split(':').map(Number); if (!Number.isFinite(h+m)) throw Error('Choose a valid time.'); return h*3600+m*60; };
 let meta, map, layers, nearby, stops = new Map(), routes = new Map(), labels = new Map(), request = 0, selectedRoute = null;
 const storageKey = 'transit-atlas-v1';
+const preferenceKey = 'transit-atlas-preferences-v1';
+let preferences = {theme:'system',units:'imperial'};
+try { const p=JSON.parse(localStorage.getItem(preferenceKey)); if(['system','light','dark'].includes(p?.theme))preferences.theme=p.theme; if(['imperial','metric'].includes(p?.units))preferences.units=p.units; } catch {}
+const feetPerMeter=3.280839895;
+const distanceText = meters => preferences.units==='imperial'
+ ? (meters*feetPerMeter < 528 ? `${Math.round(meters*feetPerMeter)} ft` : `${(meters/1609.344).toFixed(2)} mi`)
+ : (meters < 1000 ? `${Math.round(meters)} m` : `${(meters/1000).toFixed(2)} km`);
+function updatePreferences(){
+ document.documentElement.dataset.theme=preferences.theme;
+ $('theme').value=preferences.theme; $('units').value=preferences.units;
+ $('radiusLabel').textContent=preferences.units==='imperial'?'MAX LINK (FEET)':'MAX LINK (METERS)';
+ $('mode').options[0].textContent=preferences.units==='imperial'?'Walking · estimated 2.8 mph':'Walking · estimated 4.5 km/h';
+ $('mode').options[1].textContent=preferences.units==='imperial'?'Scooter · estimated 7.5 mph':'Scooter · estimated 12 km/h';
+ $('radius').max=preferences.units==='imperial'?'9843':'3000';
+}
+function savePreferences(){localStorage.setItem(preferenceKey,JSON.stringify(preferences));updatePreferences();}
+
 let personal = {version:1, bookmarks:[], notes:[]};
 try { const saved = JSON.parse(localStorage.getItem(storageKey)); if (saved) personal = validatePersonal(saved); } catch { /* Preserve unreadable storage until an explicit save. */ }
 function validatePersonal(value) {
@@ -40,12 +57,12 @@ async function showRoute(id) {
 }
 async function tripTable(id, parent) { if(!id)return; const rows=await api('trip',{id}); parent.querySelector('.tableWrap')?.remove(); const wrap=el('div',undefined,'tableWrap'),table=el('table'); const head=el('tr'); ['Stop','Arrival','Departure'].forEach(x=>head.append(el('th',x))); table.append(head); rows.forEach(s=>{const tr=el('tr');[s.name,clock(s.arr),clock(s.dep)].forEach(x=>tr.append(el('td',x)));table.append(tr);});wrap.append(table);parent.append(wrap); }
 async function departures(s) { const data=await api('departures',{stop:s.id,date:$('date').value}); const card=el('section',undefined,'resultCard');card.append(el('h3',s.name),el('p',`Departures · ${$('date').value}`)); if(!data.departures.length)card.append(el('p','No departures in the loaded schedule for this date.','notice')); for(const d of data.departures) {const row=el('div',undefined,'leg'); row.append(button(`${clock(d.departure)} · ${routes.get(d.route)?.short || d.route} · ${d.headsign}`,()=>tripTable(d.trip,card)),sourceLink(d.source));card.append(row);} $('results').replaceChildren(card);map.closePopup(); }
-function options() { const time=seconds($('time').value),deadline=seconds($('deadline').value); if(deadline<time)throw Error('Home-by must be after departure on the selected day.'); return {from:resolve('from'),date:$('date').value,time,deadline,mode:$('mode').value,radius:$('radius').value,buffer:Number($('buffer').value)*60}; }
+function options() { const time=seconds($('time').value),deadline=seconds($('deadline').value); if(deadline<time)throw Error('Home-by must be after departure on the selected day.'); return {from:resolve('from'),date:$('date').value,time,deadline,mode:$('mode').value,radius:Math.round(Number($('radius').value)*(preferences.units==='imperial'?1/feetPerMeter:1)),buffer:Number($('buffer').value)*60}; }
 function coverageNotice(coverage) { const missing=coverage.filter(s=>!s.in_service_period||s.status!=='imported').map(s=>s.feed); return el('p',`Experimental scheduled results, not guaranteed connections or seat availability. ${missing.length?'Missing/out-of-period feeds: '+missing.join(', ')+'. ':''}PVTA and other unlisted agencies are missing. Check operators before travel.`, 'notice'); }
 function itinerary(result,title) {
  const card=el('section',undefined,'resultCard');card.append(el('h3',title)); if(!result.found){card.append(el('p',result.message||'No return found in the loaded schedules.'));return card;}
  card.append(el('p',`${clock(result.departure)} → ${clock(result.arrival)}`)); if(result.precision)card.append(el('p',result.precision,'small'));
- for(const leg of result.legs) { const a=stops.get(leg.from_stop),b=stops.get(leg.to_stop), row=el('div',undefined,'leg'); const transit=leg.kind==='transit'; row.append(el('b',transit?`${routes.get(leg.route)?.short || leg.route} · ${leg.headsign}`:`${leg.kind} · estimated ${leg.meters} m`),el('p',`${a.name} → ${b.name}`),el('p',`${clock(leg.departure)} → ${clock(leg.arrival)}`)); if(transit)row.append(sourceLink(leg.source));card.append(row); marker(a);marker(b); if(!transit)L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:'#b95d38',dashArray:'5 7'}).addTo(layers); }
+ for(const leg of result.legs) { const a=stops.get(leg.from_stop),b=stops.get(leg.to_stop), row=el('div',undefined,'leg'); const transit=leg.kind==='transit'; row.append(el('b',transit?`${routes.get(leg.route)?.short || leg.route} · ${leg.headsign}`:`${leg.kind} · estimated ${distanceText(leg.meters)}`),el('p',`${a.name} → ${b.name}`),el('p',`${clock(leg.departure)} → ${clock(leg.arrival)}`)); if(transit)row.append(sourceLink(leg.source));card.append(row); marker(a);marker(b); if(!transit)L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:'#b95d38',dashArray:'5 7'}).addTo(layers); }
  return card;
 }
 async function plan(kind='depart') {
@@ -60,6 +77,9 @@ function renderPersonal() {
 }
 function updateDate(){ const d=$('date').value; $('dayLabel').textContent=d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Choose a travel date'; }
 async function init() {
+ updatePreferences();
+ $('theme').onchange=()=>{preferences.theme=$('theme').value;savePreferences();};
+ $('units').onchange=()=>{const meters=Number($('radius').value)*(preferences.units==='imperial'?1/feetPerMeter:1);preferences.units=$('units').value;updatePreferences();$('radius').value=Math.round(meters*(preferences.units==='imperial'?feetPerMeter:1));savePreferences();};
  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()); $('date').value=['year','month','day'].map(k=>parts.find(p=>p.type===k).value).join('-');updateDate();
  meta=await api('meta');stops=new Map(meta.stops.map(s=>[s.id,s]));routes=new Map(meta.routes.map(r=>[r.id,r]));
  map=L.map('map',{preferCanvas:true}).setView([42,-72.4],8);layers=L.featureGroup().addTo(map);nearby=L.layerGroup().addTo(map);
