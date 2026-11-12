@@ -108,3 +108,7 @@ Build a Kotlin Android Studio project that starts without a network connection, 
 ## M0.P — User-controlled offline package manager POC (IMPLEMENTATION IN PROGRESS)
 
 Authorized on 2026-11-12: a Python standard-library backend proof of concept for the Choose Your Transit Network flow. `offline_packages.py` and synthetic tests cover explicit consent, agency/dependency planning, local payload checksums, staged content-addressed installation and update eligibility. Initial owner-selected agencies are CTtransit, CTrail Hartford Line, PVTA and Amtrak; actual data availability must be verified separately. Auto-update policy never authorizes new agencies. See `docs/architecture/offline-pack-manager-poc.md`. No native Android UI, downloader, catalog authentication, verified offline maps/graphs, or device tests yet. Preserve M0 core atlas priorities; this is a parallel scoped proof of concept, not a claim of finished offline support.
+
+## M0.L — Mac mini ↔ Android LAN backend and offline preview (DRAFT POC)
+
+Explicitly authorized: one-command local Python server, per-agency local GTFS SQLite exports and HTTP catalog/download, native Android agency picker with approval and SHA-256 verification, LAN WebView for the existing server planner, and native offline GTFS route-shape preview. See `docs/architecture/lan-android-poc.md`. No live source availability or device testing is claimed. Full native offline routing, licensed street basemap, and pedestrian graph remain missing; this work must not displace M0 core validation.
