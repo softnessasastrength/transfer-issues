@@ -50,7 +50,7 @@ On-demand refresh only: preserve versions, validate before activation, report ad
 
 Acceptance: (1) valid GTFS import/query, (2) an agency without usable GTFS represented by a verified official PDF, (3) both coexist in SQLite, (4) map communicates completeness, (5) every schedule traceable, (6) uncertainty/expiry gated from routing, (7) GTFS and PDF fixture tests. Track any unmet acceptance explicitly.
 
-## M0.G — GitHub initialization (AUTHORIZED; current checkpoint task)
+## M0.G — GitHub initialization (COMPLETE; CLI authentication remains an environment issue)
 
 Connect existing work to private `softnessasastrength/transfer-issues`; preserve local implementation and data. Depends on inventory, authenticated repository access and clean remote-history inspection. Acceptance: staged review, secret/generated-file exclusions, tests reported honestly, descriptive initial checkpoint published, local origin/main configured, commit SHA confirmed. No force-push or history rewrite.
 
@@ -59,3 +59,5 @@ Core priority order remains: GTFS ingestion/normalization → SQLite persistence
 ### Checkpoint status correction
 
 Architecture entries above describe some **intended** behavior. As of repository initialization, browser localStorage/export/import and map interactions are not implemented: `web/app.js` is absent. API documentation now exists. The GTFS pipeline and initial SQLite/router/API modules exist; full routing acceptance tests, current-PDF normalization, source conflict/expiry gates and versioned refresh are incomplete. Raw and normalized data currently share the ignored `data/` directory; logical storage separation is not yet a full versioned provenance architecture. M0 and M0.1 remain IN PROGRESS.
+
+Publication verified on private origin/main. Initial full-source checkpoint: `35543dd5cd98ed33015b4a90db45baef8294dea0` (preceded by README bootstrap commit `35dd98683d1e037f589b67c554cdb0763262103c`). Remote and local tree hashes match. 21 files published; downloaded/generated data excluded and retained locally. 14 tests and compilation/SQLite/API checks passed; no browser-completion claim. No history was rewritten. Ordinary CLI Git still needs authentication. GitHub reports main unprotected; rulesets query is unavailable on the current private-repository plan (HTTP 403). Do not change billing or visibility to resolve this. Enforce the feature-branch/PR policy operationally.
