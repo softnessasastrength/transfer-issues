@@ -16,7 +16,7 @@ class CalendarTests(unittest.TestCase):
 class RoutingTests(unittest.TestCase):
  def setUp(self):
   self.stops={k:dict(id=k,lat=42.,lon=-72.,parent='') for k in ['a','b','c']}
-  for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
+  for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'transfer_graph',return_value={}),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
  def c(self,dep,arr,a,b,trip,seq=0,pu=0,do=0):return (dep,arr,a,b,trip,'test:route','Test',pu,do,seq)
  def test_through_ride(self):
   with patch.object(routing,'connections',return_value=[self.c(100,200,'a','b','t'),self.c(200,300,'b','c','t',1)]):
