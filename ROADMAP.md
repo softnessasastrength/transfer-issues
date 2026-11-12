@@ -136,3 +136,7 @@ Owner selected B from the next-stage choices: Kotlin native street graph integra
 ## M0.V — Step 6 visual Android journey planner (DRAFT)
 
 User selected D: searchable stop names/IDs, touch-selectable offline geographic stop map, and named leg-by-leg itinerary presentation. Added `JourneyUiModel.kt`, `StopPickerMap.kt`, updated `OfflinePlannerActivity.kt`, and nine synthetic JUnit tests. See `docs/architecture/android-visual-journey-planner.md`. No offline street basemap, zoom/pan, Gradle compilation, device testing or routing correctness verification yet.
+
+## M0.Q — Step 7 routing verification (DRAFT)
+
+Owner selected A. Fixed LAN Python pack builder syntax, debug Android manifest override, and Kotlin GTFS pickup/dropoff restrictions; added six synthetic Kotlin regression tests and GitHub Actions Python + Android debug build/JUnit verification. See `docs/architecture/routing-verification-step7.md`. CI configured but not observed running; no Gradle compilation, device test, real-feed validation or Python/Kotlin parity claim yet. Preserve previous features and stacked draft PRs.
