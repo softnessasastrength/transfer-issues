@@ -47,3 +47,7 @@ User chose B: official transfers plus clearly labeled estimated walking transfer
 ## Step 3 offline street routing choice (2026-11-12)
 
 User selected B: build walking/cycling street graphs from OpenStreetMap on the Mac mini and store in SQLite for eventual shared Python/Kotlin consumption. Implemented a limited local XML builder and Python Dijkstra router, optionally replacing proximity estimates when configured. Fail closed on missing graph paths; do not claim safe sidewalks, scooter legality, accessibility or a native offline Android routing engine. Next decision: Kotlin port versus strengthening regional graph import first.
+
+## Step 4 native Android routing (2026-11-12)
+
+User selected A: prioritize native Android Kotlin offline journey calculations, preserving Python as the Mac mini preparation/LAN backend. Draft Android code reads installed selected GTFS agency SQLite packs and calculates scheduled journeys without network. Tests and device validation outstanding. Next decision is validation, Kotlin OSM integration, unified pack installer, or user-facing stop/map UI.
