@@ -71,3 +71,7 @@ User selected B: validate Python and Kotlin with identical golden fixtures and e
 ## Step 9 CI gate (2026-11-12)
 
 User selected A: fix Kotlin test compilation and establish passing Android debug build and Python/Kotlin golden parity CI before expanding routing. Keep all prior work and stacked draft PRs unmerged.
+
+## Termux development bridge (2026-11-12)
+
+Owner selected all three workflows in stages, with separate draft PRs and no merges. Begin with local loopback server and existing consent-first offline pack installation. Keep GTFS imports explicitly initiated and source-aware; do not claim physical device testing from source-level checks. Defer Android ADB debugging bootstrap to separate Stage 3.
