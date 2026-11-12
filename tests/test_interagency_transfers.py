@@ -54,7 +54,7 @@ class TransferTests(unittest.TestCase):
 
     def test_scan_walk_then_board_with_buffer(self):
         # A local CT stop walks to the Hartford Line station, then boards.
-        connections = [(600, 900, "rail:b", "amtrak:c", "service|rail:trip",
+        connections = [(600, 900, "rail:b", "far:d", "service|rail:trip",
                         "hartford:r", "Outbound", 0, 0, 1)]
         def fake_query(sql):
             if "FROM stops" in sql:
@@ -68,13 +68,13 @@ class TransferTests(unittest.TestCase):
         with patch.object(routing, "query", side_effect=fake_query), \
              patch.object(routing, "connections", return_value=connections):
             early, paths = routing.scan("2026-11-12", "ct:a", 0, 1200, radius=150, buffer=180)
-            self.assertIn("amtrak:c", early)
-            self.assertEqual(paths["amtrak:c"][-1]["kind"], "transit")
+            self.assertIn("far:d", early)
+            self.assertEqual(paths["far:d"][-1]["kind"], "transit")
             self.assertEqual(paths["rail:b"][0]["transfer_source"], "proximity")
             # An excessively large transfer buffer makes this boarding impossible.
             late, _ = routing.scan("2026-11-12", "ct:a", 0, 1200, radius=150, buffer=700)
             # Destination may still be walkable, but cannot have boarded transit.
-            self.assertNotEqual(late.get("amtrak:c"), 900)
+            self.assertNotEqual(late.get("far:d"), 900)
         routing.network.cache_clear()
         routing.transfer_graph.cache_clear()
         routing.neighbors.cache_clear()
