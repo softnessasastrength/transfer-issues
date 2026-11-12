@@ -32,7 +32,7 @@ def transfer_rules(stops, transfers):
     return rules
 
 
-def edges(stops, transfers, *, radius=500, mode="walk"):
+def edges(stops, transfers, *, radius=500, mode="walk", street_graph=None):
     """Return directed adjacency with explicit rules and estimated nearby paths.
 
     GTFS type 3 forbids a transfer, including when within geographic radius.
@@ -82,12 +82,24 @@ def edges(stops, transfers, *, radius=500, mode="walk"):
                 continue
             # For explicit long-distance transfers, straight-line timing is
             # still an estimate; no claim of a traversable pedestrian path.
-            length = math.ceil(d * DETOUR)
-            seconds = max(60, math.ceil(length / speed))
+            if street_graph is not None:
+                from street_routing import NoStreetPath
+                try:
+                    routed = street_graph.route(source, stops[dest], mode=mode)
+                except NoStreetPath:
+                    # No geometric fallback if street routing is enabled.
+                    continue
+                length = routed["meters"]
+                seconds = routed["seconds"]
+                route_source = "osm_graph"
+            else:
+                length = math.ceil(d * DETOUR)
+                seconds = max(60, math.ceil(length / speed))
+                route_source = "official" if rule else "proximity"
             if rule and rule[0] == 2:
                 seconds = max(seconds, rule[1])
             found.append({"to": dest, "seconds": seconds, "meters": length,
-                          "estimated": True, "source": "official" if rule else "proximity",
+                          "estimated": True, "source": route_source,
                           "minimum_transfer_seconds": rule[1] if rule and rule[0] == 2 else 0})
         output[sid] = found
     return output
