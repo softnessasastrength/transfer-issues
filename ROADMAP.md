@@ -148,3 +148,7 @@ User selected B. Inspected failed Step 7 CI: seven Python test fixture errors du
 ## M0.R — Step 9 Android build and parity CI verification (DRAFT)
 
 User selected A. Step 8 CI successfully built the Android debug APK and passed Python tests, but Kotlin unit-test compilation failed on ten-element list destructuring. Replaced with explicit indices in shared golden fixture reader. Step 9 acceptance requires both Python and Android Gradle JUnit jobs green; device, real-feed and airplane-mode tests remain outstanding. See `docs/architecture/android-parity-ci-verification-step9.md`.
+
+## M0.C — Chromebook Crostini development (AUTHORIZED; draft)
+
+Enable Debian-based Crostini as a local Git/Python/SQLite test and backend environment, with optional SDK 35/Gradle 8.9 Android builds and explicit ADB inspection. Keep LAN access and transit data installation consent-first. See `docs/development/chromebook-crostini.md`. Device/Chromebook testing pending; no merges.
