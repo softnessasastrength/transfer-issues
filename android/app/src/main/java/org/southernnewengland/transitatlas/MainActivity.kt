@@ -131,12 +131,12 @@ class MainActivity : Activity() {
                         .setTitle("Review offline network installation")
                         .setMessage(message)
                         .setNegativeButton("Cancel", null)
-                    if (plan.packs.isNotEmpty()) {
+                    if (plan.packs.isNotEmpty() && plan.packs.all { it.id in names }) {
                         dialog.setPositiveButton("Confirm download") { _, _ ->
                             downloadPacks(base, packages, plan.packs.map { it.id })
                         }
                     }
-                    dialog.show()
+                    if (plan.packs.any { it.id !in names }) {\n                        status.text = "Shared dependencies require a compatible pack server; download blocked."\n                    }\n                    dialog.show()
                 }
             } catch (e: Exception) { runOnUiThread { status.text = "Catalog unavailable: ${e.message}" } }
         }
