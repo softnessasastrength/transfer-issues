@@ -100,14 +100,21 @@ internal object OfflineRouter {
         }
         // Explicit forbidden transfers suppress proximity links in that direction.
         val transfers = explicit.toMutableList()
-        val ids = stops.keys.toList()
-        for (i in ids.indices) for (j in ids.indices) {
-            if (i == j) continue
-            val a = ids[i]; val b = ids[j]
-            if ((a to b) in rules) continue
-            val distance = distance(stops.getValue(a), stops.getValue(b))
-            if (distance <= 500.0) {
-                transfers.add(Transfer(a, b, max(60, ceil(distance * 1.3 / 1.25).toInt()), "proximity-estimate"))
+        // Spatial buckets avoid quadratic scans over a regional stop collection.
+        val buckets = mutableMapOf<Pair<Int, Int>, MutableList<String>>()
+        fun cell(s: Stop) = floor(s.lat * 100).toInt() to floor(s.lon * 100).toInt()
+        for ((id, stop) in stops) buckets.getOrPut(cell(stop)) { mutableListOf() }.add(id)
+        for ((a, stop) in stops) {
+            val (cy, cx) = cell(stop)
+            val lonReach = ceil(500.0 / max(1.0, 111000.0 * cos(Math.toRadians(stop.lat))) * 100).toInt() + 1
+            for (y in cy - 2..cy + 2) for (x in cx - lonReach..cx + lonReach) {
+                for (b in buckets[y to x].orEmpty()) {
+                    if (a == b || (a to b) in rules) continue
+                    val distance = distance(stop, stops.getValue(b))
+                    if (distance <= 500.0) {
+                        transfers.add(Transfer(a, b, max(60, ceil(distance * 1.3 / 1.25).toInt()), "proximity-estimate"))
+                    }
+                }
             }
         }
         return Data(stops, links.sortedBy { it.departure }, transfers, agencies)
