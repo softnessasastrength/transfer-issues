@@ -46,7 +46,9 @@ class OfflinePlannerActivity : Activity() {
                         val folder = File(filesDir, "offline")
                         val files = listOf("cttransit", "hartford", "pvta", "amtrak")
                             .map { File(folder, "$it.sqlite") }.filter { it.isFile }
-                        val data = OfflineRouter.read(files, LocalDate.parse(date))
+                        val streetFile = File(folder, "streets.sqlite")
+                        val graph = if (streetFile.isFile) OfflineStreetGraph.load(streetFile) else null
+                        val data = OfflineRouter.read(files, LocalDate.parse(date), graph)
                         val result = OfflineRouter.plan(data, origin, destination, start, start + 18 * 3600)
                         val answer = if (result == null) "No journey in the installed schedule data and 18-hour window."
                         else buildString {
@@ -54,9 +56,9 @@ class OfflinePlannerActivity : Activity() {
                             for (leg in result.legs) append("${leg.route}: ${leg.from} → ${leg.to} (${leg.departure / 60} to ${leg.arrival / 60} minutes) [${leg.source}]\n")
                         }
                         runOnUiThread {
-                            status.text = "Offline calculation finished"
+                            status.text = if (graph != null) "Offline calculation with OSM street graph" else "Offline calculation with geometric walking estimates"
                             AlertDialog.Builder(this@OfflinePlannerActivity).setTitle("Scheduled journey")
-                                .setMessage(answer + "\nWalking connections are estimates, not verified sidewalks.")
+                                .setMessage(answer + "\nWalking connections are estimates, not verified sidewalks. Street graph mode is enabled only when streets.sqlite is installed.")
                                 .setPositiveButton("Close", null).show()
                         }
                     } catch (e: Exception) {
