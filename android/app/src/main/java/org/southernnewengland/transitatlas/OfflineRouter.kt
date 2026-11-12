@@ -11,7 +11,8 @@ import kotlin.math.*
 internal object OfflineRouter {
     data class Stop(val id: String, val name: String, val lat: Double, val lon: Double)
     data class Link(val from: String, val to: String, val departure: Int, val arrival: Int,
-                    val trip: String, val route: String, val sequence: Int)
+                    val trip: String, val route: String, val sequence: Int,
+                    val pickup: Int = 0, val dropoff: Int = 0)
     data class Transfer(val from: String, val to: String, val seconds: Int, val source: String)
     data class Leg(val from: String, val to: String, val departure: Int, val arrival: Int,
                    val route: String, val source: String)
@@ -74,7 +75,7 @@ internal object OfflineRouter {
                     if (active.isEmpty()) continue
                     val shift = (offset - 1) * 86400
                     val placeholders = active.joinToString(",") { "?" }
-                    val sql = """SELECT a.stop,b.stop,a.dep,b.arr,t.id,t.route,a.seq
+                    val sql = """SELECT a.stop,b.stop,a.dep,b.arr,t.id,t.route,a.seq,a.pickup,b.dropoff
                         FROM trips t JOIN times a ON a.trip=t.id
                         JOIN times b ON b.trip=t.id AND b.seq=a.seq+1
                         WHERE t.service IN ($placeholders) ORDER BY a.dep"""
@@ -87,7 +88,8 @@ internal object OfflineRouter {
                             require(a in localStops && b in localStops) { "Broken stop-time references" }
                             require(arrival >= departure) { "Negative scheduled travel time" }
                             links.add(Link(a, b, departure, arrival,
-                                serviceDay.toString() + "|" + c.getString(4), c.getString(5), c.getInt(6)))
+                                serviceDay.toString() + "|" + c.getString(4), c.getString(5), c.getInt(6),
+                                c.getInt(7), c.getInt(8)))
                         }
                     }
                 }
@@ -185,7 +187,7 @@ internal object OfflineRouter {
             if (link.departure < start || link.departure > deadline) continue
             if (link.arrival > deadline) continue
             val continued = onboard[link.trip]?.takeIf { it.first == link.sequence - 1 }?.second
-            val path = continued ?: if ((ready[link.from] ?: Int.MAX_VALUE) <= link.departure) paths[link.from] else null
+            val path = continued ?: if (link.pickup == 0 && (ready[link.from] ?: Int.MAX_VALUE) <= link.departure) paths[link.from] else null
             if (path == null) continue
             val leg = Leg(link.from, link.to, link.departure, link.arrival, link.route, "scheduled")
             val newPath = if (path.lastOrNull()?.route == link.route &&
@@ -193,7 +195,7 @@ internal object OfflineRouter {
                 path.dropLast(1) + path.last().copy(to = link.to, arrival = link.arrival)
             } else path + leg
             onboard[link.trip] = link.sequence to newPath
-            if (link.arrival < (arrivals[link.to] ?: Int.MAX_VALUE)) relax(link.to, link.arrival, newPath)
+            if (link.dropoff == 0 && link.arrival < (arrivals[link.to] ?: Int.MAX_VALUE)) relax(link.to, link.arrival, newPath)
         }
         return arrivals[destination]?.let { Result(it, paths[destination].orEmpty()) }
     }
