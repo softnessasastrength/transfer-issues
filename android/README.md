@@ -36,3 +36,7 @@ Turn on airplane mode and relaunch the app: it should still list locally stored 
 - Safe updates with expiry warnings and rollback; never silently replace user notes
 
 No API keys, credentials, databases, GTFS ZIPs or generated build outputs should be committed. Android's background APIs remain permission- and battery-policy-limited.
+
+## Experimental Mac mini LAN client (new)
+
+See `docs/architecture/lan-android-poc.md`. Build the debug Android variant, run `bash atlas-lan.sh` on the Mac mini, enter its private LAN URL, select agencies and explicitly confirm package downloads. The app can use the existing server planner over Wi-Fi and display a rough native offline GTFS shape/stop map after downloading. It is not a full offline route planner or street map; no device compilation was verified.
