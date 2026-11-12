@@ -100,3 +100,7 @@ Acceptance pending: successful first import on Android, HTTP page and map intera
 
 User selected regional offline architecture B, with the first proof of concept scoped to Connecticut transit and PVTA. Preserve M0 source-validation priorities and existing Termux/web functionality. Initial deliverable: non-destructive SQLite subset exporter with manifest, provenance, and missing-feed reporting. Next: verified PVTA acquisition, complete Connecticut operator inventory, native SQLite/routing and offline vector maps/paths, native GPS, airplane-mode acceptance. **Do not describe the iOS app as fully offline until all tests pass.** See `ios/OFFLINE_POC.md`.
 
+
+## Authorized Android offline client proof of concept (IN PROGRESS)
+
+Build a Kotlin Android Studio project that starts without a network connection, reads the shared CT/PVTA SQLite pack, and supports an exploration-first roadmap. Initial shell reads route inventory from local SQLite and needs Android Studio/device acceptance testing. Subsequent milestones: secure pack import and hash verification, native timetable/routing, offline vector map and paths, native GPS, optional live feeds, airplane-mode route-planning tests. Preserve web/Termux and iOS work; no claim of completed offline journey planning.
