@@ -47,8 +47,8 @@ def clipped(text, width):
 def draw(stdscr, selected, lines, running=False):
     height, width = stdscr.getmaxyx()
     stdscr.erase()
-    if height < 19 or width < 54:
-        stdscr.addstr(0, 0, clipped("Resize terminal to at least 54 x 19; Q quits.", width))
+    if height < 24 or width < 54:
+        stdscr.addstr(0, 0, clipped("Resize terminal to at least 54 x 24; Q quits.", width))
         stdscr.refresh()
         return
     def put(y, x, msg, attr=0):
