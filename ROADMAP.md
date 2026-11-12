@@ -124,3 +124,7 @@ Owner selected official GTFS transfers plus explicitly estimated proximity trans
 ## M0.S — Step 3 offline street graph (DRAFT)
 
 Owner selected OpenStreetMap + SQLite routing graph (architecture B). Added local OSM XML to SQLite graph builder, Python walk/cycle Dijkstra pathfinder, optional Mac mini transit-transfer graph integration, and six synthetic tests. See `docs/architecture/offline-street-routing.md`. No automatic data downloads, full OSM/PBF import, street basemap, Kotlin Android pathfinder, or device validation. Real graph paths remain estimates and do not establish safe/legal/accessibility-compliant passage.
+
+## M0.A — Step 4 Android offline routing (DRAFT)
+
+Owner selected A: Kotlin native offline journey computation. Added a Kotlin SQLite GTFS timetable reader, service calendar and exception logic, interagency walking transfer estimates, connection scan, standalone Android planner screen, and seven synthetic JUnit tests. See `docs/architecture/android-native-offline-routing.md`. Not yet compiled/tested on device; no Kotlin OSM street graph routing or unified pack installer. Must validate correctness, scale, and airplane-mode operation before completion.
