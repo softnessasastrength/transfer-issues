@@ -6,3 +6,9 @@ Routine: docs/simple processing/small edits. Moderate: GTFS/SQL/API/UI/integrati
 
 ## Git workflow
 The authorized project repository is private `softnessasastrength/transfer-issues`. Preserve files and inspect status/remotes/history first. Never replace unrelated remote work or force-push main. Use feature branches, focused commits and pushed work for substantial changes. Open PRs with tests and known limitations; do not automatically merge significant PRs. Low-risk documentation commits may go directly to main if rules permit. Review staged changes for secrets, personal records and oversized/generated files. Keep downloaded feeds, PDFs, SQLite, caches, artifacts and credentials out of Git. At session start, inspect repository rules as well as these instructions.
+
+## Multi-agent handoff and directory instructions
+
+Read `docs/agents/README.md` for the project mission, architecture, scope, quality gates and handoff template. Read the nearest directory `AGENTS.md` before editing `web/`, `android/`, `ios/`, `scripts/` or `tests/`. The user's current product vision is a map-first, offline-first regional transit explorer (conceptually "trains.fyi for regional transit", **not** a clone); see `docs/launch/product-vision.md`. Explore and Travel are equally important.
+
+The CT + PVTA offline proof of concept and Android/iOS skeletons are authorized work in progress, **not completed offline applications**. Verify source data and actual code rather than relying on stale historical roadmap entries. Keep agent instructions and handoffs updated as architecture changes. Do not publish, merge, claim device tests or certify full coverage without evidence.
