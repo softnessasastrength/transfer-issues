@@ -61,3 +61,31 @@ Core priority order remains: GTFS ingestion/normalization → SQLite persistence
 Architecture entries above describe some **intended** behavior. As of repository initialization, browser localStorage/export/import and map interactions are not implemented: `web/app.js` is absent. API documentation now exists. The GTFS pipeline and initial SQLite/router/API modules exist; full routing acceptance tests, current-PDF normalization, source conflict/expiry gates and versioned refresh are incomplete. Raw and normalized data currently share the ignored `data/` directory; logical storage separation is not yet a full versioned provenance architecture. M0 and M0.1 remain IN PROGRESS.
 
 Publication verified on private origin/main. Initial full-source checkpoint: `35543dd5cd98ed33015b4a90db45baef8294dea0` (preceded by README bootstrap commit `35dd98683d1e037f589b67c554cdb0763262103c`). Remote and local tree hashes match. 21 files published; downloaded/generated data excluded and retained locally. 14 tests and compilation/SQLite/API checks passed; no browser-completion claim. No history was rewritten. Ordinary CLI Git still needs authentication. GitHub reports main unprotected; rulesets query is unavailable on the current private-repository plan (HTTP 403). Do not change billing or visibility to resolve this. Enforce the feature-branch/PR policy operationally.
+
+## M0.D — Desktop browser proof of concept (CURRENT DELIVERY PRIORITY)
+
+User clarification on 2026-11-12: first deliver something runnable on the Mac mini and usable in a desktop browser to prove the idea. This explicitly prioritizes connecting the existing UI/backend before deeper ingestion work. Preserve the existing architecture and data; no mobile polish, Apache deployment, PWA, or iOS implementation. A local Python loopback server is sufficient for this proof of concept. The broader M0/M0.1 acceptance criteria remain required and incomplete.
+
+Acceptance: browse real loaded routes on a geographic map; open date-specific timetables; select stops and run outbound/return/latest/reachability queries; save browser-local searches and journal entries with backup export/import; show source dates, coverage gaps and experimental routing limits; provide reproducible local launch instructions and browser tests. Mac hardware validation is not available in this environment and must not be claimed.
+
+## M0.R — Regional/intercity rail and New Hampshire (QUEUED; after current core work)
+
+Core states remain CT, MA and RI. Extended scope adds New Hampshire passenger rail and practical connections for destinations without rail. Preserve GTFS-first / official structured data / reviewed official PDF priority. Do not implement this expansion ahead of M0.D and ingestion reliability.
+
+Relevant services to investigate and verify: Northeast Regional, Acela, Hartford Line / Amtrak Valley Flyer, Vermonter, Lake Shore Limited, Downeaster, and other Amtrak connections within or into the region. Prioritize Downeaster stations in NH, Boston/northern Massachusetts rail connections, relevant intercity buses, then necessary local last-mile transit. Target Exeter, Durham, Dover, Manchester NH, Nashua, Concord and relevant connecting destinations. Clearly distinguish Manchester CT and Manchester NH and direct-rail cities from bus-connected cities using verified sources. Do not infer station service or interchange opportunities from proximity alone.
+
+Dependencies: validated GTFS/calendar normalization; source provenance/activation; reviewed PDF fallback; reliable transfer and return calculations. Additional states/agencies must be configuration additions rather than schema rewrites. Permit verified connecting service outside core boundaries where a complete journey needs it.
+
+Required architectural accommodations (planned, not yet implemented):
+- Replace the importer’s hard-coded geographic rectangle and MBTA rail-only filter with a documented configurable coverage policy. Preserve complete selected trip sequences and necessary out-of-area interchanges; do not draw synthetic rail links over clipped stops.
+- Retain feed-namespaced IDs and mode-neutral trips, times, calendar and transfer tables. Add optional structured operator/ticketing metadata: reservation requirement (including unknown), booking/source URL, boarding restrictions, verified source and applicability. Keep seat availability and fares unknown unless authoritative data explicitly supplies them.
+- Add city/state labels to place discovery; distinguish similarly named destinations. Direct-rail vs bus-required classification needs source evidence.
+- Extend routing results with intercity/ticketing notices, station-specific boarding and transfer constraints, transfer risks and overnight gaps. Timetable feasibility never implies an available reservation, through ticket, guaranteed connection or scooter permission.
+- Preserve every schedule’s source and verification status; no iOS-specific or cloud dependencies.
+
+Acceptance: representative verified interstate/local-bus/commuter-rail/Amtrak/intercity-bus journeys and last returns; fixture tests for restrictions, calendar exceptions, overnight gaps and missing availability; source-linked station/service patterns; clearly labeled direct rail vs required bus connections; no invented fares, seat availability, stops or geometry. Expansion remains unimplemented at this checkpoint.
+
+
+### M0.D status — implemented, acceptance blocked
+
+Desktop controller and loopback launcher are implemented. 17 Python regressions/HTTP tests pass; JS syntax and compilation pass. Real-data Hartford–Springfield outbound/return queries pass. Browser acceptance is blocked by Chromium's denied Unix-domain socket in this executor; the repeatable browser smoke test is supplied but unverified. No macOS execution claim. Do not mark this milestone complete until browser interactions are exercised successfully. No source feeds or existing database were modified during this work.
