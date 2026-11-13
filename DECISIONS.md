@@ -75,3 +75,51 @@ User selected A: fix Kotlin test compilation and establish passing Android debug
 ## Termux development bridge (2026-11-12)
 
 Owner selected all three workflows in stages, with separate draft PRs and no merges. Begin with local loopback server and existing consent-first offline pack installation. Keep GTFS imports explicitly initiated and source-aware; do not claim physical device testing from source-level checks. Defer Android ADB debugging bootstrap to separate Stage 3.
+
+## Crostini Command Center increment — 2026-11-13
+
+- Preserved working Crostini SDK/Java/Gradle and existing source. Baseline commands
+  passed on host: Python 67 tests; Android debug assembly; cached JVM task followed
+  by forced execution of all 22 unit-test dependencies. XML: 30 tests, no failures.
+  Initial sandbox failures and timings documented in the baseline report.
+- Chose existing stdlib curses approach, with separate typed command adapters and
+  a headless JSON interface. No external Python dependency or forced virtualenv.
+- Implemented fixed argv actions, local private logs, atomic per-run JSON records,
+  commit/dirty-status provenance, Git/tool/storage dashboard and streamed APK hashes.
+  Logs and generated outputs remain ignored. No pack, data or device mutations.
+- Loaded upstream PR #43 Butler personality and engineering contract. Current
+  feature branch includes `db18760`; uncommitted work was preserved across refresh.
+- Fresh Kotlin compilation exposed nullable queue-poll warnings, recorded as a
+  follow-up rather than mixing routing changes into developer infrastructure.
+- Command Center mock isolation repaired after adding Git provenance. Terminal
+  launch/Q and headless launcher status passed. Final full Python verification
+  command: `bash crostini-dev.sh test`; acceptance totals recorded below.
+
+- Final full Python suite: **72 tests passed in 0.685s** (including five new adapter
+  tests). `python3 -m developer_center --run doctor` returned 0 and recorded current
+  commit/dirty status. `git diff --check` passed. No physical device, real-feed,
+  browser, APK installation, or full offline acceptance claimed.
+
+### Agent handoff — 2026-11-13
+- Branch / PR: `feature/crostini-command-center`; publication remains a separate step.
+- Scope and authorisation: owner-requested local Crostini baseline and first developer dashboard.
+- Files changed: `developer_center/`, launcher, adapter tests, baseline/runbook, roadmap,
+  decisions and architecture handoff summary.
+- Tests run: 72 Python tests; 30 fresh Android JVM tests; debug assemble; aapt metadata;
+  headless dashboard; curses launch/Q; diff whitespace check.
+- Tests NOT run: physical device, emulator, airplane-mode, current real-feed coverage.
+- Data sources / freshness / coverage: no feed downloads or changes; synthetic tests only.
+- Remaining blockers: optional ADB absent; Kotlin nullable queue warnings; remote CI
+  for new code not observed; broader developer tooling is not yet implemented.
+- Next smallest safe step: review/publish the focused draft, then add read-only test
+  report summaries without conflating historical results with current-tree verification.
+
+- Local commit attempt was blocked by missing Git author identity. Requested a
+  repository-specific name/email; no global settings changed. Reviewed files remain
+  staged and preserved. No push or merge performed during the refresh milestone.
+- Recent-run menu rows now show action/exit/duration/time rather than raw JSON that
+  hid the result beyond normal terminal width. Detailed provenance remains in JSON.
+
+- Git identity setup: owner authorised repository-local configuration using the
+  existing commit author identity, confirmed against the authenticated GitHub name.
+  Global Git configuration was left unchanged; local commit workflow is unblocked.

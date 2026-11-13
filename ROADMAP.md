@@ -152,3 +152,18 @@ User selected A. Step 8 CI successfully built the Android debug APK and passed P
 ## M0.T — Phone-only Termux bridge (AUTHORIZED; staged drafts)
 
 Stage 1: explicit loopback-only Termux Python pack server using existing validated GTFS exporter and Android debug pack installer. Stage 2: source-aware official GTFS import and deterministic catalog integration tests. Stage 3: optional Termux development and wireless ADB debugging. All stages use separate draft PRs; no merges. Device acceptance requires verified stop installation and airplane-mode planner operation. See `docs/architecture/termux-phone-only-stages.md`.
+
+## Crostini Developer Command Center (AUTHORIZED; first increment)
+
+Owner mandate 2026-11-13: inspect repository/toolchain, verify existing Chromebook
+build, then implement a modular developer dashboard and safe command adapters.
+First increment: curses + headless JSON, Git/tool/disk telemetry, fixed Python and
+Android validation commands, local logs/history and APK SHA-256. Acceptance:
+adapter tests, full Python suite, Android task evidence, APK metadata inspection,
+and terminal launch/quit smoke. See `docs/development/developer-command-center.md`
+and `docs/development/baseline-20261113.md` for evidence and limitations.
+
+Future authorised stages remain queued: pack provenance/integrity UI; explicitly
+confirmed clean builds and APK installation; ADB diagnostics; on-demand PR/CI
+inspection; optional artifact transfer. Preserve existing core/ingestion priorities
+and consent rules. No geographic expansion or architectural replacement included.
