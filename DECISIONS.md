@@ -167,3 +167,33 @@ Owner selected all three workflows in stages, with separate draft PRs and no mer
   exited 2. No local source/pack/device changes were performed by inspection.
 - Result-summary draft #45 exact-head CI run `43434668047` subsequently passed both
   Python and Android jobs for `59ef868`.
+
+## CI coverage and standing-directive audit — 2026-11-13
+
+- Followed owner standing directive while completing existing in-flight work.
+  Inspected current workflow, Termux server/validator tests, pack exporter, Python
+  consent installer and Android installer/native planner source. Recorded concrete
+  pack-lifecycle/schema/provenance gaps rather than claiming complete offline support.
+- Found PR path selection omitted developer package and most Python/shell entrypoints.
+  Expanded coverage, compilation and Bash syntax checks. Preserve Python logs with
+  explicit pipefail; always-upload Python/JUnit diagnostics, success-only debug APK.
+  Contents remains read-only; no release workflow, schedule or extra dependency.
+- Three CI contract tests and full suite passed: **90 Python tests** via Command
+  Center. Python compilation and all root Bash syntax checks passed. No new local
+  Gradle/device run required for workflow/Python reporting changes; hosted exact-head
+  Android check is still required before claiming green CI for this slice.
+- New focused branch `feature/ci-developer-tooling-coverage` depends on inspection
+  draft #46 (`cda472b`), which depends on result-summary #45 and dashboard #44.
+  Review in that order; no automatic merge authorised.
+
+### Agent handoff — blitz cycle 2026-11-13
+- Scope: historical test evidence, safe inspection/log panels and CI coverage.
+- Branches/PRs: #44 dashboard; #45 results; #46 inspection; CI-coverage draft follows.
+- Verification: 90 Python tests; 20 developer tests before CI contracts; terminal
+  reports/Git/environment/log/help/Q smoke; headless inspection and traversal denial;
+  Python compile and Bash syntax. Exact-head hosted results recorded separately.
+- Data: no live feeds fetched or installed; synthetic packs only. No device acceptance.
+- Limits: file age/adjacent APK metadata are not source identity; JUnit may be cached;
+  inspection may include private paths; no production release or complete offline claim.
+- Next safe step: verify hosted CI, then strengthen pack validation/recovery fixtures
+  before download management or regional expansion. See engineering audit backlog.

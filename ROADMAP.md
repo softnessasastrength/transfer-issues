@@ -190,3 +190,14 @@ traversal/symlink/FIFO/terminal-control/size-bound and environment-presence test
 full Python regressions; headless inspection and manual terminal navigation.
 No build/source/device mutation is available from inspection pages. No geographic
 or transit-runtime expansion is part of this slice.
+
+### CI coverage and engineering audit — feature blitz continuation
+
+Add verification triggers for Python modules, launchers, scripts and the Command
+Center; compile Python, validate Bash syntax and retain failure diagnostics without
+weakening exit status. Acceptance: path/security/failure-propagation contracts,
+full Python suite and exact-head hosted CI; successful-build-only APK upload remains.
+No release automation or permission expansion. See
+`docs/development/engineering-audit-20261113.md` for observed offline-pack gaps and
+prioritised installer recovery, pack-contract parity, accessibility and offline
+acceptance follow-ups. These preserve existing M0/core and consent priorities.
