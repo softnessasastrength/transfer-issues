@@ -197,3 +197,38 @@ Owner selected all three workflows in stages, with separate draft PRs and no mer
   inspection may include private paths; no production release or complete offline claim.
 - Next safe step: verify hosted CI, then strengthen pack validation/recovery fixtures
   before download management or regional expansion. See engineering audit backlog.
+
+## Agency-pack relational gate and inspection — 2026-11-13
+
+- Continued from `a20635c` (draft #47); clean worktree and upstream inspected.
+  Root/agent/operating/offline/consent instructions reviewed. Main remains `db18760`;
+  rulesets API retains plan-related HTTP 403, main unprotected. No settings changed.
+- Exact-head #47 CI run `43435680730` passed; downloaded artifact evidence confirmed
+  90 Python and 30 Android tests, no failures, with APK/Python/JUnit artifacts.
+- Found verifier accepted a routes-only synthetic database and did not check
+  normalized schema or trip/stop/service references. Added a separate shared-format
+  checker used by the existing export gate; required keys/references, supported
+  chronology/calendar/transfer values and schema now fail closed.
+- Preserve exception-only service, >24-hour times, sequence gaps and absent optional
+  shape geometry. Do not fabricate missing data or reject historical dates as if
+  freshness were established by structure. SQLite connections explicitly close;
+  initial focused tests exposed prior connection ResourceWarnings, corrected here.
+- Strengthened malformed catalogue/identity/size/hash handling, symlink refusal and
+  encoded read-only SQLite paths. Report unmentioned agency keys as `unreported`.
+- Exposed exported-catalogue validation in Command Center P/--inspect packs with
+  explicit non-installation and non-freshness boundaries. No new download action.
+- Tests: 14 focused validator tests and exporter integration passed; full Python
+  suite 100 passed via `python3 -m developer_center --run test`; compile/diff checks
+  passed. Synthetic direct CLI and headless inspection passed; absent CLI/catalogue
+  returns 1 with diagnostics. No live feed or Android/device execution claimed.
+
+### Agent handoff — agency validation cycle
+- Branch: `feature/agency-pack-reference-validation`; based on draft #47 branch.
+- Scope: local export validation + read-only Command Center visibility only.
+- New helper: `scripts/pack_validation.py`; fixtures in `tests/pack_fixtures.py`.
+- Existing gates: Termux server startup and Crostini pack command reuse verifier.
+- Limits: helper is not yet Android/unified-assembler enforcement; source validity,
+  parent/shape completeness, coordinates, trusted manifests and activation recovery
+  remain separate work. No publisher/live-service/device guarantee.
+- Next safe step: exact-head CI, then deterministic installer recovery and Android
+  schema/reference compatibility tests before adding update/download automation.

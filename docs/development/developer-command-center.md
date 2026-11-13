@@ -173,3 +173,12 @@ platform/build-tools presence. These are presence checks, not SDK usability or
 Gradle-build guarantees. It reads no arbitrary environment dump and installs
 nothing. Interactive help explains operations, cache caveats and documentation
 paths. This increment adds no new dependency or network operation.
+
+## Read-only exported-pack validation
+
+Press **P**, or use `--inspect packs --packs /existing/catalogue/directory`, to run
+schema/reference/calendar/integrity validation on local exports. The panel reports
+validated/invalid/unavailable, counts, missing and unreported agency keys. It does
+not inspect Android app-private installed state or perform downloads/installation.
+See [agency-pack validation](agency-pack-validation.md) for exact compatibility,
+commands, acceptance evidence and the limits of structural validation.

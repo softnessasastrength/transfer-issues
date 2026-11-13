@@ -11,7 +11,7 @@ import sys
 from .adapters import ROOT, git_value
 
 HELP = {
-    "navigation": "D dashboard | T test evidence | G git | E environment | L logs | H help | Q quit",
+    "navigation": "D dashboard | T test evidence | G git | E environment | L logs | P packs | H help | Q quit",
     "dashboard": "Up/down selects an operation; Enter starts it. Ctrl+C interrupts the foreground command.",
     "panels": "Up/down scrolls. Left/right selects older/newer log previews. R refreshes on demand.",
     "doctor": "Check the existing Python/SQLite/Gradle toolchain; installs nothing.",
@@ -19,6 +19,7 @@ HELP = {
     "android-test": "Run Gradle debug JVM unit tests; may reuse cached results and download build dependencies.",
     "android-build": "Assemble debug APK incrementally; not a device or airplane-mode test.",
     "logs": "Displays only the last 64 KiB of a regular local .log file; no log files are deleted.",
+    "packs": "Validate existing exported local packs; does not download/install or certify current service.",
     "privacy": "Logs and inspection output can contain private paths. Review before sharing.",
     "references": "docs/development/developer-command-center.md | docs/development/baseline-20261113.md",
 }
@@ -75,5 +76,21 @@ def log_preview(output: Path, name: str) -> dict:
         result.update(status='available', bytes=info.st_size, truncated=start > 0,
                       text=safe.expandtabs(4), modified_epoch=info.st_mtime)
     except (OSError, ValueError) as exc:
+        result['detail'] = str(exc)
+    return result
+
+
+def pack_inspection(directory: Path = ROOT / 'build/lan-packs') -> dict:
+    """Validate already-exported local packs; never install or fetch networks."""
+    from scripts.verify_lan_catalog import verify
+
+    result = {"directory": str(directory), "status": "unavailable",
+              "scope": "Exported local catalogue; not Android-installed coverage or current service",
+              "limitations": "No publisher authentication, freshness, basemap or complete-offline certification"}
+    try:
+        result.update(verify(directory))
+        result['status'] = 'validated'
+    except (OSError, ValueError) as exc:
+        result['status'] = 'invalid' if (directory / 'catalog.json').exists() else 'unavailable'
         result['detail'] = str(exc)
     return result

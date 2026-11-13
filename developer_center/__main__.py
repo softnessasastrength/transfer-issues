@@ -9,10 +9,10 @@ from pathlib import Path
 import sys
 
 from .adapters import COMMANDS, ROOT, run_action, snapshot
-from .inspection import HELP, environment, git_inspection, log_preview, logs
+from .inspection import HELP, environment, git_inspection, log_preview, logs, pack_inspection
 
 
-def menu(screen, output: Path) -> None:
+def menu(screen, output: Path, packs: Path) -> None:
     report_offset = 0
     page = "dashboard"
     log_index = 0
@@ -30,7 +30,8 @@ def menu(screen, output: Path) -> None:
                  f"APKs discovered: {len(state['artifacts'])}",
                  "Changes: " + (state['changes'].replace('\n', ' | ') or "clean"), ""]
         lines += [("> " if i == selected else "  ") + action for i, action in enumerate(actions)]
-        lines += ["", message, "Enter run | arrows select | T reports | G git | E env | L logs | H help | Q quit",
+        lines += ["", message, "Enter run | arrows select | R refresh | Q quit",
+                  "D dashboard | T reports | G git | E env | L logs | P packs | H help",
                   "Logs/history: " + str(output),
                   "Recent recorded runs (not a current-tree certification):"]
         for record in state['history'][:3]:
@@ -62,13 +63,14 @@ def menu(screen, output: Path) -> None:
                           f"Metadata: {metadata['status']} | {metadata.get('application_id', '?')}",
                           f"Version: {metadata.get('version_name', '?')} ({metadata.get('version_code', '?')})",
                           "Adjacent metadata; not verified against APK bytes"]
-        if page in ('git', 'environment', 'help'):
-            data = git_inspection() if page == 'git' else environment() if page == 'environment' else HELP
+        if page in ('git', 'environment', 'help', 'packs'):
+            data = {'git': git_inspection, 'environment': environment,
+                    'packs': lambda: pack_inspection(packs), 'help': lambda: HELP}[page]()
             lines = [f"{page.upper()} (read-only) | D dashboard | H help | Q quit", ""]
             for label, value in data.items():
                 lines.append(label + ':')
                 if isinstance(value, dict):
-                    lines.extend(f'{k}: {v}' for k, v in value.items())
+                    lines.extend(json.dumps(value, indent=2).splitlines())
                 else:
                     lines.extend(str(value).splitlines() or ['(none)'])
                 lines.append('')
@@ -96,7 +98,7 @@ def menu(screen, output: Path) -> None:
         if key in (ord('q'), ord('Q')):
             return
         navigation = {'d': 'dashboard', 't': 'reports', 'g': 'git',
-                      'e': 'environment', 'l': 'logs', 'h': 'help', '?': 'help'}
+                      'e': 'environment', 'l': 'logs', 'p': 'packs', 'h': 'help', '?': 'help'}
         letter = chr(key).lower() if 0 <= key <= 255 else ''
         if letter in navigation:
             page = navigation[letter]
@@ -131,16 +133,19 @@ def main() -> int:
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument('--status', action='store_true', help='Print dashboard JSON without running builds')
     modes.add_argument('--run', choices=COMMANDS, help='Run one fixed operation and save its result')
-    modes.add_argument('--inspect', choices=('git', 'environment', 'logs', 'help'), help='Read-only inspection JSON')
+    modes.add_argument('--inspect', choices=('git', 'environment', 'logs', 'packs', 'help'), help='Read-only inspection JSON')
     modes.add_argument('--log', help='Preview one saved .log filename as safe JSON')
     parser.add_argument('--output', type=Path, default=Path(os.environ.get(
         'ATLAS_DEV_OUTPUT', str(ROOT / 'build/developer-center'))), help='Local log/history directory')
+    parser.add_argument('--packs', type=Path, default=ROOT / 'build/lan-packs',
+                        help='Existing local catalogue directory to validate (no downloads)')
     args = parser.parse_args()
     if args.inspect:
         data = {'git': git_inspection, 'environment': environment,
-                'logs': lambda: logs(args.output), 'help': lambda: HELP}[args.inspect]()
+                'logs': lambda: logs(args.output), 'packs': lambda: pack_inspection(args.packs),
+                'help': lambda: HELP}[args.inspect]()
         print(json.dumps(data, indent=2))
-        return 0
+        return (0 if data['status'] == 'validated' else 1) if args.inspect == 'packs' else 0
     if args.log:
         try:
             result = log_preview(args.output, args.log)
@@ -157,7 +162,7 @@ def main() -> int:
         return result.exit_code if result.exit_code >= 0 else 128 - result.exit_code
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         parser.error('Interactive terminal required; use --status or --run')
-    curses.wrapper(menu, args.output)
+    curses.wrapper(menu, args.output, args.packs)
     return 0
 
 

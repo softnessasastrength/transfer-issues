@@ -201,3 +201,19 @@ No release automation or permission expansion. See
 `docs/development/engineering-audit-20261113.md` for observed offline-pack gaps and
 prioritised installer recovery, pack-contract parity, accessibility and offline
 acceptance follow-ups. These preserve existing M0/core and consent priorities.
+
+## Agency-pack relational validation (AUTHORIZED; synthetic acceptance verified)
+
+Continuation of the standing engineering directive: strengthen the existing local
+Termux/Crostini catalogue gate with normalized schema/key/reference/calendar/time
+checks and expose the same read-only result in Command Center P/--inspect packs.
+Acceptance: reject malformed/NULL/dangling/duplicate/checksum-correct invalid packs;
+preserve exception-only overnight service and sequence gaps without changing bytes;
+verify actual exporter compatibility, CLI failure diagnostics and 100-test regression
+suite. See `docs/development/agency-pack-validation.md` for exact rules/evidence.
+Real-feed/device/scale acceptance remains pending. No new downloads, agency installs,
+pack repair, geometry synthesis, storage cap or activation architecture change.
+
+Next: compatible Android validation and interrupted-activation recovery; retain
+current source integrity and consent priorities. Unified assembler/Android parity
+must not be inferred from this Python export-gate implementation.
