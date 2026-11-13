@@ -1,11 +1,21 @@
 # Android Studio starter: offline CT + PVTA Transit Atlas
 
-This is a **native Android proof-of-concept shell** using Kotlin and Android's built-in SQLite APIs. It opens offline, detects a local database, and lists up to 100 routes from it. It does **not** yet offer an offline map, trip routing, or GPS.
+This native Android proof of concept includes explicit agency-pack downloads,
+SQLite checks, native timetable/transfer routing, optional street-graph routing and
+a geographic stop/shape preview. It is not a fully accepted offline application:
+licensed offline basemap, GPS and device/airplane-mode acceptance remain pending.
+
+Current local checkpoint: **44 JVM tests passed and debug APK assembly succeeded**,
+including 14 deterministic pack activation/recovery tests. See
+[activation and recovery](../docs/architecture/android-pack-activation-recovery.md).
+The older staged notes below are historical; their unexecuted-test/absent-routing
+statements do not describe the current source checkpoint. JVM/build success does
+not establish working Android-device behaviour.
 
 ## Open in Android Studio
 
 1. Install Android Studio with Android SDK 35 and JDK 17.
-2. Clone the repo and check out `feature/android-offline-shell`.
+2. Clone the repo and use the feature branch under review; preserve stacked draft dependencies.
 3. Open the **android/** directory as a project, let Gradle sync, then Run on an emulator or your phone.
 4. Android Studio can generate the missing Gradle wrapper for this source skeleton, or use your locally installed Gradle 8.9 to generate it. No wrapper binary is committed.
 

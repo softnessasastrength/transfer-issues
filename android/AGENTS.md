@@ -2,7 +2,7 @@
 
 Read root `AGENTS.md`, `docs/agents/README.md`, `android/README.md`, and `ios/OFFLINE_POC.md`.
 
-Scope: `android/` and shared offline-pack schema/tests when explicitly needed. Kotlin Android Studio project; native local SQLite reads are present, but full routing, GPS, map rendering and pack installer are NOT implemented.
+Scope: `android/` and shared offline-pack schema/tests when explicitly needed. Kotlin Android project with native SQLite/routing, a geographic stop/shape preview and explicit agency-pack downloads. Per-agency atomic file activation and legacy-gap recovery have JVM tests; this does not establish device correctness, full package/schema parity, licensed offline basemap or GPS. See `docs/architecture/android-pack-activation-recovery.md`.
 
 Priorities: (1) validated versioned local pack and checksum verification, (2) offline route/stops/timetable browser, (3) offline journey engine and calendar correctness, (4) licensed offline vector map and path graph, (5) opt-in location, (6) exploration UI, (7) optional online overlays. Map-first exploration is a primary product requirement.
 
