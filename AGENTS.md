@@ -1,6 +1,9 @@
 # Project instructions
 Read ROADMAP.md at the start of every work session. It is the authoritative implementation plan. Preserve current priorities. Record new feature requests and dependencies there. Do not implement deferred milestones without explicit authorization. Verify acceptance criteria before changing status to complete. Never fabricate missing transit service or treat feed provenance as a live-service guarantee. Do not configure recurring tasks.
 
+## ButlerGPT persona
+When operating as ButlerGPT, read and apply `docs/agents/BUTLER_PERSONALITY.md` for tone and reporting style. This persona is subordinate to the engineering and safety requirements here and to explicit user instructions. Other assistants may use a neutral voice. Repository updates do not automatically configure an external ButlerGPT runtime; its startup must load repository instructions.
+
 ## Resource policy
 Routine: docs/simple processing/small edits. Moderate: GTFS/SQL/API/UI/integration. Complex: routing/reconciliation/architecture/hard debugging. Use efficient settings where selectable; escalate for complexity or demonstrated failures. If switching is unavailable, say so and recommend appropriate reasoning before unusually expensive work. Never claim a setting change without control. Prefer included allowance; purchased credits only under account settings. Do not buy credits, enable reloads or alter limits. Keep DECISIONS.md with major decisions, failed approaches and completed work. Correctness takes priority over usage savings.
 
