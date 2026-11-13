@@ -9,11 +9,13 @@ from pathlib import Path
 import sys
 
 from .adapters import COMMANDS, ROOT, run_action, snapshot
+from .inspection import HELP, environment, git_inspection, log_preview, logs
 
 
 def menu(screen, output: Path) -> None:
     report_offset = 0
-    reports_view = False
+    page = "dashboard"
+    log_index = 0
     selected = 0
     message = "No operation started. R refreshes; Q quits."
     actions = list(COMMANDS)
@@ -28,7 +30,7 @@ def menu(screen, output: Path) -> None:
                  f"APKs discovered: {len(state['artifacts'])}",
                  "Changes: " + (state['changes'].replace('\n', ' | ') or "clean"), ""]
         lines += [("> " if i == selected else "  ") + action for i, action in enumerate(actions)]
-        lines += ["", message, "Enter run | arrows select | T reports | R refresh | Q quit",
+        lines += ["", message, "Enter run | arrows select | T reports | G git | E env | L logs | H help | Q quit",
                   "Logs/history: " + str(output),
                   "Recent recorded runs (not a current-tree certification):"]
         for record in state['history'][:3]:
@@ -38,11 +40,11 @@ def menu(screen, output: Path) -> None:
                 lines.append(f"{record.get('action', '?')}: exit {record['exit_code']} "
                              f"in {record.get('seconds', '?')}s "
                              f"at {record.get('started_utc', '?')}")
-        if reports_view:
+        if page == "reports":
             python = state['test_results']['python']
             android = state['test_results']['android']
             lines = ["LOCAL TEST AND APK EVIDENCE (historical; tree not verified)",
-                     "T dashboard | arrows scroll | R refresh | Q quit", "",
+                     "D dashboard | arrows scroll | R refresh | Q quit", "",
                      f"Python: {python['status']} | {python.get('tests', '?')} tests",
                      f"Started: {python.get('started_utc', '?')}",
                      f"Commit: {python.get('commit') or 'unknown'}",
@@ -60,9 +62,30 @@ def menu(screen, output: Path) -> None:
                           f"Metadata: {metadata['status']} | {metadata.get('application_id', '?')}",
                           f"Version: {metadata.get('version_name', '?')} ({metadata.get('version_code', '?')})",
                           "Adjacent metadata; not verified against APK bytes"]
-        if reports_view:
+        if page in ('git', 'environment', 'help'):
+            data = git_inspection() if page == 'git' else environment() if page == 'environment' else HELP
+            lines = [f"{page.upper()} (read-only) | D dashboard | H help | Q quit", ""]
+            for label, value in data.items():
+                lines.append(label + ':')
+                if isinstance(value, dict):
+                    lines.extend(f'{k}: {v}' for k, v in value.items())
+                else:
+                    lines.extend(str(value).splitlines() or ['(none)'])
+                lines.append('')
+        elif page == 'logs':
+            available = logs(output)
+            log_index = min(log_index, max(0, len(available) - 1))
+            lines = ["LOG PREVIEW | left/right selects | arrows scroll | D dashboard | Q quit"]
+            if available:
+                preview = log_preview(output, available[log_index]['name'])
+                lines += [f"Log {log_index + 1}/{len(available)}: {preview['name']}",
+                          f"{preview['status']} | tail limited to 64 KiB | no files deleted", '']
+                lines += preview.get('detail', preview['text']).splitlines()
+            else:
+                lines += ['No saved regular .log files. Run an operation from the dashboard.']
+        if page != "dashboard":
             report_offset = min(report_offset, max(0, len(lines) - max(1, height - 1)))
-        visible = lines[report_offset:] if reports_view else lines
+        visible = lines[report_offset:] if page != "dashboard" else lines
         for row, line in enumerate(visible[:max(0, height - 1)]):
             try:
                 screen.addnstr(row, 0, line, max(0, width - 1))
@@ -72,14 +95,20 @@ def menu(screen, output: Path) -> None:
         key = screen.getch()
         if key in (ord('q'), ord('Q')):
             return
-        if key in (ord('t'), ord('T')):
-            reports_view = not reports_view
+        navigation = {'d': 'dashboard', 't': 'reports', 'g': 'git',
+                      'e': 'environment', 'l': 'logs', 'h': 'help', '?': 'help'}
+        letter = chr(key).lower() if 0 <= key <= 255 else ''
+        if letter in navigation:
+            page = navigation[letter]
             report_offset = 0
-        elif reports_view:
+        elif page != 'dashboard':
             if key == curses.KEY_DOWN:
                 report_offset += 1
             elif key == curses.KEY_UP:
                 report_offset = max(0, report_offset - 1)
+            elif page == 'logs' and key in (curses.KEY_LEFT, curses.KEY_RIGHT):
+                log_index = max(0, log_index + (1 if key == curses.KEY_RIGHT else -1))
+                report_offset = 0
             continue
         elif key == curses.KEY_DOWN:
             selected = (selected + 1) % len(actions)
@@ -99,13 +128,26 @@ def menu(screen, output: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--status', action='store_true', help='Print dashboard JSON without running builds')
-    parser.add_argument('--run', choices=COMMANDS, help='Run one fixed operation and save its result')
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--status', action='store_true', help='Print dashboard JSON without running builds')
+    modes.add_argument('--run', choices=COMMANDS, help='Run one fixed operation and save its result')
+    modes.add_argument('--inspect', choices=('git', 'environment', 'logs', 'help'), help='Read-only inspection JSON')
+    modes.add_argument('--log', help='Preview one saved .log filename as safe JSON')
     parser.add_argument('--output', type=Path, default=Path(os.environ.get(
         'ATLAS_DEV_OUTPUT', str(ROOT / 'build/developer-center'))), help='Local log/history directory')
     args = parser.parse_args()
-    if args.status and args.run:
-        parser.error('--status and --run are mutually exclusive')
+    if args.inspect:
+        data = {'git': git_inspection, 'environment': environment,
+                'logs': lambda: logs(args.output), 'help': lambda: HELP}[args.inspect]()
+        print(json.dumps(data, indent=2))
+        return 0
+    if args.log:
+        try:
+            result = log_preview(args.output, args.log)
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2))
+        return 0 if result['status'] == 'available' else 1
     if args.status:
         print(json.dumps(snapshot(output=args.output), indent=2))
         return 0

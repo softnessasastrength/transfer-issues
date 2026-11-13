@@ -180,3 +180,13 @@ Depends on draft #44; use a separate stacked draft, no merge.
 Next focused slice: read-only Git branch/history view, saved-log browsing, keyboard
 help and richer environment information. Downloads, pack mutations, device installs,
 clean builds and transit-engine changes retain their existing approval/consent gates.
+
+### Inspection-panel acceptance — first blitz slice
+
+Read-only Git and environment panels, help, safe saved-log tail browsing and JSON
+inspection modes are implemented on `feature/crostini-inspection-panels`, stacked
+on result-summary draft #45 (which depends on #44). Acceptance: deterministic
+traversal/symlink/FIFO/terminal-control/size-bound and environment-presence tests;
+full Python regressions; headless inspection and manual terminal navigation.
+No build/source/device mutation is available from inspection pages. No geographic
+or transit-runtime expansion is part of this slice.

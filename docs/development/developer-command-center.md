@@ -129,3 +129,47 @@ All evidence includes `current_tree_verified: false`. Age is based on filesystem
 modification time, clamped at zero for future clocks; copying files can change it.
 Neither a recent timestamp nor an identical commit proves a clean, complete test
 execution. Reading these summaries never launches builds or changes reports.
+
+## Inspection panels and saved-log browser (third increment)
+
+The dashboard now has direct navigation: **D** dashboard, **T** test evidence,
+**G** Git, **E** environment, **L** logs and **H** (or ?) help. Q exits anywhere.
+Up/down selects build operations on D and scrolls text on other pages. R refreshes
+on demand. In L, left selects a newer log and right an older one; up/down scrolls
+the current preview. Builds execute with Enter only on D. Returning to D is now
+explicit; T selects evidence rather than toggling back.
+
+Headless equivalents (mutually exclusive with --run/--status):
+
+```bash
+python3 -m developer_center --inspect git
+python3 -m developer_center --inspect environment
+python3 -m developer_center --inspect logs
+python3 -m developer_center --inspect help
+python3 -m developer_center --log EXISTING_FILENAME.log
+```
+
+`--output` / `ATLAS_DEV_OUTPUT` also select the log-browsing directory. A log preview
+returns exit 1 when unavailable, and invalid filename input exits 2. The log list
+includes all regular .log files in newest-first order, independent of result JSON,
+so interrupted operations can still be inspected. Its full JSON output lists names,
+byte counts and filesystem timestamps. The terminal displays a 64 KiB tail; the
+complete file remains available locally. Long lines are clipped to terminal width;
+use headless JSON or a trusted local editor for full lines. A tail can start in the
+middle of a UTF-8 character; undecodable bytes are replaced, not treated as failure.
+
+The reader rejects paths outside the selected directory, symlinks and nonregular
+files (including FIFOs) and opens files without following the final symlink. It
+uses bounded reads and strips nonprinting control characters to prevent saved
+terminal escape sequences being replayed. It retains newline/tab layout; colour
+sequences may remain as inert visible bracket fragments. No files are rotated,
+truncated or deleted. A concurrent writer may mean a preview is incomplete.
+
+Git inspection shows local branch/commit/status, local branch tips and the eight
+most recent commit subjects. It never fetches, switches branches, exposes remote
+URLs or changes Git configuration. The environment page checks Python/SQLite
+versions, executable paths and the launcher-selected SDK environment's Android 35
+platform/build-tools presence. These are presence checks, not SDK usability or
+Gradle-build guarantees. It reads no arbitrary environment dump and installs
+nothing. Interactive help explains operations, cache caveats and documentation
+paths. This increment adds no new dependency or network operation.

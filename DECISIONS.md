@@ -143,3 +143,27 @@ Owner selected all three workflows in stages, with separate draft PRs and no mer
   needed for these Python-only read/report changes; no device test claimed.
 - Deferred direct attribution of XML/APK to a source tree: existing outputs have no
   reliable cryptographic source binding. File age is evidence age, not certification.
+
+## Command Center inspection panels — 2026-11-13
+
+- Result-summary slice published as draft #45, head `59ef868`, base #44 branch.
+  Its Python CI passed; Android CI was still running at initial inspection.
+- Added `inspection.py` for on-demand local Git/SDK/tool presence and regular-log
+  tail reads. D/T/G/E/L/H navigation and exclusive headless inspection/log modes.
+- Log previews refuse traversal, symlinks and special files using no-follow,
+  nonblocking open plus regular-file validation; read at most the last 64 KiB,
+  neutralise control characters and preserve the full source file. No network,
+  device/pack mutation, setup changes, branch checkout or cleanup action added.
+- Six new deterministic tests passed after correcting a fixture's mistaken byte
+  count; final test checks actual source bytes remain unchanged. All 20 developer
+  tests passed. Full suite via `python3 -m developer_center --run test`: 87 passed.
+- Python compilation, diff whitespace and headless Git/environment/help inspection
+  passed. Actual environment presence matches the existing Android 35 installation;
+  tool presence does not replace build execution. No Android/device rerun claimed.
+- User-authorised blitz is delivered as focused stacked PRs, not an architectural
+  rewrite. Larger pack/device/clean-build features retain existing consent gates.
+- Terminal smoke exercised G Git, E environment, L saved-log view (including Enter
+  without launching a build), H help and Q exit. Invalid headless traversal input
+  exited 2. No local source/pack/device changes were performed by inspection.
+- Result-summary draft #45 exact-head CI run `43434668047` subsequently passed both
+  Python and Android jobs for `59ef868`.
