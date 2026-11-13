@@ -123,3 +123,23 @@ Owner selected all three workflows in stages, with separate draft PRs and no mer
 - Git identity setup: owner authorised repository-local configuration using the
   existing commit author identity, confirmed against the authenticated GitHub name.
   Global Git configuration was left unchanged; local commit workflow is unblocked.
+
+## Command Center historical result summaries — 2026-11-13
+
+- Draft #44 is published at `29c7141`; exact-head CI run `43433186472` passed both
+  Python and Android jobs and uploaded the debug APK artifact. No merge performed.
+- New branch `feature/crostini-result-summaries` is stacked on #44 (still open).
+  Owner requested next task and then a scoped Command Center feature blitz.
+- Added read-only unittest-log parsing, JUnit XML aggregation and adjacent Gradle
+  APK metadata with source timestamps and explicit unverified-current-tree labels.
+  Terminal reports view scrolls and disables build execution while open.
+- Nine new deterministic regressions cover false-green hazards: nonzero command
+  exit, later failures, missing newest logs, empty/incomplete output, skipped suites,
+  malformed/invalid XML and mismatched/duplicate APK metadata.
+- `python3 -m unittest discover -s tests -p 'test_developer*.py' -v`: 14 passed.
+  `python3 -m developer_center --run test`: exit 0; full suite 81 tests passed.
+  Headless status read real saved evidence: Python 81; historical Android XML 30;
+  metadata application ID matched the known debug artifact. No Android rerun was
+  needed for these Python-only read/report changes; no device test claimed.
+- Deferred direct attribution of XML/APK to a source tree: existing outputs have no
+  reliable cryptographic source binding. File age is evidence age, not certification.

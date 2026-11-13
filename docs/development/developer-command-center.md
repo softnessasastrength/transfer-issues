@@ -93,3 +93,39 @@ need a concrete target preview and confirmation. PR/CI integrations must tolerat
 missing authentication and run only on demand. A virtual environment is optional
 for the present standard-library implementation and was not created merely to
 provide another directory to maintain.
+
+## Historical result summaries (second increment)
+
+Press **T** to toggle the reports view. Up/down scrolls this view; Enter cannot run
+builds while viewing reports. Q exits and R refreshes. `--status` exposes the same
+information under `test_results` and each artifact's `metadata`.
+
+Python evidence comes from the newest `test` record among the dashboard's ten most
+recent records and its sibling `.log` file. The record's arbitrary `log` field is
+not followed. This also permits moving a complete history directory. The parser
+streams logs and uses the last recognised unittest count/verdict. A nonzero command
+exit overrides passing text; missing/incomplete/empty summaries never report passed.
+If the newest test log is missing it does not fall back to an older green result.
+Old records without commit information retain unknown provenance. Counts may include
+skipped tests; this is a summary of unittest output, not an independent test runner.
+
+Android evidence reads Gradle `TEST-*.xml` under
+`android/app/build/test-results/testDebugUnitTest`. Suite counters are added across
+reports; malformed XML, missing/negative/inconsistent counters or unsupported nested
+suite structures make the aggregate invalid. A directory with no reports is
+unavailable; an empty or entirely skipped result is `no-tests`. Simple `testsuite`
+and flat `testsuites` documents are supported. Counters are publisher-provided,
+not independently checked against individual testcase elements. Files may be from
+different runs, branches or cached builds; per-file times are exposed, and no
+current-checkout certification is inferred from them.
+
+APK information is read from adjacent `output-metadata.json`, matched uniquely by
+APK filename. It shows application ID, variant and version when present. Malformed,
+missing and ambiguous metadata remain visible. This metadata is not extracted from
+or cryptographically bound to APK contents. Use aapt/signature tooling separately
+when identity/signing verification is needed.
+
+All evidence includes `current_tree_verified: false`. Age is based on filesystem
+modification time, clamped at zero for future clocks; copying files can change it.
+Neither a recent timestamp nor an identical commit proves a clean, complete test
+execution. Reading these summaries never launches builds or changes reports.

@@ -12,6 +12,8 @@ import subprocess
 import time
 import uuid
 
+from .reports import apk_metadata, junit_results, python_result
+
 ROOT = Path(__file__).resolve().parents[1]
 COMMANDS = {
     key: ("bash", "crostini-dev.sh", key)
@@ -88,9 +90,17 @@ def git_value(root: Path, *args: str) -> str:
 def snapshot(root: Path = ROOT, output: Path | None = None) -> dict:
     output = output or root / "build" / "developer-center"
     history = []
+    python_selected = False
+    python = {"status": "unavailable", "current_tree_verified": False}
     for path in sorted(output.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:10]:
         try:
-            history.append(json.loads(path.read_text()))
+            record = json.loads(path.read_text())
+            history.append(record)
+            if not python_selected and isinstance(record, dict) and record.get('action') == 'test':
+                # Only the newest recorded Python run is selected, even if its log is absent.
+                python = python_result(path.with_suffix('.log'), record)
+                python['record_source'] = str(path)
+                python_selected = True
         except (OSError, ValueError):
             history.append({"error": f"Unreadable history: {path.name}"})
     artifacts = []
@@ -100,7 +110,7 @@ def snapshot(root: Path = ROOT, output: Path | None = None) -> dict:
             for chunk in iter(lambda: stream.read(1024 * 1024), b""):
                 digest.update(chunk)
         artifacts.append({"path": str(path.relative_to(root)), "bytes": path.stat().st_size,
-                          "sha256": digest.hexdigest()})
+                          "sha256": digest.hexdigest(), "metadata": apk_metadata(path)})
     usage = shutil.disk_usage(root)
     return {"branch": git_value(root, "branch", "--show-current"),
             "commit": git_value(root, "rev-parse", "--short", "HEAD"),
@@ -108,4 +118,6 @@ def snapshot(root: Path = ROOT, output: Path | None = None) -> dict:
             "tools": {name: shutil.which(name) is not None
                       for name in ("python3", "git", "java", "gradle", "adb")},
             "disk_free_bytes": usage.free, "disk_total_bytes": usage.total,
-            "history": history, "artifacts": artifacts}
+            "history": history, "artifacts": artifacts,
+            "test_results": {"python": python, "android": junit_results(
+                root / "android/app/build/test-results/testDebugUnitTest")}}

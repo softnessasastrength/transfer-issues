@@ -167,3 +167,16 @@ Future authorised stages remain queued: pack provenance/integrity UI; explicitly
 confirmed clean builds and APK installation; ADB diagnostics; on-demand PR/CI
 inspection; optional artifact transfer. Preserve existing core/ingestion priorities
 and consent rules. No geographic expansion or architectural replacement included.
+
+### Command Center result evidence and feature blitz — 2026-11-13
+
+Owner requested the next task, then a Command Center feature blitz. First focused
+slice: read-only Python/unittest summaries, Android JUnit XML counters and adjacent
+APK metadata, with explicit historical provenance and source timestamps. Acceptance:
+malformed/missing/failed/empty evidence cannot appear as current-tree success;
+synthetic regressions, full Python suite, headless and terminal reports-view smoke.
+Depends on draft #44; use a separate stacked draft, no merge.
+
+Next focused slice: read-only Git branch/history view, saved-log browsing, keyboard
+help and richer environment information. Downloads, pack mutations, device installs,
+clean builds and transit-engine changes retain their existing approval/consent gates.

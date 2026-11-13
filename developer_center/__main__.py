@@ -12,6 +12,8 @@ from .adapters import COMMANDS, ROOT, run_action, snapshot
 
 
 def menu(screen, output: Path) -> None:
+    report_offset = 0
+    reports_view = False
     selected = 0
     message = "No operation started. R refreshes; Q quits."
     actions = list(COMMANDS)
@@ -26,7 +28,7 @@ def menu(screen, output: Path) -> None:
                  f"APKs discovered: {len(state['artifacts'])}",
                  "Changes: " + (state['changes'].replace('\n', ' | ') or "clean"), ""]
         lines += [("> " if i == selected else "  ") + action for i, action in enumerate(actions)]
-        lines += ["", message, "Enter run | arrows select | R refresh | Q quit",
+        lines += ["", message, "Enter run | arrows select | T reports | R refresh | Q quit",
                   "Logs/history: " + str(output),
                   "Recent recorded runs (not a current-tree certification):"]
         for record in state['history'][:3]:
@@ -36,7 +38,32 @@ def menu(screen, output: Path) -> None:
                 lines.append(f"{record.get('action', '?')}: exit {record['exit_code']} "
                              f"in {record.get('seconds', '?')}s "
                              f"at {record.get('started_utc', '?')}")
-        for row, line in enumerate(lines[:max(0, height - 1)]):
+        if reports_view:
+            python = state['test_results']['python']
+            android = state['test_results']['android']
+            lines = ["LOCAL TEST AND APK EVIDENCE (historical; tree not verified)",
+                     "T dashboard | arrows scroll | R refresh | Q quit", "",
+                     f"Python: {python['status']} | {python.get('tests', '?')} tests",
+                     f"Started: {python.get('started_utc', '?')}",
+                     f"Commit: {python.get('commit') or 'unknown'}",
+                     f"Working tree at start: {python.get('changes', 'unknown')!r}",
+                     f"Log age: {python.get('age_seconds', '?')}s",
+                     "", f"Android XML: {android['status']} | {android['tests']} tests",
+                     f"Failures {android['failures']} | errors {android['errors']} | skipped {android['skipped']}",
+                     android['provenance']]
+            lines += [f"{Path(r['source']).name}: {r['tests']} tests, age {r['age_seconds']}s"
+                      for r in android['reports']]
+            lines += [f"Invalid: {r['source']} {r['detail']}" for r in android['issues']]
+            for artifact in state['artifacts']:
+                metadata = artifact['metadata']
+                lines += ["", artifact['path'],
+                          f"Metadata: {metadata['status']} | {metadata.get('application_id', '?')}",
+                          f"Version: {metadata.get('version_name', '?')} ({metadata.get('version_code', '?')})",
+                          "Adjacent metadata; not verified against APK bytes"]
+        if reports_view:
+            report_offset = min(report_offset, max(0, len(lines) - max(1, height - 1)))
+        visible = lines[report_offset:] if reports_view else lines
+        for row, line in enumerate(visible[:max(0, height - 1)]):
             try:
                 screen.addnstr(row, 0, line, max(0, width - 1))
             except curses.error:
@@ -45,7 +72,16 @@ def menu(screen, output: Path) -> None:
         key = screen.getch()
         if key in (ord('q'), ord('Q')):
             return
-        if key == curses.KEY_DOWN:
+        if key in (ord('t'), ord('T')):
+            reports_view = not reports_view
+            report_offset = 0
+        elif reports_view:
+            if key == curses.KEY_DOWN:
+                report_offset += 1
+            elif key == curses.KEY_UP:
+                report_offset = max(0, report_offset - 1)
+            continue
+        elif key == curses.KEY_DOWN:
             selected = (selected + 1) % len(actions)
         elif key == curses.KEY_UP:
             selected = (selected - 1) % len(actions)
