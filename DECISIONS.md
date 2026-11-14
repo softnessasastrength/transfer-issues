@@ -79,3 +79,22 @@ Owner selected all three workflows in stages, with separate draft PRs and no mer
 ## Reachability Explorer primary-feature decision (2026-11-14)
 
 Owner explicitly prioritized a map-first answer to practical car-free accessibility: a visit to a specific destination at a specified time is only useful if outbound arrival, stay duration, and return-home feasibility are considered. Public transit is the backbone, with optional walking, scooter, ferry, intercity rail and ride-hailing connections where verified and permitted. A static route or geometric radius is insufficient. Keep hard constraints separate from transit-first preference; expose uncertainty and rejected alternatives. Add deterministic synthetic and metamorphic tests before real-world correctness claims. This session records the design and roadmap only; implementation, tests, device validation and merges are not claimed. See `docs/features/reachability-explorer.md`.
+
+## Percival Explore alignment comparison — 2026-11-14
+
+- Inspected the clean Android worktree at `16ae740`, fetched upstream and found
+  merged Reachability Explorer priority #52 at `6545f58`. Prepared the comparison
+  in a separate documentation worktree based on upstream main.
+- Reviewed Percival PR #18 at `27b6026` and PDF-priority PR #19 at `658d25d`.
+  Downloaded hosted JSON artifacts for successful source runs `43645696751` and
+  `43644898840` and inspected actual source IDs, hashes, selected routes and boards.
+- New evidence includes successful official CT/PVTA snapshots. 905W is a trip
+  pattern inside route 905 in this snapshot. Bright Meadow has several candidate
+  stops, and Jewish Home's candidate source label is Jewish House. Record explicit
+  mapping verification before enabling private origin profiles.
+- Executed an anonymous two-stop API exercise confirming outbound reachability can
+  coexist with a failed return. Proposed reuse of Atlas scan/plan/latest and
+  Percival source/version/timezone invariants with a shared operational contract.
+- Report identifies PDF-priority/freshness decisions, published timetable conflicts,
+  the importer geography limit and the gap between current API and full Explore.
+  Requested implementation remains planned pending the evidence contract and tests.

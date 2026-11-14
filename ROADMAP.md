@@ -160,3 +160,21 @@ Owner priority set 2026-11-14: the atlas must answer *where can I go, arrive by 
 Support time-dependent travel-time surfaces and destination/arrive-by/round-trip queries; buses, regional/intercity rail, ferries, walking, and eligible micromobility; optional user-authorized ride-hailing as a priced fallback. Separate hard constraints, mode preferences, and policy ranking. Explain rejections, transfer risk, missing data, last departures, source freshness, and estimated versus verified information. No invented fares, routes, street paths, or live service. Offline selected-network support is a binding goal, not a shell-only claim.
 
 **Execution order:** preserve current M0 ingestion, calendar, transfer, map, and offline verification priorities as prerequisites; then deterministic reachability core and synthetic regression laboratory; destination/return UX; geographic surfaces; provider adapters; cross-client integration. Specification and acceptance criteria: [docs/features/reachability-explorer.md](docs/features/reachability-explorer.md). Current status: documentation only, no passing tests or working map claimed. Keep implementation in separate reviewed PRs; no merge authorized.
+
+### M0.RE — Percival Explore alignment request (2026-11-14)
+
+Owner requested alignment with Percival Explore through an overlap/gap report and
+narrow reuse-first plan. The desired query starts from a user-local Bright Meadow
+or Jewish Home profile and finds complete same-day return outings under leave,
+home-by and minimum-dwell constraints. Requested evidence includes Hartford Line,
+CTtransit 905/905W and 80/82/83/84, PVTA G5/R10/R14, and NYP/BOS when verified.
+Explore prefers the applicable reviewed official PDF and date-specific exceptions,
+with explained Unknown states for incomplete required evidence. Resolve the scope
+of this preference against M0.1 and align freshness rules during contract review.
+
+See `docs/architecture/percival-explore-alignment.md` for inspected commits, source
+artifacts, existing CSA/API reuse, route-pattern identity and a staged integration
+plan. Start with a common evidence/constraint contract and synthetic return/dwell
+regressions, then a small orchestrator over existing routing and verified source
+adapters. Preserve Android work, explicit agency consent and current M0.RE delivery
+sequence. Implementation and source-backed round-trip acceptance remain pending.
