@@ -16,3 +16,7 @@ The CT + PVTA offline proof of concept and Android/iOS skeletons are authorized 
 ## Offline capability outranks storage size
 
 Read `docs/architecture/offline-storage-policy.md` before proposing data packaging, maps, routing, caching or download changes. The owner explicitly accepts multi-gigabyte local datasets. Do not trade away airplane-mode functionality, detail or coverage to reduce storage footprint. Internet is optional for core operation; no arbitrary app-imposed pack size limit, and no silent pruning of user-selected regions. Verify real offline behavior rather than claiming that a local database alone constitutes a full offline app.
+
+## User-controlled transit network installation
+
+Read `docs/features/choose-transit-network.md` before implementing onboarding, downloads, package manifests, updates, offline data management or agency discovery. The user selects agencies and explicitly approves initial downloads and any newly required coverage. Auto-update authorization applies only to installed selected networks and disclosed dependencies; never silently add another agency. Shared maps/routing dependencies require a transparent review. Do not claim PVTA or other feed coverage without verified data.
