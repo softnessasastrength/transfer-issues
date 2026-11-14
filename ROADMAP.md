@@ -95,3 +95,8 @@ Desktop controller and loopback launcher are implemented. 17 Python regressions/
 User requested Android/Termux execution of the current proof of concept. Scope: reuse Python/SQLite in Termux with Chrome on the same phone through loopback; document package setup, private repository authentication, first import, subsequent launches, stopping and browser-local data. `TERMUX.md` supplies the runbook. This does not authorize the deferred PWA/native-app/Apache milestones or mobile design overhaul. No backend restructuring is necessary for this launch path.
 
 Acceptance pending: successful first import on Android, HTTP page and map interaction on that phone, timetable and return-trip query, journal persistence across restart. No Android device is attached here, so instructions are not a claim of successful phone execution. Preserve the current M0.D/core work and queued M0.R expansion.
+
+## Authorized iOS offline proof of concept: Connecticut + PVTA (IN PROGRESS)
+
+User selected regional offline architecture B, with the first proof of concept scoped to Connecticut transit and PVTA. Preserve M0 source-validation priorities and existing Termux/web functionality. Initial deliverable: non-destructive SQLite subset exporter with manifest, provenance, and missing-feed reporting. Next: verified PVTA acquisition, complete Connecticut operator inventory, native SQLite/routing and offline vector maps/paths, native GPS, airplane-mode acceptance. **Do not describe the iOS app as fully offline until all tests pass.** See `ios/OFFLINE_POC.md`.
+
