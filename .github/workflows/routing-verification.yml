@@ -3,10 +3,10 @@ on:
   pull_request:
     paths:
       - 'android/**'
-      - 'routing.py'
-      - 'transfer_edges.py'
-      - 'street_routing.py'
-      - 'scripts/build_street_graph.py'
+      - '*.py'
+      - '*.sh'
+      - 'scripts/**'
+      - 'developer_center/**'
       - 'tests/**'
       - '.github/workflows/routing-verification.yml'
   workflow_dispatch:
@@ -22,10 +22,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile routing modules
-        run: python -m py_compile routing.py transfer_edges.py street_routing.py scripts/build_street_graph.py
-      - name: Run synthetic routing tests
-        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Compile Python application and developer tools
+        run: python -m compileall -q ./*.py scripts developer_center tests
+      - name: Validate launcher shell syntax
+        run: |
+          for script in ./*.sh; do bash -n "$script"; done
+      - name: Run synthetic regression tests
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build/ci
+          python -m unittest discover -s tests -p 'test_*.py' -v 2>&1 | tee build/ci/python-tests.log
+      - name: Upload Python test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transit-atlas-python-test-log
+          path: build/ci/python-tests.log
+          retention-days: 7
 
   android-debug:
     runs-on: ubuntu-latest
@@ -50,4 +64,11 @@ jobs:
         with:
           name: transit-atlas-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+      - name: Upload Android JVM test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transit-atlas-android-junit
+          path: android/app/build/test-results/testDebugUnitTest/*.xml
           retention-days: 7

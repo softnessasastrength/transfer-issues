@@ -20,8 +20,10 @@ Build an **offline-first, map-first regional transit explorer**: explore an enti
 - Python stdlib GTFS ingestion, SQLite, routing and HTTP API in repo root.
 - Browser/Leaflet UI in `web/`; `atlas.sh` launches Mac/Linux/Termux server.
 - iOS SwiftUI + WKWebView skeleton in `ios/`, currently requires a reachable backend.
-- Android Kotlin/SQLite skeleton in `android/`, can list local route records but cannot yet plan offline trips.
+- Android Kotlin/SQLite client in `android/` includes native timetable/transfer routing, a street-graph reader and planner UI. Local JVM tests and debug build passed on 2026-11-13; device and full airplane-mode acceptance remain unverified.
 - `scripts/build_offline_poc.py` exports selected CT/PVTA SQLite data and a provenance manifest; not yet a complete statewide or fully offline app.
+- Crostini developer dashboard in `developer_center/` wraps fixed `crostini-dev.sh` commands with private local logs/history and APK checksums; see `docs/development/developer-command-center.md`.
+- Exported agency packs are checked by `scripts/verify_lan_catalog.py` and `scripts/pack_validation.py`; the read-only Command Center P panel uses the same gate. This is not Android installer parity or complete offline certification.
 - Proposed branding and Play Store content in `docs/launch/` are **drafts**, not release-approved claims.
 
 ## Required quality gates

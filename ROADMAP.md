@@ -153,28 +153,81 @@ User selected A. Step 8 CI successfully built the Android debug APK and passed P
 
 Stage 1: explicit loopback-only Termux Python pack server using existing validated GTFS exporter and Android debug pack installer. Stage 2: source-aware official GTFS import and deterministic catalog integration tests. Stage 3: optional Termux development and wireless ADB debugging. All stages use separate draft PRs; no merges. Device acceptance requires verified stop installation and airplane-mode planner operation. See `docs/architecture/termux-phone-only-stages.md`.
 
-## M0.RE — Reachability Explorer (PRIMARY PRODUCT FEATURE; SPECIFIED, NOT IMPLEMENTED)
+## Crostini Developer Command Center (AUTHORIZED; first increment)
 
-Owner priority set 2026-11-14: the atlas must answer *where can I go, arrive by a specified time, stay for a visit, and still get home without personally driving?* This is a first-class map-first experience alongside individual route planning, not a decorative isochrone overlay. Example: reach an address in Wethersfield by 3:00 PM on a weekday and evaluate the outbound and return journey from Enfield. A transit itinerary alone does not establish practical accessibility.
+Owner mandate 2026-11-13: inspect repository/toolchain, verify existing Chromebook
+build, then implement a modular developer dashboard and safe command adapters.
+First increment: curses + headless JSON, Git/tool/disk telemetry, fixed Python and
+Android validation commands, local logs/history and APK SHA-256. Acceptance:
+adapter tests, full Python suite, Android task evidence, APK metadata inspection,
+and terminal launch/quit smoke. See `docs/development/developer-command-center.md`
+and `docs/development/baseline-20261113.md` for evidence and limitations.
 
-Support time-dependent travel-time surfaces and destination/arrive-by/round-trip queries; buses, regional/intercity rail, ferries, walking, and eligible micromobility; optional user-authorized ride-hailing as a priced fallback. Separate hard constraints, mode preferences, and policy ranking. Explain rejections, transfer risk, missing data, last departures, source freshness, and estimated versus verified information. No invented fares, routes, street paths, or live service. Offline selected-network support is a binding goal, not a shell-only claim.
+Future authorised stages remain queued: pack provenance/integrity UI; explicitly
+confirmed clean builds and APK installation; ADB diagnostics; on-demand PR/CI
+inspection; optional artifact transfer. Preserve existing core/ingestion priorities
+and consent rules. No geographic expansion or architectural replacement included.
 
-**Execution order:** preserve current M0 ingestion, calendar, transfer, map, and offline verification priorities as prerequisites; then deterministic reachability core and synthetic regression laboratory; destination/return UX; geographic surfaces; provider adapters; cross-client integration. Specification and acceptance criteria: [docs/features/reachability-explorer.md](docs/features/reachability-explorer.md). Current status: documentation only, no passing tests or working map claimed. Keep implementation in separate reviewed PRs; no merge authorized.
+### Command Center result evidence and feature blitz — 2026-11-13
 
-### M0.RE — Percival Explore alignment request (2026-11-14)
+Owner requested the next task, then a Command Center feature blitz. First focused
+slice: read-only Python/unittest summaries, Android JUnit XML counters and adjacent
+APK metadata, with explicit historical provenance and source timestamps. Acceptance:
+malformed/missing/failed/empty evidence cannot appear as current-tree success;
+synthetic regressions, full Python suite, headless and terminal reports-view smoke.
+Depends on draft #44; use a separate stacked draft, no merge.
 
-Owner requested alignment with Percival Explore through an overlap/gap report and
-narrow reuse-first plan. The desired query starts from a user-local Bright Meadow
-or Jewish Home profile and finds complete same-day return outings under leave,
-home-by and minimum-dwell constraints. Requested evidence includes Hartford Line,
-CTtransit 905/905W and 80/82/83/84, PVTA G5/R10/R14, and NYP/BOS when verified.
-Explore prefers the applicable reviewed official PDF and date-specific exceptions,
-with explained Unknown states for incomplete required evidence. Resolve the scope
-of this preference against M0.1 and align freshness rules during contract review.
+Next focused slice: read-only Git branch/history view, saved-log browsing, keyboard
+help and richer environment information. Downloads, pack mutations, device installs,
+clean builds and transit-engine changes retain their existing approval/consent gates.
 
-See `docs/architecture/percival-explore-alignment.md` for inspected commits, source
-artifacts, existing CSA/API reuse, route-pattern identity and a staged integration
-plan. Start with a common evidence/constraint contract and synthetic return/dwell
-regressions, then a small orchestrator over existing routing and verified source
-adapters. Preserve Android work, explicit agency consent and current M0.RE delivery
-sequence. Implementation and source-backed round-trip acceptance remain pending.
+### Inspection-panel acceptance — first blitz slice
+
+Read-only Git and environment panels, help, safe saved-log tail browsing and JSON
+inspection modes are implemented on `feature/crostini-inspection-panels`, stacked
+on result-summary draft #45 (which depends on #44). Acceptance: deterministic
+traversal/symlink/FIFO/terminal-control/size-bound and environment-presence tests;
+full Python regressions; headless inspection and manual terminal navigation.
+No build/source/device mutation is available from inspection pages. No geographic
+or transit-runtime expansion is part of this slice.
+
+### CI coverage and engineering audit — feature blitz continuation
+
+Add verification triggers for Python modules, launchers, scripts and the Command
+Center; compile Python, validate Bash syntax and retain failure diagnostics without
+weakening exit status. Acceptance: path/security/failure-propagation contracts,
+full Python suite and exact-head hosted CI; successful-build-only APK upload remains.
+No release automation or permission expansion. See
+`docs/development/engineering-audit-20261113.md` for observed offline-pack gaps and
+prioritised installer recovery, pack-contract parity, accessibility and offline
+acceptance follow-ups. These preserve existing M0/core and consent priorities.
+
+## Agency-pack relational validation (AUTHORIZED; synthetic acceptance verified)
+
+Continuation of the standing engineering directive: strengthen the existing local
+Termux/Crostini catalogue gate with normalized schema/key/reference/calendar/time
+checks and expose the same read-only result in Command Center P/--inspect packs.
+Acceptance: reject malformed/NULL/dangling/duplicate/checksum-correct invalid packs;
+preserve exception-only overnight service and sequence gaps without changing bytes;
+verify actual exporter compatibility, CLI failure diagnostics and 100-test regression
+suite. See `docs/development/agency-pack-validation.md` for exact rules/evidence.
+Real-feed/device/scale acceptance remains pending. No new downloads, agency installs,
+pack repair, geometry synthesis, storage cap or activation architecture change.
+
+Next: compatible Android validation and interrupted-activation recovery; retain
+current source integrity and consent priorities. Unified assembler/Android parity
+must not be inferred from this Python export-gate implementation.
+
+## Android per-agency activation recovery (AUTHORIZED; local JVM/build acceptance)
+
+Next reliability slice after #48: replace the active-name gap with a synced backup
+copy and atomic replacement, serialize existing download staging across Activity
+instances, and recover a legacy previous pack when active is absent. Recovery checks
+a copy using SQLite integrity, preserves previous bytes and never promotes partial
+downloads or fetches data. Existing consent and per-agency filenames are unchanged.
+
+Acceptance observed locally: 14 new failure/recovery/concurrency JVM tests; 44 total
+Android tests without failures/errors/skips; successful debug assembly; 100 Python
+regressions. See `docs/architecture/android-pack-activation-recovery.md`. Exact-head
+CI and physical Android/process-death/power-loss tests remain separate gates. No
+multi-agency transaction, trusted manifest or complete-offline guarantee is claimed.

@@ -4,7 +4,7 @@ set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 usage() {
-  printf '%s\n' 'Usage: bash crostini-dev.sh [doctor|test|serve|packs|android-test|android-build|adb-devices]'
+  printf '%s\n' 'Usage: bash crostini-dev.sh [doctor|test|serve|packs|android-test|android-build|adb-devices|command-center]'
 }
 case "${1:-doctor}" in
   doctor)
@@ -14,6 +14,10 @@ case "${1:-doctor}" in
     python3 -c 'import sys,sqlite3,ssl; print("Python",sys.version.split()[0], "SQLite",sqlite3.sqlite_version); assert sys.version_info >= (3,11), "Python 3.11+ required"'
     if command -v gradle >/dev/null 2>&1; then gradle --version | head -n 8; else echo "Gradle not found. CI uses Gradle 8.9; do not rely on the Debian apt Gradle version."; fi
     if command -v adb >/dev/null 2>&1; then adb version | head -n 1; else echo "ADB not installed (optional)."; fi
+    ;;
+  command-center)
+    shift
+    exec python3 -m developer_center "$@"
     ;;
   test)
     python3 -m unittest discover -s tests -p 'test_*.py' -v

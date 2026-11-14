@@ -24,6 +24,7 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var host: EditText
     private lateinit var checks: Map<String, CheckBox>
+    private val packStore by lazy { AgencyPackStore(folder) }
     private val folder get() = File(filesDir, "offline").apply { mkdirs() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,9 +53,27 @@ class MainActivity : Activity() {
         val browser = Button(this).apply { text = "Open Mac mini atlas (LAN)" }
         val offline = Button(this).apply { text = "Explore installed offline map" }
         outer.addView(download); outer.addView(browser); outer.addView(offline)
-        outer.addView(Button(this).apply { text = "Plan journey offline (Kotlin)"; setOnClickListener { startActivity(Intent(this@MainActivity, OfflinePlannerActivity::class.java)) } })
+        val planner = Button(this).apply { text = "Plan journey offline (Kotlin)"; setOnClickListener { startActivity(Intent(this@MainActivity, OfflinePlannerActivity::class.java)) } }
+        outer.addView(planner)
         setContentView(ScrollView(this).apply { addView(outer) })
-        status.text = installedSummary()
+        val packButtons = listOf(download, offline, planner)
+        packButtons.forEach { it.isEnabled = false }
+        status.text = "Checking interrupted pack activation…"
+        thread {
+            val restored = mutableListOf<String>()
+            val issues = mutableListOf<String>()
+            for (name in names) {
+                try {
+                    if (packStore.recover(name, ::verifySqlite)) restored.add(name)
+                } catch (e: Exception) { issues.add("$name: ${e.message}") }
+            }
+            runOnUiThread {
+                status.text = installedSummary() +
+                    (if (restored.isEmpty()) "" else "\nRecovered previous pack: ${restored.joinToString()}") +
+                    (if (issues.isEmpty()) "" else "\nRecovery needs attention: ${issues.joinToString()}")
+                packButtons.forEach { it.isEnabled = true }
+            }
+        }
         download.setOnClickListener { review() }
         browser.setOnClickListener {
             try {
@@ -114,53 +133,53 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun verifySqlite(file: File) {
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+            db.rawQuery("PRAGMA integrity_check", null).use { cursor ->
+                require(cursor.moveToFirst() && cursor.getString(0) == "ok") { "SQLite integrity failed" }
+            }
+        }
+    }
+
     private fun downloadPacks(base: String, packages: JSONObject, selected: List<String>) {
         status.text = "Downloading selected packs…"
         thread {
             try {
-                for (name in selected) {
-                    val info = packages.getJSONObject(name)
-                    val expected = info.getString("sha256")
-                    val size = info.getLong("bytes")
-                    val temp = File(folder, ".$name.download")
-                    try {
-                        val connection = URL("$base/api/v1/packs/download/$name").openConnection() as HttpURLConnection
-                        connection.connectTimeout = 10000
-                        connection.readTimeout = 60000
+                packStore.withExclusiveAccess {
+                    for (name in selected) {
+                        val info = packages.getJSONObject(name)
+                        val expected = info.getString("sha256")
+                        val size = info.getLong("bytes")
+                        val temp = packStore.staged(name)
                         try {
-                            require(connection.responseCode == 200) { "HTTP ${connection.responseCode} for $name" }
-                            val md = MessageDigest.getInstance("SHA-256")
-                            var received = 0L
-                            connection.inputStream.use { input ->
-                                temp.outputStream().use { output ->
-                                    val buffer = ByteArray(65536)
-                                    while (true) {
-                                        val n = input.read(buffer)
-                                        if (n < 0) break
-                                        output.write(buffer, 0, n)
-                                        md.update(buffer, 0, n)
-                                        received += n
+                            val connection = URL("$base/api/v1/packs/download/$name").openConnection() as HttpURLConnection
+                            connection.connectTimeout = 10000
+                            connection.readTimeout = 60000
+                            try {
+                                require(connection.responseCode == 200) { "HTTP ${connection.responseCode} for $name" }
+                                val md = MessageDigest.getInstance("SHA-256")
+                                var received = 0L
+                                connection.inputStream.use { input ->
+                                    temp.outputStream().use { output ->
+                                        val buffer = ByteArray(65536)
+                                        while (true) {
+                                            val n = input.read(buffer)
+                                            if (n < 0) break
+                                            output.write(buffer, 0, n)
+                                            md.update(buffer, 0, n)
+                                            received += n
+                                        }
+                                        output.fd.sync()
                                     }
                                 }
-                            }
-                            val actual = md.digest().joinToString("") { "%02x".format(it) }
-                            require(received == size && actual.equals(expected, true)) { "Integrity check failed: $name" }
-                            SQLiteDatabase.openDatabase(temp.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
-                                db.rawQuery("PRAGMA integrity_check", null).use { c ->
-                                    require(c.moveToFirst() && c.getString(0) == "ok") { "SQLite integrity failed: $name" }
-                                }
-                            }
-                            // Replace only after verification; previous pack retained on failure.
-                            val target = File(folder, "$name.sqlite")
-                            val backup = File(folder, "$name.previous.sqlite")
-                            if (target.exists()) { backup.delete(); require(target.renameTo(backup)) }
-                            if (!temp.renameTo(target)) {
-                                if (backup.exists()) backup.renameTo(target)
-                                error("Could not activate $name")
-                            }
-                        } finally { connection.disconnect() }
-                    } finally { temp.delete() }
-                }
+                                val actual = md.digest().joinToString("") { "%02x".format(it) }
+                                require(received == size && actual.equals(expected, true)) { "Integrity check failed: $name" }
+                                verifySqlite(temp)
+                                packStore.activate(name)
+                            } finally { connection.disconnect() }
+                        } finally { temp.delete() }
+                    }
+                } // Serialize staging/verification/activation across download threads.
                 runOnUiThread { status.text = "Verified and installed. " + installedSummary() }
             } catch (e: Exception) { runOnUiThread { status.text = "Install stopped: ${e.message}. Existing packs preserved where possible." } }
         }
