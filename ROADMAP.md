@@ -120,3 +120,7 @@ Architecture B selected: Python Mac mini backend and native Kotlin Android routi
 ## M0.T — Step 2 interagency transfer routing (DRAFT)
 
 Owner selected official GTFS transfers plus explicitly estimated proximity transfers, respecting forbidden links and the existing boarding buffer. Added `transfer_edges.py`, integrated priority-queue walking relaxation into the Python connection scan, and synthetic tests. See `docs/architecture/interagency-transfer-routing.md`. No pedestrian street verification, real-feed validation, or native Android Kotlin journey planner yet. Step 3 requires a street-network data source/format decision.
+
+## M0.S — Step 3 offline street graph (DRAFT)
+
+Owner selected OpenStreetMap + SQLite routing graph (architecture B). Added local OSM XML to SQLite graph builder, Python walk/cycle Dijkstra pathfinder, optional Mac mini transit-transfer graph integration, and six synthetic tests. See `docs/architecture/offline-street-routing.md`. No automatic data downloads, full OSM/PBF import, street basemap, Kotlin Android pathfinder, or device validation. Real graph paths remain estimates and do not establish safe/legal/accessibility-compliant passage.

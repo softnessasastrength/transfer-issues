@@ -1,5 +1,6 @@
 """Connection scan routing. No live data; geographic transfers are estimates."""
-import math, functools, collections, heapq, itertools
+import math, functools, collections, heapq, itertools, os
+from street_routing import StreetGraph
 from transfer_edges import edges, transfer_rules
 from database import query,connections,coverage
 INF=10**15
@@ -14,10 +15,15 @@ def network():
  rules=transfer_rules(stops,query('SELECT * FROM transfers'))
  return stops,None,rules
 
+@functools.lru_cache(maxsize=2)
+def configured_street_graph(path):
+ return StreetGraph(path) if path else None
+
 @functools.lru_cache(maxsize=24)
 def transfer_graph(radius,mode):
  stops,_,_=network()
- return edges(stops,query('SELECT * FROM transfers'),radius=radius,mode=mode)
+ return edges(stops,query('SELECT * FROM transfers'),radius=radius,mode=mode,
+              street_graph=configured_street_graph(os.environ.get('ATLAS_STREET_GRAPH','')))
 
 @functools.lru_cache(maxsize=50000)
 def neighbors(sid,radius,mode):
