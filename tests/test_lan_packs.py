@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from scripts.build_lan_packs import build
+from scripts.verify_lan_catalog import verify
 
 
 class LanPackTests(unittest.TestCase):
@@ -33,6 +34,7 @@ class LanPackTests(unittest.TestCase):
             catalog = build(source, root / "packs")
             self.assertEqual(set(catalog["packages"]), {"cttransit"})
             self.assertIn("pvta", catalog["missing_agencies"])
+            self.assertEqual(verify(root / "packs")["verified"]["cttransit"]["routes"], 1)
             p = catalog["packages"]["cttransit"]
             file = root / "packs" / p["filename"]
             with file.open("rb") as f:
