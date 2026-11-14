@@ -55,3 +55,7 @@ User selected A: prioritize native Android Kotlin offline journey calculations, 
 ## Native Android street graph integration (2026-11-12)
 
 User selected B: integrate the existing OSM/SQLite street graph into Kotlin Android journey routing. A local street graph replaces geometric transfer estimates when installed; missing graph paths are rejected rather than silently approximated. No network routing, implicit agency downloads, or claims of verified sidewalks. Validation, pack delivery and scale are pending.
+
+## Step 6 visual Android journey planner (2026-11-12)
+
+User chose D: prioritize stop search, map-based origin/destination selection and visual itinerary presentation. Preserve all existing transit/OSM routing and LAN download functionality. Native geographic stop canvas is offline, but does not imply a street basemap or verified pedestrian route. Tests committed but not executed.

@@ -132,3 +132,7 @@ Owner selected A: Kotlin native offline journey computation. Added a Kotlin SQLi
 ## M0.AS — Native Android street routing (DRAFT)
 
 Owner selected B from the next-stage choices: Kotlin native street graph integration. Added `OfflineStreetGraph.kt` for Step 3's SQLite format, directed walk/cycle shortest paths, graph-derived interagency transfer times, and seven synthetic Kotlin JUnit tests. Planner optionally loads app-private `streets.sqlite`; without it, proximity estimates remain. See `docs/architecture/android-native-street-routing.md`. No build/device tests executed, in-app street pack installation, or regional performance validation yet.
+
+## M0.V — Step 6 visual Android journey planner (DRAFT)
+
+User selected D: searchable stop names/IDs, touch-selectable offline geographic stop map, and named leg-by-leg itinerary presentation. Added `JourneyUiModel.kt`, `StopPickerMap.kt`, updated `OfflinePlannerActivity.kt`, and nine synthetic JUnit tests. See `docs/architecture/android-visual-journey-planner.md`. No offline street basemap, zoom/pan, Gradle compilation, device testing or routing correctness verification yet.
