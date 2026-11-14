@@ -112,3 +112,7 @@ Authorized on 2026-11-12: a Python standard-library backend proof of concept for
 ## M0.L — Mac mini ↔ Android LAN backend and offline preview (DRAFT POC)
 
 Explicitly authorized: one-command local Python server, per-agency local GTFS SQLite exports and HTTP catalog/download, native Android agency picker with approval and SHA-256 verification, LAN WebView for the existing server planner, and native offline GTFS route-shape preview. See `docs/architecture/lan-android-poc.md`. No live source availability or device testing is claimed. Full native offline routing, licensed street basemap, and pedestrian graph remain missing; this work must not displace M0 core validation.
+
+## M0.U — Unified offline transit network (STEP 1, DRAFT)
+
+Architecture B selected: Python Mac mini backend and native Kotlin Android routing in later steps. Implemented `scripts/assemble_offline_network.py` to combine explicitly selected agency SQLite packs into one validated, atomically replaced offline routing dataset, plus six synthetic tests. See `docs/architecture/unified-offline-network.md`. No fabricated interagency transfers, native Android journey planner, or real-device validation. Step 2 requires explicit transfer policy and then connection-scan routing against the combined network.

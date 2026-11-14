@@ -35,3 +35,7 @@
 - User authorized a same-phone Termux proof of concept. Inspected the current launcher and pure-standard-library backend: no platform-specific runtime dependency or architecture rewrite is required.
 - Added TERMUX.md for official package setup, GitHub browser authentication for the private repository, feature-branch checkout, one-time ingestion, loopback browser access, restart/stop and Android process limits. Verified the gh package exists in the official Termux repository and consulted official Termux/GitHub CLI documentation.
 - No phone access is available; Termux/Android acceptance remains pending. This is a documented execution path, not a tested device deployment. No PWA/native app, background tasks or feed refresh was implemented.
+
+## Unified offline routing architecture decision (2026-11-12)
+
+User selected B: Python for Mac mini GTFS preparation/LAN backend and native Kotlin for offline Android routing. Step 1 adds unified selected-agency SQLite assembly with checksums and fail-closed reference validation; no new agency downloads or invented transfer links. Next choice: how to handle interagency transfers before street graph availability. This is draft code; synthetic tests are not claimed executed.
