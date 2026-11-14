@@ -1,6 +1,7 @@
 package org.southernnewengland.transitatlas
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.content.Context
 import android.graphics.Canvas
@@ -51,6 +52,7 @@ class MainActivity : Activity() {
         val browser = Button(this).apply { text = "Open Mac mini atlas (LAN)" }
         val offline = Button(this).apply { text = "Explore installed offline map" }
         outer.addView(download); outer.addView(browser); outer.addView(offline)
+        outer.addView(Button(this).apply { text = "Plan journey offline (Kotlin)"; setOnClickListener { startActivity(Intent(this@MainActivity, OfflinePlannerActivity::class.java)) } })
         setContentView(ScrollView(this).apply { addView(outer) })
         status.text = installedSummary()
         download.setOnClickListener { review() }
