@@ -39,3 +39,7 @@
 ## Unified offline routing architecture decision (2026-11-12)
 
 User selected B: Python for Mac mini GTFS preparation/LAN backend and native Kotlin for offline Android routing. Step 1 adds unified selected-agency SQLite assembly with checksums and fail-closed reference validation; no new agency downloads or invented transfer links. Next choice: how to handle interagency transfers before street graph availability. This is draft code; synthetic tests are not claimed executed.
+
+## Step 2 transfer policy (2026-11-12)
+
+User chose B: official transfers plus clearly labeled estimated walking transfers. Explicit forbidden rules win over proximity, directed transfer rules remain directed, and published minimum transfer times and the 3-minute personal buffer must be respected. Implementation is draft Python for Mac mini testing; do not describe geometric paths as verified sidewalks. Next decision is offline pedestrian/cycling graph strategy.
