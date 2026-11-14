@@ -72,6 +72,29 @@ User selected B: validate Python and Kotlin with identical golden fixtures and e
 
 User selected A: fix Kotlin test compilation and establish passing Android debug build and Python/Kotlin golden parity CI before expanding routing. Keep all prior work and stacked draft PRs unmerged.
 
-## Chromebook Crostini development (2026-11-12)
+## Termux development bridge (2026-11-12)
 
-Owner requested a Chromebook development workflow in addition to Termux. Separate draft PR from main for local tests, Python backend, GTFS pack export, optional Android build and ADB device inspection. Do not depend on unmerged Termux PRs for core commands; independently verified pack catalogs require Stage 2 validator. No automatic network exposure or merge.
+Owner selected all three workflows in stages, with separate draft PRs and no merges. Begin with local loopback server and existing consent-first offline pack installation. Keep GTFS imports explicitly initiated and source-aware; do not claim physical device testing from source-level checks. Defer Android ADB debugging bootstrap to separate Stage 3.
+
+## Reachability Explorer primary-feature decision (2026-11-14)
+
+Owner explicitly prioritized a map-first answer to practical car-free accessibility: a visit to a specific destination at a specified time is only useful if outbound arrival, stay duration, and return-home feasibility are considered. Public transit is the backbone, with optional walking, scooter, ferry, intercity rail and ride-hailing connections where verified and permitted. A static route or geometric radius is insufficient. Keep hard constraints separate from transit-first preference; expose uncertainty and rejected alternatives. Add deterministic synthetic and metamorphic tests before real-world correctness claims. This session records the design and roadmap only; implementation, tests, device validation and merges are not claimed. See `docs/features/reachability-explorer.md`.
+
+## Percival Explore alignment comparison — 2026-11-14
+
+- Inspected the clean Android worktree at `16ae740`, fetched upstream and found
+  merged Reachability Explorer priority #52 at `6545f58`. Prepared the comparison
+  in a separate documentation worktree based on upstream main.
+- Reviewed Percival PR #18 at `27b6026` and PDF-priority PR #19 at `658d25d`.
+  Downloaded hosted JSON artifacts for successful source runs `43645696751` and
+  `43644898840` and inspected actual source IDs, hashes, selected routes and boards.
+- New evidence includes successful official CT/PVTA snapshots. 905W is a trip
+  pattern inside route 905 in this snapshot. Bright Meadow has several candidate
+  stops, and Jewish Home's candidate source label is Jewish House. Record explicit
+  mapping verification before enabling private origin profiles.
+- Executed an anonymous two-stop API exercise confirming outbound reachability can
+  coexist with a failed return. Proposed reuse of Atlas scan/plan/latest and
+  Percival source/version/timezone invariants with a shared operational contract.
+- Report identifies PDF-priority/freshness decisions, published timetable conflicts,
+  the importer geography limit and the gap between current API and full Explore.
+  Requested implementation remains planned pending the evidence contract and tests.
