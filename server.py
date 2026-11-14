@@ -1,9 +1,10 @@
 """Loopback HTTP development server; API contract in API.md."""
 from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from urllib.parse import urlparse,parse_qs
-import argparse,datetime,json,pathlib,functools,os
+import argparse,datetime,json,pathlib,os
 import database as db
 import routing
+import bubble as bubble_mod
 ROOT=pathlib.Path(__file__).resolve().parent
 CITIES=[('Hartford',41.7658,-72.6734),('Springfield',42.106,-72.593),('Enfield',41.998,-72.585),('Windsor Locks',41.929,-72.627),('Manchester',41.776,-72.521),('Holyoke',42.204,-72.617),('Chicopee',42.148,-72.608),('Westfield',42.125,-72.750),('New Haven',41.298,-72.925),('Worcester',42.261,-71.795),('Providence',41.824,-71.413)]
 
@@ -36,6 +37,11 @@ def handle(path,q):
   return dict(shapes=list(shapes.values()),stops=stops,trips=trips,comparison=comparison,source=route.split(':')[0],geometry='Official GTFS shape where present; no line invented when absent')
  if path=='/api/v1/trip':
   tid=arg(q,'id');tid=tid.split('|')[-1];return db.query('SELECT st.*,s.name,s.lat,s.lon FROM times st JOIN stops s ON s.id=st.stop WHERE trip=? ORDER BY seq',(tid,))
+ if path=='/api/v1/bubble':
+  day=dated(q);origin=arg(q,'from');start=number(q,'time',28800,0,86399)
+  mode=arg(q,'mode','walk')
+  if mode not in ['walk','scooter']:raise ValueError('Unknown ground mode')
+  return bubble_mod.classify(day,origin,start,budget=number(q,'budget',3600,60,14400),visit=number(q,'visit',0,0,86400),mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=tuple(filter(None,arg(q,'feeds').split(','))),coverage_rows=db.coverage(day),source_rows=db.sources())
  if path in ['/api/v1/plan','/api/v1/reachability']:
   day=dated(q);origin=arg(q,'from');start=number(q,'time',28800,0,86399);deadline=number(q,'deadline',86399,start,172799)
   mode=arg(q,'mode','walk')

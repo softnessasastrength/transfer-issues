@@ -11,6 +11,7 @@ Base: `/api/v1/`. JSON, read-only GET endpoints. This is an early contract; stab
 | `trip` | `id` | Ordered stop times (original service-day seconds) |
 | `plan` | `from`, `to`, `date`, `time`, `deadline` | Earliest itinerary or explicit no-result with coverage |
 | `reachability` | `from`, `date`, `time`, `deadline` | Reachable stop IDs, coordinates and earliest arrivals |
+| `bubble` | `from`, `date`, `time`, optional `budget` (seconds, default 3600), `visit` (seconds, default 0), plus planning options | Percival Mobility Bubble: stops reachable within the budget **with a feasible return home by the end of the window**, each with arrival, latest return departure and legs; counts of evaluated-but-unreachable stops with reasons; `unknown` feeds/stops that cannot be evaluated from loaded data (missing data is not evidence of no service); per-source provenance and service periods |
 
 Planning options: `mode=walk|scooter`, `radius=0..3000` meters, `buffer=0..3600` seconds, comma-separated `feeds`. `time=0..86399`; `deadline` between `time` and 172799. `kind=latest` searches latest feasible origin start at one-minute resolution. `return=1` and `visit=0..86400` add earliest and latest return feasibility within the same deadline.
 
