@@ -13,6 +13,7 @@ case "${1:-serve}" in
   serve)
     [[ -s data/atlas.sqlite ]] || { echo "Missing data/atlas.sqlite. Run bash atlas.sh once while online to import official feeds." >&2; exit 1; }
     python3 scripts/build_lan_packs.py --database data/atlas.sqlite --output build/lan-packs
+    python3 scripts/verify_lan_catalog.py --packs build/lan-packs
     echo "Phone-only loopback server: http://127.0.0.1:$PORT"
     echo "In Transit Atlas debug APK, enter that URL and explicitly approve selected network downloads."
     echo "Keep Termux open until installation completes. Ctrl+C stops the server."
