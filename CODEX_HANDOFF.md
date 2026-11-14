@@ -82,6 +82,42 @@ python3 scripts/run_local.py                 # http://127.0.0.1:8000
 #   curl 'http://127.0.0.1:8000/api/v1/bubble?from=hartford:6&date=2026-11-17&time=28800&budget=3600'
 ```
 
+## Verification status — two lists, never blurred
+
+Owner protocol (2026-11-14): "Test as far as your environment lets; ping if
+the Mac mini is needed."
+
+### VERIFIED in Ember's environment (Linux sandbox, 2026-11-14)
+
+- 29 Python unit/HTTP tests pass (`python3 -m unittest discover -s tests`),
+  including 12 new Mobility Bubble fixture tests.
+- Python compilation of all modules; `node --check web/app.js`.
+- Fresh `scripts/prepare_data.py`: five official feeds imported; PVTA
+  failed with HTTP 403 (recorded, not filled).
+- `scripts/run_local.py` served the atlas; every `/api/v1/` endpoint
+  exercised with curl on real data for Tuesday 2026-11-17 (inside all
+  loaded service periods), including Hartford <-> Springfield with return
+  and the new `/api/v1/bubble` (1,034 reachable stops from hartford:6,
+  cross-validated against brute-force plan() on 20 sampled stops, zero
+  mismatches after the fixpoint fix).
+- Browser acceptance: `tests/browser_smoke.cjs` PASSED (Playwright +
+  Chromium installed as dev-only tooling in /tmp), plus a bubble-button
+  smoke: UI count matched the API exactly, zero page errors.
+
+### NEEDS THE MAC MINI — ping items for Branden (not verified anywhere)
+
+1. README launch procedure on the mini itself: checkout
+   `feature/browser-proof-of-concept` (after the mobility-bubble merge),
+   `python3 scripts/prepare_data.py`, `python3 scripts/run_local.py`,
+   open http://127.0.0.1:8000 in the desktop browser.
+2. macOS browser acceptance: the full smoke flow in Safari/Chrome on
+   macOS, including map tiles, route 905 browsing and a rail return query.
+3. M0.T Termux/Android acceptance (phone, not mini): first import, page
+   and map interaction, timetable + return query, journal persistence
+   across restart.
+4. Any Apple Silicon performance sanity check of the ~15 s bubble call on
+   the M4 mini.
+
 ## Known limitations (honest list)
 
 - Bubble reverse scan is an approximation verified by sampling (20/20
