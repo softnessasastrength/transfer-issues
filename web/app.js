@@ -5,6 +5,47 @@ const button = (text, fn) => { const n = el('button', text); n.addEventListener(
 const clock = seconds => `${Math.floor(seconds / 3600) % 24}`.padStart(2, '0') + ':' + `${Math.floor(seconds / 60) % 60}`.padStart(2, '0') + (seconds >= 86400 ? ` (+${Math.floor(seconds / 86400)} day)` : '');
 const seconds = value => { const [h,m] = value.split(':').map(Number); if (!Number.isFinite(h+m)) throw Error('Choose a valid time.'); return h*3600+m*60; };
 let meta, map, layers, nearby, stops = new Map(), routes = new Map(), labels = new Map(), request = 0, selectedRoute = null;
+let locationWatch=null, locationMarker=null, accuracyCircle=null, following=false, lastPosition=null;
+function locationMessage(message){ $('locationStatus').hidden=false; $('locationStatus').textContent=message; }
+function locationError(error){
+ const messages={1:'Location permission denied. Enable location access for this site in browser settings.',2:'Location unavailable. Check device location services and GPS signal.',3:'Location timed out. Try again outdoors.'};
+ locationMessage(messages[error.code]||'Could not determine your location.');
+ stopLocation();
+}
+function updateLocation(position){
+ const {latitude,longitude,accuracy}=position.coords;
+ if(!Number.isFinite(latitude)||!Number.isFinite(longitude))return;
+ const latlng=[latitude,longitude];lastPosition=latlng;
+ if(!locationMarker){
+  locationMarker=L.circleMarker(latlng,{radius:9,color:'#fff',weight:3,fillColor:'#1876d2',fillOpacity:1,interactive:false}).addTo(map);
+  accuracyCircle=L.circle(latlng,{radius:Math.max(0,accuracy),color:'#1876d2',weight:1,fillOpacity:.08,interactive:false}).addTo(map);
+ }else{locationMarker.setLatLng(latlng);accuracyCircle.setLatLng(latlng).setRadius(Math.max(0,accuracy));}
+ if(following)map.panTo(latlng);
+ locationMessage('Location active · accuracy approximately '+distanceText(accuracy)+'. GPS is not shared with the Atlas server.');
+}
+function stopLocation(){
+ if(locationWatch!==null){navigator.geolocation.clearWatch(locationWatch);locationWatch=null;}
+ following=false;lastPosition=null;
+ if(locationMarker){map.removeLayer(locationMarker);locationMarker=null;}
+ if(accuracyCircle){map.removeLayer(accuracyCircle);accuracyCircle=null;}
+ $('locate').textContent='◎ My location';$('locate').setAttribute('aria-pressed','false');
+ $('followLocation').disabled=true;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');
+}
+function toggleLocation(){
+ if(locationWatch!==null){stopLocation();locationMessage('Location tracking stopped.');return;}
+ if(!window.isSecureContext||!navigator.geolocation){locationMessage('GPS requires a secure browser context. On the phone, open http://127.0.0.1:8000 rather than a LAN IP.');return;}
+ following=true;
+ $('locate').textContent='◎ Stop location';$('locate').setAttribute('aria-pressed','true');
+ $('followLocation').disabled=false;$('followLocation').textContent='Follow: on';$('followLocation').setAttribute('aria-pressed','true');
+ locationMessage('Waiting for location permission and GPS fix…');
+ locationWatch=navigator.geolocation.watchPosition(updateLocation,locationError,{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+function toggleFollow(){
+ following=!following;$('followLocation').textContent='Follow: '+(following?'on':'off');
+ $('followLocation').setAttribute('aria-pressed',String(following));
+ if(following&&lastPosition)map.panTo(lastPosition);
+}
+
 const storageKey = 'transit-atlas-v1';
 const preferenceKey = 'transit-atlas-preferences-v1';
 let preferences = {theme:'system',units:'imperial'};
@@ -77,6 +118,8 @@ function renderPersonal() {
 }
 function updateDate(){ const d=$('date').value; $('dayLabel').textContent=d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Choose a travel date'; }
 async function init() {
+ $('locate').onclick=toggleLocation;
+ $('followLocation').onclick=toggleFollow;
  updatePreferences();
  $('theme').onchange=()=>{preferences.theme=$('theme').value;savePreferences();};
  $('units').onchange=()=>{const meters=Number($('radius').value)*(preferences.units==='imperial'?1/feetPerMeter:1);preferences.units=$('units').value;updatePreferences();$('radius').value=Math.round(meters*(preferences.units==='imperial'?feetPerMeter:1));savePreferences();};
@@ -88,7 +131,7 @@ async function init() {
  meta.cities.forEach(([name,lat,lon])=>{ $('cities').append(button(name,()=>{map.setView([lat,lon],13);$('mapStatus').textContent=`${name} · zoomed stops from loaded feeds`; })); L.circleMarker([lat,lon],{radius:3,color:'#143e39'}).bindTooltip(name,{permanent:true,direction:'right',className:'cityMarker'}).addTo(map); });
  [...new Set(meta.routes.map(r=>r.feed))].forEach(f=>$('agency').append(new Option(f,f)));renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>view(b.dataset.tab));$('planTab').onclick=()=>{$('planner').hidden=false;$('browser').hidden=true;$('planTab').classList.add('selected');$('browseTab').classList.remove('selected');};$('browseTab').onclick=()=>{$('planner').hidden=true;$('browser').hidden=false;$('browseTab').classList.add('selected');$('planTab').classList.remove('selected');};
- $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value;$('from').value=$('to').value;$('to').value=a;};$('resetMap').onclick=()=>map.setView([42,-72.4],8);
+ $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value;$('from').value=$('to').value;$('to').value=a;};$('resetMap').onclick=()=>{following=false;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');map.setView([42,-72.4],8);};
  $('plan').onclick=()=>run(()=>plan());$('latest').onclick=()=>run(()=>plan('latest'));$('reach').onclick=()=>run(reach);
  $('bookmark').onclick=()=>run(()=>{resolve('from');resolve('to');personal.bookmarks.push(Object.fromEntries(['from','to','date','time'].map(k=>[k,$(k).value])));save();$('results').replaceChildren(el('p','Search saved in My discoveries.','notice'));});
  $('saveNote').onclick=()=>run(()=>{if(!$('noteTitle').value.trim())throw Error('Give your note a title.');personal.notes.push({title:$('noteTitle').value,text:$('noteText').value});save();$('noteTitle').value='';$('noteText').value='';});
