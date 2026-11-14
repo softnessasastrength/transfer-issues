@@ -1,5 +1,8 @@
 name: Transit Atlas routing verification
 on:
+  push:
+    branches:
+      - 'feature/**'
   pull_request:
     paths:
       - 'android/**'
@@ -51,3 +54,47 @@ jobs:
           name: transit-atlas-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
+
+  publish-experimental-release:
+    name: Publish private experimental APK release
+    needs: [python-routing, android-debug]
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: transit-atlas-debug-apk
+          path: dist
+      - name: Verify and prepare APK
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/app-debug.apk
+          short_sha="${GITHUB_SHA:0:12}"
+          tag="atlas-dev-${short_sha}"
+          cp dist/app-debug.apk "dist/transit-atlas-debug-${short_sha}.apk"
+          sha256sum "dist/transit-atlas-debug-${short_sha}.apk" > "dist/SHA256SUMS.txt"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "apk=dist/transit-atlas-debug-${short_sha}.apk" >> "${GITHUB_OUTPUT}"
+      - name: Publish prerelease after both test jobs pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.package.outputs.tag }}
+          APK: ${{ steps.package.outputs.apk }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release create "${TAG}" \
+              --target "${GITHUB_SHA}" \
+              --title "Transit Atlas experimental ${GITHUB_SHA:0:12}" \
+              --notes "Private experimental Android debug build from ${GITHUB_REF_NAME}. Both Python and Android build/JUnit CI jobs passed. No GTFS data is bundled. Debug APK signing can differ between CI runners: if Android reports an incompatible update, uninstall the previous experimental build first (this removes its app-private offline packs). Not production-ready." \
+              --prerelease \
+              --latest=false
+          fi
+          gh release upload "${TAG}" "${APK}" dist/SHA256SUMS.txt --clobber

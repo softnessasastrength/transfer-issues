@@ -148,3 +148,7 @@ User selected B. Inspected failed Step 7 CI: seven Python test fixture errors du
 ## M0.R — Step 9 Android build and parity CI verification (DRAFT)
 
 User selected A. Step 8 CI successfully built the Android debug APK and passed Python tests, but Kotlin unit-test compilation failed on ten-element list destructuring. Replaced with explicit indices in shared golden fixture reader. Step 9 acceptance requires both Python and Android Gradle JUnit jobs green; device, real-feed and airplane-mode tests remain outstanding. See `docs/architecture/android-parity-ci-verification-step9.md`.
+
+## M0.S — Private experimental APK Releases (DRAFT)
+
+Owner authorized automatic experimental GitHub Releases for successfully tested Android APKs. Workflow publishes a prerelease only after Python routing and Android debug build/JUnit jobs both succeed, with SHA-specific APK and checksums; feature branch pushes and manual dispatch only. See `docs/architecture/experimental-android-releases.md`. CI/release verification pending; stable APK signing and updateable version codes are deferred follow-ups, and device launch/offline tests remain unverified.
