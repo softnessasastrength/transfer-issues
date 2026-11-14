@@ -3,6 +3,8 @@ name: Pull request validation and Android debug APK
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [integration/android]
   workflow_dispatch:
 
 permissions:
