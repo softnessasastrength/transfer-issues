@@ -144,3 +144,7 @@ Owner selected A. Fixed LAN Python pack builder syntax, debug Android manifest o
 ## M0.P — Step 8 Python/Kotlin routing parity (DRAFT)
 
 User selected B. Inspected failed Step 7 CI: seven Python test fixture errors due to unmocked transfer_graph; Android SDK action attempted obsolete tools package before compilation. Fixed both CI blockers and added 13 language-neutral synthetic golden routing scenarios consumed by Python and Kotlin tests, comparing arrivals and leg sequences. See `docs/architecture/python-kotlin-routing-parity.md`. CI results still required before claiming parity/build success.
+
+## M0.R — Step 9 Android build and parity CI verification (DRAFT)
+
+User selected A. Step 8 CI successfully built the Android debug APK and passed Python tests, but Kotlin unit-test compilation failed on ten-element list destructuring. Replaced with explicit indices in shared golden fixture reader. Step 9 acceptance requires both Python and Android Gradle JUnit jobs green; device, real-feed and airplane-mode tests remain outstanding. See `docs/architecture/android-parity-ci-verification-step9.md`.
