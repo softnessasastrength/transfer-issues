@@ -1,0 +1,16 @@
+# name|origin|destination|start|deadline|buffer|links|transfers|expected_arrival|expected_leg_modes
+# Link: from,to,departure,arrival,trip,route,sequence,pickup,dropoff
+# Transfer: from,to,seconds
+direct|a|b|0|600|180|a,b,100,300,t1,test:r,1,0,0|-|300|test:r
+no-service|a|b|0|600|180|-|-|NONE|-
+no-pickup|a|b|0|600|0|a,b,100,300,t1,test:r,1,1,0|-|NONE|-
+no-dropoff|a|b|0|600|0|a,b,100,300,t1,test:r,1,0,1|-|NONE|-
+through-no-pickup|a|c|0|600|300|a,b,100,200,t1,test:r,1,0,0;b,c,220,320,t1,test:r,2,1,0|-|320|test:r
+through-no-dropoff|a|c|0|600|300|a,b,100,200,t1,test:r,1,0,1;b,c,220,320,t1,test:r,2,0,0|-|320|test:r
+missed-transfer|a|c|0|600|100|a,b,100,200,t1,test:r,1,0,0;b,c,250,300,t2,test:s,1,0,0|-|NONE|-
+walk-board|a|c|0|1200|180|b,c,600,900,t1,test:r,1,0,0|a,b,60|900|walk,test:r
+walk-buffer-block|a|c|0|1200|600|b,c,600,900,t1,test:r,1,0,0|a,b,60|NONE|-
+walk-chain|a|c|0|600|180|-|a,b,60;b,c,90|150|walk,walk
+overnight|a|b|86000|90000|180|a,b,87000,88000,t1,test:r,1,0,0|-|88000|test:r
+same-stop|a|a|42|600|180|-|-|42|-
+deadline|a|b|0|600|180|a,b,601,700,t1,test:r,1,0,0|-|NONE|-

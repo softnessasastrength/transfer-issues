@@ -140,3 +140,7 @@ User selected D: searchable stop names/IDs, touch-selectable offline geographic 
 ## M0.Q — Step 7 routing verification (DRAFT)
 
 Owner selected A. Fixed LAN Python pack builder syntax, debug Android manifest override, and Kotlin GTFS pickup/dropoff restrictions; added six synthetic Kotlin regression tests and GitHub Actions Python + Android debug build/JUnit verification. See `docs/architecture/routing-verification-step7.md`. CI configured but not observed running; no Gradle compilation, device test, real-feed validation or Python/Kotlin parity claim yet. Preserve previous features and stacked draft PRs.
+
+## M0.P — Step 8 Python/Kotlin routing parity (DRAFT)
+
+User selected B. Inspected failed Step 7 CI: seven Python test fixture errors due to unmocked transfer_graph; Android SDK action attempted obsolete tools package before compilation. Fixed both CI blockers and added 13 language-neutral synthetic golden routing scenarios consumed by Python and Kotlin tests, comparing arrivals and leg sequences. See `docs/architecture/python-kotlin-routing-parity.md`. CI results still required before claiming parity/build success.
