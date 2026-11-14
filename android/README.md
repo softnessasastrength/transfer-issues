@@ -44,3 +44,7 @@ See `docs/architecture/lan-android-poc.md`. Build the debug Android variant, run
 ## Native Kotlin offline journey planner (Step 4 draft)
 
 See `docs/architecture/android-native-offline-routing.md`. The main screen now opens a native offline journey planner that reads previously installed GTFS agency SQLite files without a Mac mini or network connection. Enter GTFS stop IDs, date and HH:MM. This is a scheduled journey POC with estimated walking transfers; it does not yet consume the OSM street graph. Seven synthetic Kotlin JUnit tests are committed but not executed. Compile and run `testDebugUnitTest` before claiming device readiness.
+
+## Native offline street routing (draft)
+
+See `docs/architecture/android-native-street-routing.md`. Build `streets.sqlite` on the Mac mini and manually copy it into the Android app-private `files/offline/` folder for debug testing. The native planner then uses graph-derived walking transfer times. This is not an in-app street pack installer or a verified safe pedestrian route. Seven Kotlin synthetic tests committed, not executed.

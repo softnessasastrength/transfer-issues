@@ -128,3 +128,7 @@ Owner selected OpenStreetMap + SQLite routing graph (architecture B). Added loca
 ## M0.A — Step 4 Android offline routing (DRAFT)
 
 Owner selected A: Kotlin native offline journey computation. Added a Kotlin SQLite GTFS timetable reader, service calendar and exception logic, interagency walking transfer estimates, connection scan, standalone Android planner screen, and seven synthetic JUnit tests. See `docs/architecture/android-native-offline-routing.md`. Not yet compiled/tested on device; no Kotlin OSM street graph routing or unified pack installer. Must validate correctness, scale, and airplane-mode operation before completion.
+
+## M0.AS — Native Android street routing (DRAFT)
+
+Owner selected B from the next-stage choices: Kotlin native street graph integration. Added `OfflineStreetGraph.kt` for Step 3's SQLite format, directed walk/cycle shortest paths, graph-derived interagency transfer times, and seven synthetic Kotlin JUnit tests. Planner optionally loads app-private `streets.sqlite`; without it, proximity estimates remain. See `docs/architecture/android-native-street-routing.md`. No build/device tests executed, in-app street pack installation, or regional performance validation yet.
