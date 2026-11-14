@@ -90,6 +90,8 @@ Acceptance: representative verified interstate/local-bus/commuter-rail/Amtrak/in
 
 Desktop controller and loopback launcher are implemented. 17 Python regressions/HTTP tests pass; JS syntax and compilation pass. Real-data Hartford–Springfield outbound/return queries pass. Browser acceptance is blocked by Chromium's denied Unix-domain socket in this executor; the repeatable browser smoke test is supplied but unverified. No macOS execution claim. Do not mark this milestone complete until browser interactions are exercised successfully. No source feeds or existing database were modified during this work.
 
+Status update (2026-11-14, Ember session; see DECISIONS.md): 29 Python tests pass, including 12 Mobility Bubble fixture tests for the new `/api/v1/bubble` endpoint. The browser smoke test PASSED in the Ember environment (Playwright + Chromium; the earlier socket blocker does not occur there), and a fresh five-feed import was completed with PVTA still unavailable (HTTP 403). macOS/Safari acceptance remains unperformed, so M0.D is still not marked complete.
+
 ## M0.T — Same-phone Termux launch (AUTHORIZED; device validation pending)
 
 User requested Android/Termux execution of the current proof of concept. Scope: reuse Python/SQLite in Termux with Chrome on the same phone through loopback; document package setup, private repository authentication, first import, subsequent launches, stopping and browser-local data. `TERMUX.md` supplies the runbook. This does not authorize the deferred PWA/native-app/Apache milestones or mobile design overhaul. No backend restructuring is necessary for this launch path.

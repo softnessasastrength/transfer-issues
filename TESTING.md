@@ -18,3 +18,10 @@ These tests establish limited checkpoint behavior, not complete GTFS compliance,
 - Browser validation **blocked**: Playwright's bundled Chromium was absent; system Chromium failed with `socket() failed: Operation not permitted` creating its Unix-domain process socket. Additional single-process startup did not resolve it. No screenshots or successful browser interaction are claimed.
 - `tests/browser_smoke.cjs` is provided but **not passed here**. It exercises 905 route/trip selection, a rail return query, bookmark/journal persistence, literal-text rendering, backup export/import and sources in an isolated browser profile. Install Playwright and its Chromium as development-only test dependencies; with the server running, use `node tests/browser_smoke.cjs`. Optional `CHROMIUM_PATH`, `ATLAS_URL` and `ATLAS_DATE` select a browser/server/service date. A matching imported feed date and CTtransit/Hartford data are required.
 - No macOS/Apple Silicon or Safari execution was available. M0.D remains pending browser acceptance. M0/M0.1 are incomplete.
+
+## Ember session verification — 2026-11-14
+
+- `python3 -m unittest discover -s tests -v`: **29 passed** (17 prior + 12 new Mobility Bubble fixture tests in `tests/test_bubble.py`).
+- Fresh `scripts/prepare_data.py` import on 2026-11-14: five feeds imported; PVTA HTTP 403 (gap visible, not filled).
+- API smoke on real data (2026-11-17): meta/coverage/route/trip/departures/plan/reachability/bubble all exercised; Hartford <-> Springfield with return; bubble from hartford:6 = 1,034 reachable stops, cross-validated against brute-force plan() on 20 sampled stops with zero mismatches.
+- Browser acceptance: `tests/browser_smoke.cjs` **passed** in this environment (Playwright + Chromium, ATLAS_DATE=2026-11-17), plus a bubble-button smoke with zero page errors. This clears the previously recorded Chromium-socket blocker for this environment only; macOS/Safari acceptance is still unclaimed.
