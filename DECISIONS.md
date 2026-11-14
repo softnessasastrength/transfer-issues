@@ -75,3 +75,7 @@ User selected A: fix Kotlin test compilation and establish passing Android debug
 ## Termux development bridge (2026-11-12)
 
 Owner selected all three workflows in stages, with separate draft PRs and no merges. Begin with local loopback server and existing consent-first offline pack installation. Keep GTFS imports explicitly initiated and source-aware; do not claim physical device testing from source-level checks. Defer Android ADB debugging bootstrap to separate Stage 3.
+
+## Reachability Explorer primary-feature decision (2026-11-14)
+
+Owner explicitly prioritized a map-first answer to practical car-free accessibility: a visit to a specific destination at a specified time is only useful if outbound arrival, stay duration, and return-home feasibility are considered. Public transit is the backbone, with optional walking, scooter, ferry, intercity rail and ride-hailing connections where verified and permitted. A static route or geometric radius is insufficient. Keep hard constraints separate from transit-first preference; expose uncertainty and rejected alternatives. Add deterministic synthetic and metamorphic tests before real-world correctness claims. This session records the design and roadmap only; implementation, tests, device validation and merges are not claimed. See `docs/features/reachability-explorer.md`.
