@@ -217,3 +217,17 @@ pack repair, geometry synthesis, storage cap or activation architecture change.
 Next: compatible Android validation and interrupted-activation recovery; retain
 current source integrity and consent priorities. Unified assembler/Android parity
 must not be inferred from this Python export-gate implementation.
+
+## Android per-agency activation recovery (AUTHORIZED; local JVM/build acceptance)
+
+Next reliability slice after #48: replace the active-name gap with a synced backup
+copy and atomic replacement, serialize existing download staging across Activity
+instances, and recover a legacy previous pack when active is absent. Recovery checks
+a copy using SQLite integrity, preserves previous bytes and never promotes partial
+downloads or fetches data. Existing consent and per-agency filenames are unchanged.
+
+Acceptance observed locally: 14 new failure/recovery/concurrency JVM tests; 44 total
+Android tests without failures/errors/skips; successful debug assembly; 100 Python
+regressions. See `docs/architecture/android-pack-activation-recovery.md`. Exact-head
+CI and physical Android/process-death/power-loss tests remain separate gates. No
+multi-agency transaction, trusted manifest or complete-offline guarantee is claimed.

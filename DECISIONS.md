@@ -232,3 +232,40 @@ Owner selected all three workflows in stages, with separate draft PRs and no mer
   remain separate work. No publisher/live-service/device guarantee.
 - Next safe step: exact-head CI, then deterministic installer recovery and Android
   schema/reference compatibility tests before adding update/download automation.
+
+## Android atomic pack replacement and legacy recovery — 2026-11-13
+
+- Continued clean `feature/agency-pack-reference-validation` at `6296107`; fetched
+  upstream and inspected roadmap/Android instructions, installer, tests and Gradle.
+  New branch `feature/android-pack-activation-recovery` depends on draft #48.
+- Prior #48 exact-head CI `43437472300` passed 100 Python + 30 JVM tests and retained
+  APK/test diagnostics; no merge performed.
+- Source inspection confirmed delete/rename backup activation had an active-name
+  gap and unchecked rollback; shared download staging could overlap threads.
+- Added `AgencyPackStore`: copy+sync prior active bytes to backup before atomically
+  replacing the active name; unsupported atomic moves fail closed. Existing
+  per-agency filenames/selection/consent preserved. No new activation architecture
+  spanning agencies, downloads, shared dependencies or recurring automation.
+- Launcher startup recovers legacy gaps on a worker thread using a validated copy,
+  keeping previous intact and displaying errors. Offline/download entry buttons wait
+  for recovery. Partial downloads are never auto-promoted. Active files are never
+  replaced during recovery. One process-wide monitor serializes installation work.
+- Validation at this Android boundary is still downloaded size/hash plus SQLite
+  integrity. Python schema/reference parity, freshness/trust and device acceptance
+  remain pending; no power-loss durability or cross-process locking guarantee.
+- Executed local `android-test`: 44 JVM tests, zero failures/errors/skips; 14 new
+  lifecycle cases executed. Gradle 19 seconds, 5 executed tasks. `android-build`:
+  success in 13 seconds, 3 executed tasks. Full Python suite via Command Center:
+  100 passed. Earlier compile/test pass preceded the added copy-failure tests.
+- Updated stale Android README/agent scope with current code and evidence; retained
+  historical staged notes and explicit absence of device/complete-offline proof.
+
+### Agent handoff — Android activation cycle
+- Branch: `feature/android-pack-activation-recovery`, based on #48.
+- Files: AgencyPackStore, MainActivity, JVM failure tests, Android docs/instructions,
+  architecture runbook, roadmap and decisions.
+- Data: only temporary JVM fixture bytes; no feeds, installed packs or device writes.
+- Not run: Android instrumentation, emulator, physical device, flash/power-loss or
+  real network interruption. Hosted current-head CI must be verified separately.
+- Next: Android schema/reference compatibility and device interruption acceptance;
+  keep separate per-agency commits and explicit download approval semantics.
