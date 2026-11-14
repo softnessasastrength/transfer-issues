@@ -59,3 +59,8 @@ User selected B: integrate the existing OSM/SQLite street graph into Kotlin Andr
 ## Step 6 visual Android journey planner (2026-11-12)
 
 User chose D: prioritize stop search, map-based origin/destination selection and visual itinerary presentation. Preserve all existing transit/OSM routing and LAN download functionality. Native geographic stop canvas is offline, but does not imply a street basemap or verified pedestrian route. Tests committed but not executed.
+
+
+## 2026-11-12 — CI/CD Decision 003: user-selected Android offline networks (draft)
+
+Option C authorized: small APK with in-app user selection and explicit confirmation of verified network packs. On `feature/android-network-manager`, added a pure Kotlin dependency-aware download plan and synthetic tests, plus catalog-based selection review. The existing LAN server and installer remain development-only: no signed manifests or authenticated public distribution, no general shared-dependency download endpoint, and no multi-package atomic activation. Do not claim real-device or fully offline readiness. Preserve `integration/android` and `main`; no automatic merge or background updates.
