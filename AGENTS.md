@@ -12,3 +12,7 @@ The authorized project repository is private `softnessasastrength/transfer-issue
 Read `docs/agents/README.md` for the project mission, architecture, scope, quality gates and handoff template. Read the nearest directory `AGENTS.md` before editing `web/`, `android/`, `ios/`, `scripts/` or `tests/`. The user's current product vision is a map-first, offline-first regional transit explorer (conceptually "trains.fyi for regional transit", **not** a clone); see `docs/launch/product-vision.md`. Explore and Travel are equally important.
 
 The CT + PVTA offline proof of concept and Android/iOS skeletons are authorized work in progress, **not completed offline applications**. Verify source data and actual code rather than relying on stale historical roadmap entries. Keep agent instructions and handoffs updated as architecture changes. Do not publish, merge, claim device tests or certify full coverage without evidence.
+
+## Offline capability outranks storage size
+
+Read `docs/architecture/offline-storage-policy.md` before proposing data packaging, maps, routing, caching or download changes. The owner explicitly accepts multi-gigabyte local datasets. Do not trade away airplane-mode functionality, detail or coverage to reduce storage footprint. Internet is optional for core operation; no arbitrary app-imposed pack size limit, and no silent pruning of user-selected regions. Verify real offline behavior rather than claiming that a local database alone constitutes a full offline app.
