@@ -686,3 +686,19 @@ here / Departures) works exactly as before wherever stops are shown.
   layer's 30-second call timeout (a pre-existing Atlas property, shared
   with `atlas_plan_trip`); warm dates answer in well under a second
   per plan.
+## 2026-11-15 — Live vehicles on the map (branch feat/live-vehicles-map_muse)
+
+The live overlay (/api/v1/live, live.py) now plots vehicle positions.
+live.py: the MBTA adapter also reads the V3 /vehicles endpoint (normalized
+to the same vehicle row shape CTtransit already returned; a vehicles-endpoint
+failure degrades to an empty list and never flips the board to unknown), and
+_unknown() results carry an empty vehicles list so clients can rely on the
+key. Web: a "Vehicles" toggle in the map controls polls both verified
+providers every 30 s and draws circle markers (orange; grey and translucent
+when the vehicle's timestamp is over 5 minutes old or missing), with a
+tooltip (route, vehicle, age, STALE flag) built as a DOM node, and a status
+line reporting per-provider counts, stale counts, or "unknown". A provider
+that cannot be verified contributes no markers — positions are never
+invented. Live board prediction times now render as countdowns for both
+providers. Invariant preserved: live data is informational only and never
+alters scheduled routing or feasibility.
