@@ -5,6 +5,7 @@ Usage:
   python3 scripts/external_smoke.py
   python3 scripts/external_smoke.py --routing --date 2026-11-17
   python3 scripts/external_smoke.py --outings --date 2026-11-14
+  python3 scripts/external_smoke.py --regional --date 2026-11-16
 
 This starts the same loopback server a user launches with run_local.py,
 checks the page and read-only API, then shuts it down. It needs no Codex,
@@ -50,6 +51,7 @@ def main():
     parser.add_argument("--date", default=os.environ.get("ATLAS_DATE", datetime.date.today().isoformat()))
     parser.add_argument("--routing", action="store_true", help="also exercise a scheduled Hartford rail query")
     parser.add_argument("--outings", action="store_true", help="exercise the real-data Saturday outing workflow")
+    parser.add_argument("--regional", action="store_true", help="exercise imported MNR, LIRR and Greyhound schedules; choose a covered date")
     args = parser.parse_args()
     data_dir = pathlib.Path(os.environ.get("ATLAS_DATA_DIR", ROOT / "data"))
     if not (data_dir / "atlas.sqlite").exists():
@@ -91,6 +93,30 @@ def main():
         check("stop lookup responds", "stops" in stops and "match_count" in stops)
         pdfs = json_request(base, "/api/v1/pdf-schedules")
         check("PDF registry endpoint responds", "documents" in pdfs and "schedules" in pdfs)
+        if args.regional:
+            imported = {s['id'] for s in meta['sources'] if s.get('status') == 'imported'}
+            check("regional feeds imported", {'mnr', 'lirr', 'greyhound'} <= imported)
+            check("Connecticut city shortcuts exposed", {'Hartford', 'New Haven', 'Stamford', 'Bridgeport'} <= set(meta.get('ct_cities', [])))
+            def stop_id(feed, name, latitude=None):
+                matches = [s['id'] for s in meta['stops'] if s['feed'] == feed and s['name'] == name
+                           and (latitude is None or abs(s['lat'] - latitude) < 0.1)]
+                check(f"{feed} stop published: {name}", len(matches) == 1)
+                return matches[0]
+            query = urllib.parse.urlencode({
+                "from": stop_id('mnr', 'New Haven'), "to": stop_id('lirr', 'Jamaica'), "date": args.date,
+                "time": 28800, "home_by": 79200, "stay": 7200,
+                "outbound_budget": 14400, "radius": 500, "buffer": 300,
+            })
+            outing = json_request(base, "/api/v1/outings?" + query)
+            check("MNR to LIRR scheduled round trip", outing.get("status") == "verified", str(outing.get("reason")))
+            query = urllib.parse.urlencode({
+                "from": stop_id('greyhound', 'Hartford (Union Station)', 41.77),
+                "to": stop_id('greyhound', 'Springfield Union Station', 42.11),
+                "date": args.date, "time": 0, "deadline": 86400,
+                "feeds": "greyhound",
+            })
+            trip = json_request(base, "/api/v1/plan?" + query)
+            check("Greyhound UTC timetable routes", trip.get("found"), str(trip.get("message")))
         if args.routing:
             query = urllib.parse.urlencode({"from": "hartford:6", "to": "hartford:9", "date": args.date, "time": 28800, "radius": 0})
             plan = json_request(base, "/api/v1/plan?" + query)

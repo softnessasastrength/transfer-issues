@@ -104,6 +104,15 @@ deployment workflow; do not replace the user's live database blindly.
 Next: fix dangling transfer references; add DST policy and fixtures; build a
 cross-platform golden itinerary corpus before shipping offline routing.
 
+Follow-up branch `feature/regional-operator-evidence` records per-trip agency
+timezones and normalizes GTFS noon-minus-12-hour anchors at query time. This
+allows UTC-published Greyhound schedules to share one elapsed-time axis with
+Eastern feeds, including an internal DST-fold ordering regression. The web
+clock still displays abstract service-day seconds during a DST transition;
+ambiguous repeated-hour presentation needs a separate UI policy. That branch
+also preserves parent stations used by retained platforms and prunes transfers
+whose endpoints were clipped.
+
 ## Verification and team integration
 
 Run `python3 -m unittest discover -s tests -q` and, for a focused synthetic

@@ -33,6 +33,14 @@ priority, not a promise that the feature is complete.
   gaps without joining across clipped stops. Rebuild from existing downloaded
   archives, validate integrity, and exercise representative real-feed queries
   before activating the new database; see `ARCHITECTURE_CORRECTNESS.md`.
+- **Connecticut and Massachusetts coverage** — IN PROGRESS. Add current
+  source-backed Greyhound and Metro-North schedules, enable LIRR for trips to
+  friends near its stations, and expose major Connecticut city map shortcuts.
+  Hartford DASH and Shore Line East appear in existing feeds. Peter Pan's
+  public GTFS is historical (2024); GHTD Link and ADA paratransit require
+  booking, and a CTtransit service named Flex remains unverified. Continue
+  local-agency inventory, provenance and transfer-rule work before claiming
+  complete CT/MA coverage. See `REGIONAL_COVERAGE.md`.
 
 ### Later — product capability
 

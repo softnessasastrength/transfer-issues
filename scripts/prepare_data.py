@@ -11,7 +11,7 @@ else:
   if source['id'] not in known:sources.append(source)
   elif source['id']=='lirr':
    existing=next(s for s in sources if s['id']=='lirr')
-   existing.update(url=source['url'],official_page=source['official_page'],optional=True)
+   existing.update(url=source['url'],official_page=source['official_page'],optional=source['optional'])
  registry.write_text(json.dumps(sources,indent=2)+'\n')
 command=[sys.executable,str(root/'import_gtfs.py'),'--refresh']
 if args.include_optional:command.append('--include-optional')

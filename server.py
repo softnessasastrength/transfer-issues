@@ -9,7 +9,8 @@ import outings
 import fares
 import live
 ROOT=pathlib.Path(__file__).resolve().parent
-CITIES=[('Hartford',41.7658,-72.6734),('Springfield',42.106,-72.593),('Enfield',41.998,-72.585),('Windsor Locks',41.929,-72.627),('Manchester',41.776,-72.521),('Holyoke',42.204,-72.617),('Chicopee',42.148,-72.608),('Westfield',42.125,-72.750),('New Haven',41.298,-72.925),('Worcester',42.261,-71.795),('Providence',41.824,-71.413)]
+CITIES=[('Hartford',41.7658,-72.6734),('New Haven',41.298,-72.925),('Stamford',41.053,-73.539),('Bridgeport',41.179,-73.189),('Waterbury',41.558,-73.052),('New Britain',41.661,-72.779),('Norwalk',41.117,-73.408),('Danbury',41.394,-73.454),('New London',41.356,-72.100),('Middletown',41.562,-72.651),('Enfield',41.998,-72.585),('Windsor Locks',41.929,-72.627),('Manchester',41.776,-72.521),('Springfield',42.106,-72.593),('Holyoke',42.204,-72.617),('Chicopee',42.148,-72.608),('Westfield',42.125,-72.750),('Worcester',42.261,-71.795),('Providence',41.824,-71.413)]
+CT_CITIES=[name for name,_,_ in CITIES[:13]]
 
 def arg(q,k,default=''):return q.get(k,[default])[0]
 def number(q,k,default,lo,hi):
@@ -52,7 +53,7 @@ def warm_caches(day=None):
 def handle(path,q):
  if path=='/api/v1/meta':
   compact=flag(q,'compact')
-  result=dict(api_version='1.0',sources=db.sources(),cities=CITIES,station_codes='Amtrak CT/MA codes from config/station_codes.json',limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','Incomplete three-state agency coverage; not every agency is loaded','Amtrak regional clip; selected MBTA coverage follows config/coverage.json','Scoped GTFS transfer rules not modeled; verify station transfers'])
+  result=dict(api_version='1.0',sources=db.sources(),cities=CITIES,ct_cities=CT_CITIES,station_codes='Amtrak CT/MA codes from config/station_codes.json',limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','Incomplete regional agency coverage; not every agency is loaded','Amtrak is kept whole; MBTA and other feed coverage follow config/coverage.json','Scoped GTFS transfer rules not modeled; verify station transfers'])
   if compact:return result
   routes=db.query('SELECT * FROM routes ORDER BY feed,short');stops=db.stops();paging=page_options(q)
   if paging:

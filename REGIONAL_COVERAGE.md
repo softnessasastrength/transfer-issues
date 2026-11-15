@@ -1,0 +1,58 @@
+# CT/MA regional coverage checkpoint — 2026-11-15
+
+This is a source and test inventory, not a claim of complete transit coverage
+or live operation. A `verified` outing means both legs exist in the loaded
+published timetable; it does not confirm a seat, ticket, pickup, accessibility,
+or a vehicle arriving as scheduled.
+
+## Runnable schedule feeds
+
+| Service | Evidence and tested state | Limits |
+| --- | --- | --- |
+| CTtransit and Hartford DASH | [CTtransit GTFS](https://www.cttransit.com/about/developers) is already configured. The tested archive contains route `DASH`, 48 trips, and its published stops. | [CTtransit describes regular DASH as weekday service](https://prod2.cttransit.com/services/hartford-dash-shuttle); event service varies. The app uses only dates in the feed. |
+| Hartford Line and Shore Line East | The configured Hartford Line archive has 33 `HART` trips and 40 `SLE` trips; both entered the six-feed smoke database. | The archive types `SLE` as GTFS route type 3 (bus). This is publisher data and may reflect substitution; rail-mode completeness was not established. |
+| Metro-North | [MTA developer resources](https://api.mta.info/) publish a current GTFS archive. Disposable import: 6 routes, 36,909 trips, 14,074 connections on 2026-11-15. | 16,233 scoped transfer rules were excluded by the current importer. Platform/transfer assurance is incomplete. |
+| LIRR | The existing [MTA GTFS source](https://rrgtfsfeeds.s3.amazonaws.com/gtfslirr.zip) is now selected by default. Disposable import: 12 routes, 1,871 trips, 16,678 connections on 2026-11-15. | 344 scoped transfer rules were excluded. The Grand Central interchange in a sample journey is an estimated walk. |
+| Greyhound | [FlixMobility's published GTFS](https://gtfs.gis.flix.tech/gtfs_generic_us.zip) includes Greyhound and FlixBus. This branch selects only Greyhound agency routes and normalizes its UTC timetable. Disposable import: 150 routes, 4,799 trips, 6,145 connections on 2026-11-15. | Ticket purchase and seat availability are not verified. The feed's service period and actual operation need regular checking. |
+| Other configured local service | CTtransit, PVTA, WRTA, MBTA, Amtrak and Hartford Line were configured before this branch. | The six-feed smoke database here did not include PVTA, WRTA or MBTA; prior local data and tests do not prove all CT/MA districts are covered. |
+
+The disposable six-feed database passed `scripts/check_data_integrity.py`.
+A scheduled New Haven (`mnr:149`) → Jamaica (`lirr:102`) round trip for
+2026-11-16, leaving no earlier than 08:00, allowing at least two hours at the
+destination and home by 22:00, returned `verified`. It included MNR, an
+estimated Grand Central walk, LIRR, and the reverse. The computed arrival at
+Jamaica was 10:54, latest return departure 19:24, and arrival home 21:43:19.
+This is test evidence for the downloaded archives, not a promise of operation
+or a guaranteed station transfer.
+
+## Unresolved services
+
+- **Peter Pan:** [MassDOT lists a Peter Pan GTFS download](https://www.mass.gov/lists/mbta-and-transit-data-for-developers), but the reachable archive's `feed_info.txt` ends on 2024-12-31. It was inspected as historical test data only and is excluded from current routing. A current official timetable source is needed.
+- **Greater Hartford Transit District:** [GHTD Link](https://www.ghtdlink.com/) is an on-demand service in Enfield/East Windsor; its actual pickup depends on booking. [ADA paratransit](https://www.hartfordtransit.org/ada-paratransit-services/) has eligibility and reservation requirements. Neither can be represented as a fixed scheduled leg without a booking/availability integration.
+- **CTtransit Flex:** The current CTtransit GTFS archive and [developer listing](https://www.cttransit.com/about/developers) did not identify a service by that name. Operator identity and authoritative schedule or booking source need confirmation.
+- **Other CT/MA districts:** [Greater Bridgeport Transit requests direct contact for its GTFS](https://gogbt.com/for-transit-geeks/); no authorized outreach or current official archive was used here. [Windham Region Transit District publishes fixed-route schedules and separately booked Dial-A-Ride](https://wrtd.org/), but no official GTFS download was verified in this session. No comprehensive source audit or successful import exists for every regional transit district. Prioritize official current GTFS where available, then source-backed reviewed schedules. Missing agencies remain `unknown`, never proof of no service.
+
+## Reproduce locally
+
+Use a fresh checkout or worktree so existing `data/` files remain untouched.
+`python3 scripts/prepare_data.py` downloads the configured feeds and rebuilds
+the ignored SQLite database. Then run:
+
+```sh
+python3 scripts/check_data_integrity.py --database data/atlas.sqlite
+python3 -m unittest discover -s tests -q
+python3 scripts/external_smoke.py
+python3 scripts/external_smoke.py --regional --date 2026-11-16
+python3 scripts/run_local.py
+```
+
+Open the printed loopback URL. The map's Connecticut buttons zoom to major
+cities; choose a confirmed origin and use Outings to verify a selected stop.
+The current LIRR/Metro-North/Greyhound test used a disposable six-feed import
+because the active user database has the older schema. It was not activated.
+The regional smoke passed against those downloaded archives on 2026-11-15;
+the fixed date is an evidence checkpoint and will cease to be valid when
+publisher service periods move forward. Select a newly covered date and
+reverify the exact stops for a later run.
+The desktop browser was unavailable for a visual click-through in this session;
+HTTP smoke, JavaScript syntax, tests, and direct scheduled routing were run.
