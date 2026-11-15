@@ -76,8 +76,11 @@ python3 scripts/percival_lan.py --lan
 
 Find the Chromebook's private LAN address, then open
 `http://<chromebook-lan-address>:8000` on the phone. A local Open WebUI can
-use `http://<chromebook-lan-address>:8765/mcp`. This is unauthenticated
-single-user development infrastructure: keep both devices on a trusted
+use `http://<chromebook-lan-address>:8765/mcp`. The MCP endpoint requires
+the per-install bearer token (printed by the launcher at startup; stored
+as `mcp_http_token` in the data dir): configure the client to send
+`Authorization: Bearer <token>`. This is single-user development
+infrastructure: keep both devices on a trusted
 network and stop it after use. The phone does not need to run the Atlas
 database or Ollama model in this arrangement.
 

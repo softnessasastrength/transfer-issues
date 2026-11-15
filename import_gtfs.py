@@ -60,7 +60,10 @@ def build(include_optional=False):
   print('Importing',feed,flush=True);source['sha256']=hashlib.sha256(path.read_bytes()).hexdigest();z=zipfile.ZipFile(path);prefix=lambda x:feed+':'+x
   required={'agency.txt','stops.txt','routes.txt','trips.txt','stop_times.txt'}
   if required-set(n.rsplit('/',1)[-1] for n in z.namelist()):raise ValueError(feed+' missing required files')
-  agents={a['agency_id']:a for a in rows(z,'agency')}; source['agencies']=list(agents.values());source['feed_info']=list(rows(z,'feed_info'))
+  agents={a['agency_id']:a for a in rows(z,'agency')}; selected_ids=coverage_policy(feed).get('agency_ids')
+  # Provenance lists only the agencies the coverage policy actually imports;
+  # a compilation archive names every operator it contains, excluded ones too.
+  source['agencies']=[a for aid,a in agents.items() if not selected_ids or aid in selected_ids];source['feed_info']=list(rows(z,'feed_info'))
   for agency in agents.values():
    try:ZoneInfo(agency['agency_timezone'])
    except (KeyError,ZoneInfoNotFoundError) as exc:raise ValueError(feed+' has an invalid agency timezone') from exc

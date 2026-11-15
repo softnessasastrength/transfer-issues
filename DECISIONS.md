@@ -408,6 +408,23 @@ rather than blanket ours/theirs. Notable outcomes:
   regressions were introduced and three pre-existing main defects were
   repaired en route.
 
+## All-routes overlay: bounded concurrency + cancel (2026-11-15, fix/all-routes-draw_muse)
+
+- `showAllRoutes` in `web/app.js` fetched `/api/v1/route` geometry strictly
+  one route at a time (~5.5 s per route on the 10-feed dataset; the all-feeds
+  draw never completed in an 11-minute browser window) and a re-click mid-draw
+  started a second concurrent draw, because the toggle state only flipped on
+  completion.
+- Fix is client-side only (server API unchanged): a fixed pool of 8 workers
+  shares the route list, progress status updates as each route lands, and a
+  draw-generation token makes a re-click cancel cleanly — in-flight results
+  are dropped, the partial overlay is cleared, and the button/status reset.
+  Changing the agency filter mid-draw now also cancels and restarts.
+- Verified: `node --check web/app.js`; full unit suite 202/202; headless
+  browser cancel pass (zero page errors, cancel state stable after settle).
+  Remaining bottleneck is per-request server cost (~5 s per route call), not
+  client serialisation; a bulk geometry endpoint is the follow-up if
+  full-scope draw time still matters (see `web/AGENTS.md` guidance).
 ## Release machinery — tag-driven Debian releases (2026-11-15)
 
 - **Releases are tag-driven.** Pushing a `v*` tag runs
@@ -543,6 +560,196 @@ rather than blanket ours/theirs. Notable outcomes:
   single second (arrival 30370 vs latest_back 30369). Separate parity
   decision; not part of this change.
 
+## Peter Pan import — owner doctrine exception (2026-11-15)
+
+- **The exception, in the owner's words:** "Approve the third-party exception, labelled as unofficial/stale" (2026-11-15). Scope: Peter Pan Bus Lines only, and only the source named below. This entry is the record the repo doctrine requires before third-party data is imported (`scripts/AGENTS.md`: never substitute outdated or third-party data as verified current service).
+- **Why an exception was needed:** the official Peter Pan GTFS (Trillium-hosted, listed by MassDOT) was downloaded and inspected on 2026-11-15: its `feed_info.txt` ends service on 2024-12-31, ~10½ months stale. Peter Pan publishes no PDF timetables — its site is a booking engine and the only timetable PDF ever captured on the domain is a 2020 commuter schedule that returns 404 today. Both tiers of the original import task therefore failed on currency and nothing was imported under it.
+- **Source used:** the UTEL-UIUC Intercity Bus GTFS (IBG), a 2025 research compilation of US intercity bus services (Ahammed, Shih & Lehe, *Findings*, 2026, doi:10.32866/001c.159284; data at `UTEL-UIUC/intercity-bus-gtfs`). Its `Data_Source.csv` records both Peter Pan agencies — Peter Pan Bus Lines (IBG agency_id 40) and Peter Pan (BZ) (agency_id 71) — as compiled from Transcor Data Services (TDS) platform data, source date 2025-08-15, downloaded 2025-08-29. The IBG Peter Pan calendars are a newer generation than the stale official file, not a re-encode of it: the continuing services run 2025-09-08 → 2028-08-15, where the Trillium calendars end 2024-12-31. Archive SHA-256 at import: `6f592b96af3b5a3d0004ade84a5212aeae0fb53e963d92f52544e2aa019e15b2`.
+- **Alternatives considered and rejected:** Transitland's archived copies of the official feed (older than the live stale file — fetched versions end 2023-09-21); the BTS Intercity Bus Atlas (GIS layers only; BTS does not redistribute carrier GTFS); aggregator-generated PDFs (Moovit/BusMaps — demonstrably stale patterns, e.g. one Boston–Springfield trip/day against ~10+ bookable departures).
+- **How the import is fenced and labelled:** `config/feeds.json` registers the IBG archive under feed id `peterpan` with `source_status: "unofficial"` and a provenance string naming the compilation, the 2025-08 TDS collection, the exception date and the sunset condition; `config/coverage.json` restricts the feed to agency_ids 40/71 and route_type 3 under the standard regional clip, and its description — which becomes the source `scope` in `data/sources.json` — leads with UNOFFICIAL. The label therefore surfaces in `/api/v1/meta`, Mobility Bubble responses and `atlas_route_report`, not only in docs. Companion fix in `import_gtfs.py`: a source's recorded `agencies` provenance now lists only the agencies its coverage policy actually imports (a compilation archive names every operator it contains, excluded ones included); the Peter Pan source entry lists exactly the two Peter Pan agencies.
+- **Imported counts (local build, 2026-11-15):** 56 stops / 59 routes / 242 trips after the regional clip, zero import errors (the archive's Peter Pan content nationally is 78 stops / 76 routes / 357 trips; New York, Philadelphia, Washington and other out-of-region endpoints are clipped by the standard bounds, as with the other regional feeds). Direct Hartford → Worcester trips are in the imported data (PPB 5633FS: 20:45 → 21:45 and 23:50 → 00:50 on Tuesday 2026-11-17); Springfield → Worcester plans on a Peter Pan leg (PPB 6710, 08:15 → 09:10) and Worcester → Hartford on PPB 6713 + Hartford Line. Standing reference checks unchanged (Court Square → `pvta:1495`; `hartford:6` → `pvta:5101` dep 30900 / arr 33428).
+- **Sunset condition:** when a current official Peter Pan GTFS (or an official current timetable source) is published, it replaces this source: point `config/feeds.json` at the official URL, remove the exception's `source_status`/`provenance` labelling and the coverage description's UNOFFICIAL lead, and record the replacement in this file.
+- **Known labelling nuance:** `service_start`/`service_end` in `data/sources.json` are computed from the imported archive's whole calendar file, so for compilation feeds (this one, and the Flix archive behind `greyhound`) they span every operator in the file rather than the imported agencies. The operator-specific period is stated in the provenance fields instead; do not read the archive-wide span as Peter Pan's service window.
+## Fare zones, transfer window and PVTA fare-free — 2026-11-15 (Muse)
+
+- **Hartford Line verified, not just carried over.** All 28 adult one-way
+  pairs in `fares.py` were checked cell-by-cell against the official
+  CTrail fare table PDF effective 2026-07-01 (hartfordline.com) on
+  2026-11-15; the existing table was exact, so it is unchanged.
+- **Shore Line East added as a station-pair matrix.** CTDOT publishes
+  SLE fares as a station matrix (portal.ct.gov CTrail fares PDF,
+  effective 2026-07-01), not zones; modelled like the Hartford Line
+  table. Both New Haven stations (Union Station, State Street) map to
+  the published "New Haven" fare point.
+- **CTtransit express zone system modelled as data.** Official fare
+  panels (route 921 map; timetable panels for 901/903/905/907/918/921)
+  state zones are labelled A–F per route, zones traveled =
+  min(5, max(2, |boarding − exit| + 1)), one-way $3.20/$4.10/$5.00/$6.00
+  for 2/3/4/5 zones. The priced route set is the 19 express routes
+  verified route-by-route in CTtransit's current GTFS (901, 903, 904,
+  905, 906, 910, 912, 913, 914, 918, 919, 921, 923, 926, 927, 928, 940,
+  950, 971); a 9xx short name outside that set is an explicit unknown,
+  never assumed express and never priced as local.
+- **Documented gap — stop→zone.** A stop's zone is published only as
+  geography on printed route maps. CTtransit's GTFS ships `zone_id`
+  empty for all 9,611 stops and has no fare_attributes/fare_rules, so
+  express legs inside itinerary plans remain explicit unknowns
+  ("needs a zone count"); `/api/v1/fares` prices express trips when the
+  caller supplies `from_zone`/`to_zone`, and `fares.for_plan` accepts
+  an `express_zones` mapping for callers that know them.
+- **2-Hour Pass (transfer) policy wired in.** Official text
+  (cttransit.com/fares/transfers): passes are issued with fare payment;
+  local passes give unlimited free local transfers and express travel
+  needs additional payment (the difference, per CTtransit's Token
+  Transit guidance); "Express 2-Hour passes retain the full value of
+  the original zone fare paid, providing unlimited local and express
+  rides for the number of zones paid", with additional payment for a
+  higher zone fare. Timed itineraries now price leg-by-leg: covered
+  legs are itemized at $0 with `covered: true`, top-ups are charged as
+  differences, and the window is anchored at the first purchase (the
+  official text does not restart it on a top-up — recorded assumption).
+  Rail legs neither use nor extend the bus pass. An unpriced express
+  leg breaks the chain: later bus legs are priced as new purchases with
+  a note rather than silently assumed covered. Untimed itineraries keep
+  the previous behaviour exactly (local legs collapse to one $1.75
+  entry). The owner's lead — "a two-hour transfer policy with the
+  purchase of an express ticket" — is confirmed and is broader than
+  stated: the express pass also covers further express rides up to the
+  zones paid, and a local purchase carries value toward express.
+- **PVTA is $0, dated, with one exception.** MassDOT's FY27 RTA
+  assistance (mass.gov, 2026-06-10) funds systemwide year-round
+  fare-free RTA service; PVTA's contract runs to 2027-06-30 and its
+  FY2025 statements record fares collected only on the B79
+  Amherst–Worcester route. PVTA legs price at $0 labelled
+  "currently fare-free" with the as-of date; the B79 is priced from its
+  published town-pair table on pvta.com (pairs the table marks "X"
+  stay explicit unknowns). The legacy $1.50 table still shown on
+  PVTA's fares page is historical context and was NOT modelled.
+- **MBTA deferred.** Commuter-rail zone fares (1A–10 plus interzone)
+  are the bulk of MBTA fare geography; adding only the bus/subway flat
+  fares would misrepresent mixed itineraries. Recorded as a gap, not
+  priced.
+- **Labelling.** New fare results carry `estimate: "rough"`, a `basis`
+  (flat / zone count / station pair) and an `as_of` retrieval date.
+  Hartford Line results are byte-identical to before. One deliberate
+  label correction: a bus-only itinerary's top-level `product` now
+  names the CTtransit local fare instead of the Hartford Line product
+  (amounts and statuses unchanged).
+## 2026-11-15 — Stop marker treatment (branch feat/stop-marker-treatment_muse)
+
+Owner feedback: the ambient stop dots were visual noise, worst when zoomed in.
+Before: every stop in the viewport (up to 600) was drawn with the same
+radius-7 / weight-2.5 ring marker used for plan results, from zoom 12 up, with
+no way to hide the layer. Now: ambient stops use a small solid dot (radius 4,
+weight 1) that never grows; rendering is density-controlled — one dot per
+30px screen cell (deterministic, so the same stops win on redraw) inside a
+per-zoom budget (150 at z12–13, 350 at z14–15, 600 at z16+); when a plan,
+route or bubble result is on the map the ambient field dims so the result
+stays prominent, while result stops keep the ring style. A "Stops" toggle in
+the map controls hides the ambient layer entirely (aria-pressed, default on).
+Popups are unchanged, so click-a-stop planning (Start here / Go here / Meet
+here / Departures) works exactly as before wherever stops are shown.
+## F-009 saved commute profiles — 2026-11-15
+
+- Owner-requested (Percival feature queue F-009): a commute is a standing
+  profile, not a retyped plan query. Profiles live in the existing
+  device-local Percival preferences file under a `commutes` key, validated
+  by `percival_memory` like every other preference; nothing is stored in
+  git and nothing is inferred from conversation.
+- Profile shape: home/work as Atlas stop IDs, a preferred route chain per
+  direction (outbound and return stored separately — asymmetry is the
+  normal case), and declared rideshare legs `{from_stop, to}` where
+  transit ends before the endpoint.
+- Evaluation (`commute.py`; MCP tools `percival_get_commute`,
+  `percival_set_commute`, `percival_clear_commute`, `atlas_commute_evaluate`)
+  reuses `/api/v1/plan` only; it never reimplements routing. The declared
+  chain is planned first; where it cannot run on the evaluated date, the
+  unpinned answer is shown and the note says the preference could not be
+  honoured; where it runs, an unpinned comparison states any time cost.
+- Rideshare legs are estimates only (F-004 doctrine): haversine distance
+  x 1.3 road circuity, drive time at 35-60 km/h, labelled "rideshare —
+  estimated drive, not a quote, not booked"; no price, no booking path,
+  no rideshare API. Stop coordinates resolve through the route endpoint's
+  published stop lists (the stops endpoint searches names, not IDs); a
+  stop no hinted route serves yields an explicit unknown, never a guess.
+- The return evaluation always includes the last viable return, with the
+  search bounded to the service day (deadline 28:00 GTFS extended time).
+  An unbounded window demonstrably surfaces the next evening's service
+  (a 42:53 "departure") and calls it tonight's last return.
+- Verified against the packaged ten-feed data for Tuesday 2026-11-17 with
+  representative stops (Enfield St @ Elm St -> Shoppes at Buckland Hills):
+  outbound chain 905 -> 82 applied, 07:00 -> 08:41; return chain 82 ->
+  Hartford Line applied, transit ends Windsor Locks 19:19, rideshare
+  estimate 10-18 minutes (estimated final arrival 19:29-19:37); last
+  viable return departs work 18:53, Windsor Locks 20:11. Known
+  limitation: the first plan for an unwarmed date can exceed the MCP
+  layer's 30-second call timeout (a pre-existing Atlas property, shared
+  with `atlas_plan_trip`); warm dates answer in well under a second
+  per plan.
+## 2026-11-15 — Live vehicles on the map (branch feat/live-vehicles-map_muse)
+
+The live overlay (/api/v1/live, live.py) now plots vehicle positions.
+live.py: the MBTA adapter also reads the V3 /vehicles endpoint (normalized
+to the same vehicle row shape CTtransit already returned; a vehicles-endpoint
+failure degrades to an empty list and never flips the board to unknown), and
+_unknown() results carry an empty vehicles list so clients can rely on the
+key. Web: a "Vehicles" toggle in the map controls polls both verified
+providers every 30 s and draws circle markers (orange; grey and translucent
+when the vehicle's timestamp is over 5 minutes old or missing), with a
+tooltip (route, vehicle, age, STALE flag) built as a DOM node, and a status
+line reporting per-provider counts, stale counts, or "unknown". A provider
+that cannot be verified contributes no markers — positions are never
+invented. Live board prediction times now render as countdowns for both
+providers. Invariant preserved: live data is informational only and never
+alters scheduled routing or feasibility.
+## 2026-11-15 — GTFS-RT protobuf spike (branch spike/gtfs-rt-protobuf_muse, TESTING ONLY)
+
+Under the owner's 2026-11-15 testing-only doctrine exception (not a
+production adoption, not a standing doctrine change), the MTA MNR/LIRR
+combined GTFS-RT feeds were decoded end-to-end with a protobuf binding in
+spikes/gtfs_rt/. Findings: routes join the static feeds perfectly on both
+railroads; LIRR trip IDs join 126/126; MNR trip IDs join 0/207 (different
+identifier space from the imported static feed's composite IDs); the MNR
+feed carries no vehicle entities; Amtrak has no public GTFS-RT and its
+map payload is encrypted. Full evidence and the production-cost options
+(vendored minimal decoder recommended if adoption is ever approved) are
+in spikes/gtfs_rt/README.md. No shipped code imports the spike.
+## 2026-11-15 — Day-trip planner with protected return anchor (branch feat/day-trip-anchor_muse)
+
+Built on the existing outings engine (evaluate/browse) and routing.plan /
+routing.latest — no parallel system. outings.plan_day composes an ordered
+list of visits: each leg is accepted only if, after the visit's minimum
+dwell, a certified path back to the anchor boarding stop still arrives by
+the anchor departure (less the transfer buffer); a leg that would break
+the anchor is refused with the reason and the day stands partial. The
+anchor is either derived (last viable return home from the final visit,
+via routing.latest) or pinned to a service: outings.last_service_departure
+reads the last departure of a route from a stop out of the imported
+connections — never a hard-coded time — and the pinned trip must itself
+start a certified journey home. Output states the anchor, its slack, and
+what happens if it is missed (the next return, or that none exists that
+day). Endpoint: /api/v1/daytrip; UI in the Outings panel.
+
+Owner's anchor belief, checked against the imported schedule: the last
+905 from Hartford (origin Asylum St @ Bushnell Park, Enfield-bound) is
+**18:17 on weekdays** — not 18:20 — and **17:17 on Saturday and Sunday**.
+The mechanism reads the value from the data in all cases.
+## 2026-11-15 — MCP HTTP hardening (RT-4) (branch fix/mcp-http-auth_muse)
+
+scripts/atlas_mcp_http.py previously dispatched any POST: wildcard CORS,
+a session id that was issued but never checked, no Host validation, and an
+unbounded request body — an unauthenticated preference write from a foreign
+Origin was demonstrated in red-team phase 2. Now: every POST requires a
+per-install bearer token (`Authorization: Bearer`), sourced from
+`ATLAS_MCP_TOKEN` when set, else a token file `mcp_http_token` in the data
+dir created with mode 0600 and reused across restarts; no
+Access-Control-Allow-* headers are emitted; the Host header must name this
+machine (loopback names, the bind host, or the machine's LAN addresses when
+bound wide); bodies over 1 MiB are refused with 413 before being read.
+percival_lan prints the token and its location once at startup. Operator
+impact: existing unauthenticated LAN/Open WebUI setups must add the token
+header — see README/TERMUX updates in the same change. ollama_mcp_chat.py
+speaks stdio to atlas_mcp.py, not HTTP, and is unchanged.
 ## 2026-11-15 — import_gtfs honours ATLAS_DATA_DIR (branch fix/import-gtfs-data-dir_muse)
 
 import_gtfs.py hard-coded `DATA = ROOT/'data'` while database.py resolved
