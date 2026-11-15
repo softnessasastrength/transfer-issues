@@ -104,6 +104,8 @@ Status update (2026-11-15, Percival local memory): explicit device-local prefere
 
 Status update (2026-11-15, separated live overlay): added an opt-in provider-neutral `/api/v1/live` contract and an official MBTA V3 JSON adapter for predictions/alerts. Live failures produce `unknown`; scheduled routing does not call the adapter. CTtransit/PVTA live support remains unimplemented pending verified official realtime contracts.
 
+Status update (2026-11-15, live board slice): added a browser Live board view backed by `/api/v1/live`, with provider/route/stop filters and explicit live/unknown messaging. This is a read-only status surface; a compact departure-board presentation with countdowns, route colors and freshness is the next UI refinement. CTtransit/PVTA remain unverified.
+
 ## M0.T — Same-phone Termux launch (AUTHORIZED; device validation pending)
 
 User requested Android/Termux execution of the current proof of concept. Scope: reuse Python/SQLite in Termux with Chrome on the same phone through loopback; document package setup, private repository authentication, first import, subsequent launches, stopping and browser-local data. `TERMUX.md` supplies the runbook. This does not authorize the deferred PWA/native-app/Apache milestones or mobile design overhaul. No backend restructuring is necessary for this launch path.
