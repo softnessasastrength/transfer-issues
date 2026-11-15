@@ -119,6 +119,8 @@ def handle(path,q):
   route_chain=tuple(filter(None,arg(q,'routes').split(',')))
   if any(':' not in route for route in route_chain):raise ValueError('routes must be comma-separated namespaced route IDs')
   return_requested=flag(q,'return')
+  kind=arg(q,'kind','depart')
+  if path=='/api/v1/plan' and kind not in ('depart','latest'):raise ValueError('kind must be depart or latest')
   opts=dict(mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=planning_feeds(q),route_chain=route_chain)
   if path.endswith('reachability'):
    arr,paths=routing.scan(day,origin,start,deadline,**opts);stops=routing.network()[0]
@@ -127,8 +129,7 @@ def handle(path,q):
    if paging:
     page,page_size=paging;result['stops'],result['stops_pagination']=page_slice(rows,page,page_size)
    return result
-  dest=arg(q,'to');kind=arg(q,'kind','depart')
-  if kind not in ('depart','latest'):raise ValueError('kind must be depart or latest')
+  dest=arg(q,'to')
   fn=routing.latest if kind=='latest' else routing.plan
   result=fn(day,origin,dest,start,deadline,**opts)
   if result.get('found'):

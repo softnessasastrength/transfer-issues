@@ -45,7 +45,7 @@ def build(include_optional=False):
  CREATE TABLE stops(id TEXT PRIMARY KEY,feed TEXT,name TEXT,lat REAL,lon REAL,parent TEXT,wheelchair TEXT);
  CREATE TABLE routes(id TEXT PRIMARY KEY,feed TEXT,short TEXT,name TEXT,type TEXT,color TEXT,agency TEXT);
  CREATE TABLE trips(id TEXT PRIMARY KEY,route TEXT,service TEXT,headsign TEXT,direction TEXT,shape TEXT);
- CREATE TABLE times(trip TEXT,seq INTEGER,stop TEXT,arr INTEGER,dep INTEGER,pickup INTEGER,dropoff INTEGER);
+ CREATE TABLE times(trip TEXT,seq INTEGER,stop TEXT,arr INTEGER,dep INTEGER,pickup INTEGER,dropoff INTEGER,ordinal INTEGER);
  CREATE TABLE calendar(service TEXT PRIMARY KEY,start TEXT,end TEXT,days TEXT);
  CREATE TABLE exceptions(service TEXT,date TEXT,type INTEGER);
  CREATE TABLE shapes(id TEXT,seq INTEGER,lat REAL,lon REAL);
@@ -90,8 +90,12 @@ def build(include_optional=False):
    if sum(s[1] in valid for s in ts)<2:continue
    used_routes.add(t['route_id']);shape=t.get('shape_id','');used_shapes.add(shape)
    db.execute('INSERT INTO trips VALUES(?,?,?,?,?,?)',(prefix(k),prefix(t['route_id']),prefix(t['service_id']),t.get('trip_headsign',''),t.get('direction_id',''),prefix(shape)))
-   # Keep sequence gaps so the router never invents a connection over an omitted stop.
-   db.executemany('INSERT INTO times VALUES(?,?,?,?,?,?,?)',[(prefix(k),seq,prefix(s),arr,dep,pu,do) for seq,s,arr,dep,pu,do in ts if s in valid]);used_stops.update(s[1] for s in ts if s[1] in valid);n+=1
+   # Preserve the publisher's sequence and the position in the full trip.
+   # Ordinal 0 -> 1 connects even if the published sequence is 10 -> 20;
+   # retaining 0 and 2 after clipping stop 1 cannot fabricate a segment.
+   db.executemany('INSERT INTO times VALUES(?,?,?,?,?,?,?,?)',
+    [(prefix(k),seq,prefix(s),arr,dep,pu,do,i)
+     for i,(seq,s,arr,dep,pu,do) in enumerate(ts) if s in valid]);used_stops.update(s[1] for s in ts if s[1] in valid);n+=1
   for k in used_routes:
    t=routes[k];db.execute('INSERT INTO routes VALUES(?,?,?,?,?,?,?)',(prefix(k),feed,t.get('route_short_name',''),t.get('route_long_name',''),t['route_type'],t.get('route_color',''),agents.get(t.get('agency_id',''),{}).get('agency_name',feed)))
   for s in rows(z,'shapes'):
@@ -109,7 +113,7 @@ def build(include_optional=False):
   dates=[c['start_date'] for c in cal]+[c['end_date'] for c in cal]+[e['date'] for e in exc]
   source.update(status='imported',service_start=min(dates),service_end=max(dates),scope=coverage_policy(feed).get('description','All valid trips in geographic scope'))
   r['counts']={'stops':len(used_stops),'routes':len(used_routes),'trips':n};db.commit()
- db.executescript('''CREATE INDEX times_trip ON times(trip,seq);CREATE INDEX times_stop ON times(stop,dep);CREATE INDEX trips_service ON trips(service);CREATE INDEX shapes_id ON shapes(id,seq);CREATE INDEX exceptions_date ON exceptions(date);DELETE FROM stops WHERE id NOT IN (SELECT stop FROM times);''');db.commit()
+ db.executescript('''CREATE INDEX times_trip ON times(trip,seq);CREATE INDEX times_ordinal ON times(trip,ordinal);CREATE INDEX times_stop ON times(stop,dep);CREATE INDEX trips_service ON trips(service);CREATE INDEX shapes_id ON shapes(id,seq);CREATE INDEX exceptions_date ON exceptions(date);DELETE FROM stops WHERE id NOT IN (SELECT stop FROM times);''');db.commit()
  for source in sources:
   r=next(x for x in reports if x['feed']==source['id']);source['validation']=r
  db.close();tmp.replace(DATA/'atlas.sqlite');(DATA/'sources.json').write_text(json.dumps(sources,indent=2));(DATA/'validation.json').write_text(json.dumps(reports,indent=2));print(json.dumps(reports,indent=2))

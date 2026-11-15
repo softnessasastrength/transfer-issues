@@ -28,6 +28,11 @@ priority, not a promise that the feature is complete.
   endpoint-level option validation are landed; add explicit provenance/expiry
   fields, broader contract fixtures and authenticated persistence before native
   clients depend on the API.
+- **GTFS trip-order migration** — IN PROGRESS. The importer now records each
+  stop's position in the full published trip so schedule scans handle sequence
+  gaps without joining across clipped stops. Rebuild from existing downloaded
+  archives, validate integrity, and exercise representative real-feed queries
+  before activating the new database; see `ARCHITECTURE_CORRECTNESS.md`.
 
 ### Later — product capability
 
