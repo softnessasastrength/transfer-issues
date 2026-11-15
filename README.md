@@ -152,7 +152,7 @@ For a trusted Chromebook-to-phone setup, run the combined launcher explicitly in
 python3 scripts/percival_lan.py --lan
 ```
 
-Open `http://<chromebook-lan-address>:8000` on the phone. Open WebUI can use `http://<chromebook-lan-address>:8765/mcp`. LAN mode has no authentication; use it only on a private network and stop it with Control-C when finished.
+Open `http://<chromebook-lan-address>:8000` on the phone. Open WebUI can use `http://<chromebook-lan-address>:8765/mcp`. The MCP endpoint requires the per-install bearer token: the launcher prints it once at startup, and it is stored in the data dir as `mcp_http_token` (mode 0600; `ATLAS_MCP_TOKEN` overrides it). Configure the client to send `Authorization: Bearer <token>`. Use LAN mode only on a private network and stop it with Control-C when finished.
 
 The same TUI is portable to Windows. Install Python 3.11+ and Ollama, make sure both `python` and `ollama` are on PATH, then from PowerShell run:
 

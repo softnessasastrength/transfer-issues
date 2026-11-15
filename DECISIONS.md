@@ -542,3 +542,20 @@ rather than blanket ours/theirs. Notable outcomes:
   one step. One stop (cttransit:597) misses bubble reachability by that
   single second (arrival 30370 vs latest_back 30369). Separate parity
   decision; not part of this change.
+
+## 2026-11-15 — MCP HTTP hardening (RT-4) (branch fix/mcp-http-auth_muse)
+
+scripts/atlas_mcp_http.py previously dispatched any POST: wildcard CORS,
+a session id that was issued but never checked, no Host validation, and an
+unbounded request body — an unauthenticated preference write from a foreign
+Origin was demonstrated in red-team phase 2. Now: every POST requires a
+per-install bearer token (`Authorization: Bearer`), sourced from
+`ATLAS_MCP_TOKEN` when set, else a token file `mcp_http_token` in the data
+dir created with mode 0600 and reused across restarts; no
+Access-Control-Allow-* headers are emitted; the Host header must name this
+machine (loopback names, the bind host, or the machine's LAN addresses when
+bound wide); bodies over 1 MiB are refused with 413 before being read.
+percival_lan prints the token and its location once at startup. Operator
+impact: existing unauthenticated LAN/Open WebUI setups must add the token
+header — see README/TERMUX updates in the same change. ollama_mcp_chat.py
+speaks stdio to atlas_mcp.py, not HTTP, and is unchanged.
