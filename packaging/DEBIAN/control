@@ -1,0 +1,12 @@
+Package: transit-atlas
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.10)
+Maintainer: Branden Algozino <branden@softnessasastrength.com>
+Description: Southern New England Transit Atlas with Percival companion
+ A transit exploration engine for Connecticut, Massachusetts and Rhode
+ Island: multi-agency GTFS routing, the mobility bubble, and the Percival
+ local companion stack (MCP over stdio/HTTP, LAN and TUI launchers).
+ Taking three buses is a feature, not a bug.

@@ -407,3 +407,32 @@ rather than blanket ours/theirs. Notable outcomes:
   identical 1 failure + 30 errors fixed above, i.e. no integration
   regressions were introduced and three pre-existing main defects were
   repaired en route.
+
+## Release machinery — tag-driven Debian releases (2026-11-15)
+
+- **Releases are tag-driven.** Pushing a `v*` tag runs
+  `.github/workflows/release.yml`: compile plus the full `unittest` suite
+  as a gate, then `packaging/build_deb.sh` with the tag's version, then
+  the `.deb` attached to the tag's GitHub release. If the tests fail,
+  nothing is built or published. The version lives only in the tag;
+  `build_deb.sh` stamps it into `DEBIAN/control` and the launcher's
+  `version` output. Procedure in `docs/RELEASING.md`.
+- **The build script reproduces the hand-built package layout** (first
+  release 0.0.1, built by hand the same day): whole checkout under
+  `/usr/lib/transit-atlas` with `data` symlinked to
+  `/var/lib/transit-atlas/data`, launcher at `/usr/bin/transit-atlas`,
+  `/etc/transit-atlas/percival.conf`, systemd unit, and the maintainer
+  scripts kept verbatim under `packaging/DEBIAN/` (system user, no
+  network I/O; the database is built on first run by
+  `transit-atlas prepare`, never bundled).
+- **`scripts/setup_ollama.sh` committed.** The hand-built 0.0.1 package
+  shipped it — the launcher's `setup-ollama` command execs it — but it
+  had never been committed, so a package built from a clean checkout
+  would have silently lacked it. It is now in the repo unchanged, mode
+  100755.
+- **Modes normalised at build time.** The hand-built `.deb` carried the
+  build workspace's shared-directory modes (most files 0660, a few
+  scripts 0770). `build_deb.sh` ships directories 755, plain files 644,
+  and 755 for the launcher, the maintainer scripts, shell scripts and
+  every file git records as executable, with root ownership forced via
+  `dpkg-deb --root-owner-group` — the same package from any checkout.
