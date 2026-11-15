@@ -42,4 +42,24 @@ class ApiTests(unittest.TestCase):
   with self.assertRaises(LookupError):server.handle('/api/v1/unknown',{})
  def test_invalid_range(self):
   with self.assertRaises(ValueError):server.number({'time':['999999']},'time',0,0,86399)
+class DownloadTests(unittest.TestCase):
+ # Regression: pvta.com returns HTTP 403 to the default urllib User-Agent.
+ # refresh() must send the project's explicit descriptive User-Agent on every
+ # feed download. Uses a local stub; never touches the live network.
+ def test_refresh_sends_user_agent(self):
+  import io,json,pathlib,tempfile,urllib.request,zipfile
+  buf=io.BytesIO()
+  with zipfile.ZipFile(buf,'w') as z:z.writestr('agency.txt','x')
+  seen={}
+  class Resp:
+   headers={'Last-Modified':'Mon, 02 Nov 2026 19:12:54 GMT'}
+   def read(self):return buf.getvalue()
+   def __enter__(self):return self
+   def __exit__(self,*a):return False
+  def fake_urlopen(req,timeout=0):seen['req']=req;return Resp()
+  with tempfile.TemporaryDirectory() as td:
+   data=pathlib.Path(td);(data/'sources.json').write_text(json.dumps([{'id':'stub','url':'https://example.invalid/feed.zip','refresh_error':'HTTP Error 403: Forbidden'}]))
+   with patch.object(import_gtfs,'DATA',data),patch('urllib.request.urlopen',side_effect=fake_urlopen):import_gtfs.refresh()
+   req=seen['req'];self.assertIsInstance(req,urllib.request.Request);self.assertEqual(req.get_header('User-agent'),import_gtfs.USER_AGENT);self.assertNotIn('Python-urllib',req.get_header('User-agent'))
+   saved=json.loads((data/'sources.json').read_text());self.assertEqual(saved[0]['status'],'downloaded');self.assertNotIn('refresh_error',saved[0])
 if __name__=='__main__':unittest.main()
