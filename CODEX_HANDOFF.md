@@ -20,17 +20,25 @@ DECISIONS.md records it. Owner's model note (2026-11-14): he is running the
 Luna-tier model at medium reasoning for most of this work — keep tasks
 bounded and verification explicit, as this list already does.
 
-1. **Stop lookup endpoint (NEW — unblocks Percival).** Percival's F-001
-   "come to me" slice is merged in the `percival` repo and must currently
-   hard-code raw stop IDs (`pvta:5101`, `hartford:6`): the Atlas API has no
-   way to resolve a place name to stops. Add `GET /api/v1/stops?q=<text>`
-   (and/or by-feed listing) returning matching stops with id, name, feed,
-   and coordinates from loaded data only. Document it in API.md; add tests.
-   Percival's friend registry (Codex work in that repo) consumes this next.
-2. **Plan/bubble latency.** Measured from Percival's live integration:
-   ~15–25 s per `/api/v1/plan` call on the full six-feed network; bubble
-   ~15 s. This is scoped item 2 below — it moves up because Percival now
-   depends on plan calls at interactive timescales.
+1. **Stop lookup endpoint — EMBER'S TASK, SKIP THIS ONE.** (Front-loaded by
+   owner instruction 2026-11-14: Ember builds the bounded slices so the
+   Codex window is spent on judgment work.) Ember is implementing
+   `GET /api/v1/stops?q=<text>` + API.md docs + tests on a `*_muse` branch.
+   Do not build it. For the record, the requirement: Percival's F-001
+   "come to me" slice (merged in the `percival` repo) currently hard-codes
+   raw stop IDs (`pvta:5101`, `hartford:6`) because the Atlas API has no
+   name→stop resolution; the endpoint returns matching stops with id, name,
+   feed, and coordinates from loaded data only. Percival's friend registry
+   consumes it next.
+2. **Plan/bubble latency — START HERE.** Measured from Percival's live
+   integration: ~15–25 s per `/api/v1/plan` call on the full six-feed
+   network; bubble ~15 s. This is scoped item 2 below — it moves up because
+   Percival now depends on plan calls at interactive timescales. Ember is
+   ALSO front-loading the profiling: a measured latency baseline (where
+   the time goes, per phase) will appear in this file under a
+   "Latency profile (Ember)" heading — read it before profiling anything
+   yourself; if it is not there yet, begin with the fixpoint reverse scan
+   and per-request connection loading, the two known suspects.
 3. **Then the scoped items below in their numbered order** (M0.1 PDF
    fallback, Metro map UI, API v1 contract, M0.R), skipping item 2, which
    task 2 above already covers.
