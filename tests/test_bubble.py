@@ -27,6 +27,11 @@ class BubbleFixture(unittest.TestCase):
             patch.object(routing, 'connections', return_value=self.conns),
             patch.object(routing, 'neighbors',
                          side_effect=lambda s, r, m: walks.get(s, [])),
+            patch.object(routing, 'transfer_graph',
+                         return_value={s: [dict(to=t, seconds=sec, meters=m,
+                                                 source='synthetic')
+                                            for t, sec, m in edges]
+                                       for s, edges in walks.items()}),
             patch.object(routing, 'coverage', return_value=[]),
         ]
         for p in patches:

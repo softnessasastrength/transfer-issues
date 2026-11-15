@@ -90,7 +90,7 @@ function installRouteChain(){const browser=$('browser'),list=$('routeList'),pane
 function renderRoutes() { const search = $('routeSearch').value.toLowerCase(), feed=$('agency').value; $('routeList').replaceChildren(); let count=0; for(const r of meta.routes) if((!feed||r.feed===feed) && `${r.short} ${r.name} ${r.feed}`.toLowerCase().includes(search)) { const row=el('div',undefined,'routePickRow');const b=button(`${r.short || r.id} · ${r.name} (${r.feed})`, () => showRoute(r.id)); b.className='routeButton'; b.dataset.routeId=r.id; b.style.setProperty('--route-color',routeColor(r));const add=button('+ chain',()=>addToChain(r.id));add.className='chainAdd';row.append(b,add);$('routeList').append(row); count++; } if(!count){const empty=el('div',undefined,'emptyState');empty.append(el('b','No loaded route matches that search.'),el('span','Try a route number, operator, or clear the network filter.'));$('routeList').append(empty);} }
 async function showRoute(id) {
  const token=++request; const r=routes.get(id); $('results').replaceChildren(el('p','Loading route…')); const data=await api('route',{id,date:$('date').value}); if(token!==request)return;
- selectedRoute=id; clearAllRoutes(); layers.clearLayers(); for(const shape of data.shapes) if(shape.length) L.polyline(shape,{color:'#26776b',weight:4}).addTo(layers); data.stops.forEach(s=>marker(s)); fit();
+ selectedRoute=id; clearAllRoutes(); layers.clearLayers(); for(const shape of data.shapes) if(shape.length) L.polyline(shape,{color:routeColor(r),weight:7,opacity:1,lineCap:'round',lineJoin:'round'}).addTo(layers); data.stops.forEach(s=>marker(s,layers,routeColor(r))); fit();
  const card=el('section',undefined,'resultCard'); card.append(el('h3',`${r.short} ${r.name}`),sourceLink(r.feed),el('p',`${data.trips.length} scheduled trips on ${$('date').value}. Stops show the published route footprint; not every trip serves every stop.`),el('p', data.geometry,'small'));
  for(const c of data.comparison) card.append(el('p',`${c.label} · ${c.date}: ${c.trips} trips`));
  if(!data.trips.length)card.append(el('p','No trips on this date in the loaded schedule. This may indicate expired or missing data.','notice'));
@@ -109,8 +109,9 @@ function itinerary(result,title) {
  return card;
 }
 async function plan(kind='depart') {
- const params={...options(),to:resolve('to'),kind,return:$('return').checked?'1':'0',visit:Number($('visit').value)*60}; const token=++request; selectedRoute=null; clearAllRoutes(); $('results').replaceChildren(el('p','Searching the published schedules…')); const data=await api('plan',params); if(token!==request)return;layers.clearLayers();$('results').replaceChildren(coverageNotice(data.coverage),itinerary(data,'Outbound journey'));if(data.return)$('results').append(itinerary(data.return,'Return journey'));if(data.latest_return?.found)$('results').append(el('p',`Latest return start: ${clock(data.latest_return.latest_start_minute)} (one-minute precision)`,'notice'));fit();
+ const params={...options(),to:resolve('to'),kind,return:$('return').checked?'1':'0',visit:Number($('visit').value)*60}; const token=++request; selectedRoute=null; clearAllRoutes(); $('results').replaceChildren(el('p','Searching the published schedules…')); const data=await api('plan',params); if(token!==request)return;layers.clearLayers();const chain=chainNotice(data);$('results').replaceChildren(coverageNotice(data.coverage));if(chain)$('results').append(chain);$('results').append(itinerary(data,'Outbound journey'));if(data.return)$('results').append(itinerary(data.return,'Return journey'));if(data.latest_return?.found)$('results').append(el('p',`Latest return start: ${clock(data.latest_return.latest_start_minute)} (one-minute precision)`,'notice'));fit();
 }
+async function bubble() {const params=options();delete params.deadline;params.budget=3600;params.visit=0;const token=++request;const data=await api('bubble',params);if(token!==request)return;layers.clearLayers();data.reachable.forEach(s=>marker(stops.get(s.id)));fit();const unknown=data.unknown.feeds.map(f=>f.feed).join(', ');$('results').replaceChildren(el('h3',`${data.reachable.length} stops in your 60-minute mobility bubble`),coverageNotice(data.coverage),el('p',`Every stop shown also has a feasible way home by ${clock(data.deadline)} with no visit time counted - pure travel, out and back inside the hour. ${data.unreachable_count} loaded stops were evaluated as not reachable in the window.${unknown?' Cannot be evaluated at all (missing data is not proof of no service): '+unknown+'.':''} Includes estimated ground links. Click a stop for departures.`));}
 async function reach() {const params=options();params.deadline=Math.min(Number(params.deadline),params.time+7200);const token=++request;clearAllRoutes();const data=await api('reachability',params);if(token!==request)return;layers.clearLayers();data.stops.forEach(s=>marker(stops.get(s.id)));fit();$('results').replaceChildren(el('h3',`${data.stops.length} stops reachable within two hours`),coverageNotice(data.coverage),el('p','Includes estimated ground links. Click a stop for departures.'));}
 function renderSources() { $('sourceCards').replaceChildren(); for(const s of meta.sources){const card=el('article',undefined,'card'); card.append(el('h2',s.id),el('span',s.status,'badge'),sourceLink(s.id)); for(const [key,label] of [['retrieved_at','Retrieved'],['service_start','Service begins'],['service_end','Service ends'],['scope','Coverage'],['refresh_error','Refresh error']])card.append(el('p',`${label}: ${s[key] || 'Not recorded'}`));card.append(el('p',`Validation: ${JSON.stringify(s.validation || 'Not recorded')}`,'small'));$('sourceCards').append(card);} }
 function liveCard(data) { const card=el('section',undefined,`resultCard liveCard ${data.status}`); const providerName=data.provider==='mbta_v3'?'MBTA V3':data.provider==='cttransit_json'?'CTtransit JSON':'No verified live adapter'; card.append(el('h2',data.status==='live'?'LIVE · provider response':'UNKNOWN · no verified realtime response'),el('p',providerName),el('p',data.as_of?`Checked ${new Date(data.as_of).toLocaleString()}`:'No provider timestamp available.','small')); if(data.status==='live'){const board=el('div',undefined,'liveBoard');if(!data.predictions.length)board.append(el('p','The provider returned no matching predictions.','notice'));data.predictions.forEach(p=>{const row=el('div',undefined,'liveRow');row.append(el('b',p.route?.data?.id||p.route_id||p.id||'Vehicle'),el('span',p.departure_time||p.arrival_time||p.time||'Time unavailable'),el('small',p.status||'prediction'));board.append(row);});card.append(el('h3','Predictions'),board,el('h3',`Alerts · ${data.alerts.length}`));if(data.alerts.length)data.alerts.forEach(a=>card.append(el('p',a.header||a.short_header||a.description||'Alert text unavailable','notice')));else card.append(el('p','No alerts returned for this filter.','small'));}const limitations=el('div',undefined,'notice');limitations.append(el('b','Read this as status, not a promise.'));data.limitations.forEach(x=>limitations.append(el('p',x)));card.append(limitations);return card; }
@@ -127,6 +128,9 @@ function updateDate(){ const d=$('date').value; $('dayLabel').textContent=d?new 
 async function init() {
  $('locate').onclick=toggleLocation;
  $('followLocation').onclick=toggleFollow;
+ installLiveView();
+ installRouteChain();
+ $('liveProvider').options[1].textContent='CTtransit JSON';$('liveProvider').options[2].textContent='PVTA · schedule only';
  updatePreferences();
  configureTimeField('time','8:00 AM');configureTimeField('deadline','11:59 PM');configureTimeField('outingTime','8:00 AM');configureTimeField('outingHomeBy','10:00 PM');
  $('theme').onchange=()=>{preferences.theme=$('theme').value;savePreferences();};
@@ -136,17 +140,101 @@ async function init() {
  map=L.map('map',{preferCanvas:true}).setView([42,-72.4],8);layers=L.featureGroup().addTo(map);nearby=L.layerGroup().addTo(map);
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).on('tileerror',()=>$('tileNotice').hidden=false).addTo(map);map.on('moveend',nearbyStops);
  const fragment=document.createDocumentFragment(); for(const s of meta.stops){const label=stopLabel(s);labels.set(label,s.id);fragment.append(new Option(label,label));} $('stopList').append(fragment);
- meta.cities.forEach(([name,lat,lon])=>{ $('cities').append(button(name,()=>{map.setView([lat,lon],13);$('mapStatus').textContent=`${name} · zoomed stops from loaded feeds`; })); L.circleMarker([lat,lon],{radius:3,color:'#143e39'}).bindTooltip(name,{permanent:true,direction:'right',className:'cityMarker'}).addTo(map); });
+ meta.cities.forEach(([name,lat,lon])=>{ $('cities').append(button(name,()=>{map.setView([lat,lon],13);$('mapStatus').textContent=`${name} · zoomed stops from loaded feeds`; })); L.circleMarker([lat,lon],{radius:4,color:'#173d39',weight:2,fillColor:'#d7e98c',fillOpacity:1}).bindTooltip(name,{permanent:true,direction:'right',className:'cityMarker'}).addTo(map); });
  [...new Set(meta.routes.map(r=>r.feed))].forEach(f=>{$('agency').append(new Option(f,f));$('allRoutesAgency').append(new Option(f,f));});
  $('allRoutes').onclick=()=>run(showAllRoutes);
  $('allRoutesAgency').onchange=()=>{if(allRoutesVisible)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>view(b.dataset.tab));$('planTab').onclick=()=>{$('planner').hidden=false;$('browser').hidden=true;$('planTab').classList.add('selected');$('browseTab').classList.remove('selected');};$('browseTab').onclick=()=>{$('planner').hidden=true;$('browser').hidden=false;$('browseTab').classList.add('selected');$('planTab').classList.remove('selected');};
- $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value;$('from').value=$('to').value;$('to').value=a;};$('resetMap').onclick=()=>{following=false;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');map.setView([42,-72.4],8);};
- $('plan').onclick=()=>run(()=>plan());$('latest').onclick=()=>run(()=>plan('latest'));$('reach').onclick=()=>run(reach);
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>view(b.dataset.tab));$('planTab').onclick=()=>{$('planner').hidden=false;$('outingPlanner').hidden=true;$('browser').hidden=true;$('planTab').classList.add('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.remove('selected');};$('outingTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=false;$('browser').hidden=true;$('planTab').classList.remove('selected');$('outingTab').classList.add('selected');$('browseTab').classList.remove('selected');};$('browseTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=true;$('browser').hidden=false;$('planTab').classList.remove('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.add('selected');};
+ $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value,aid=$('from').dataset.stopId,b=$('to').value,bid=$('to').dataset.stopId;$('from').value=b;$('to').value=a;if(bid)$('from').dataset.stopId=bid;else delete $('from').dataset.stopId;if(aid)$('to').dataset.stopId=aid;else delete $('to').dataset.stopId;};$('resetMap').onclick=()=>{following=false;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');map.setView([42,-72.4],8);};
+ $('plan').onclick=()=>run(()=>plan());$('latest').onclick=()=>run(()=>plan('latest'));$('reach').onclick=()=>run(reach);$('bubble').onclick=()=>run(bubble);
+ $('browseOutings').onclick=()=>run(browseOutings);$('verifyOuting').onclick=()=>run(()=>verifyOuting());
  $('bookmark').onclick=()=>run(()=>{resolve('from');resolve('to');personal.bookmarks.push(Object.fromEntries(['from','to','date','time'].map(k=>[k,$(k).value])));save();$('results').replaceChildren(el('p','Search saved in My discoveries.','notice'));});
  $('saveNote').onclick=()=>run(()=>{if(!$('noteTitle').value.trim())throw Error('Give your note a title.');personal.notes.push({title:$('noteTitle').value,text:$('noteText').value});save();$('noteTitle').value='';$('noteText').value='';});
  $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(personal,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download='transit-atlas-discoveries.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
  $('importFile').onchange=()=>run(async()=>{const f=$('importFile').files[0];if(!f)return;if(f.size>2000000)throw Error('Backup is too large (maximum 2 MB).');const data=validatePersonal(JSON.parse(await f.text()));personal=validatePersonal({version:1,bookmarks:[...personal.bookmarks,...data.bookmarks],notes:[...personal.notes,...data.notes]});save();$('importFile').value='';});
  $('loading').hidden=true;$('results').append(el('p','Desktop proof of concept. Browse a route, or zoom into a city and click stops to build a journey. Schedules and transfer calculations are experimental; coverage is incomplete.','notice'));
 }
+// --- Integration completion (PR #71): main's Outings panel, location controls
+// and all-routes overlay shipped HTML and init wiring without implementations.
+// These connect that existing UI to the existing /api/v1 contracts. Location is
+// opt-in only and never leaves the device; overlay and outing results describe
+// published schedules and label missing data as unknown, never as no service.
+let following=false, locationWatch=null, locationLayer=null, allRoutesVisible=false, routeOverlay=null;
+function setLocationStatus(text){const n=$('locationStatus');if(n){n.textContent=text;n.hidden=!text;}}
+function showLocation(lat,lon){if(!locationLayer)locationLayer=L.layerGroup().addTo(map);locationLayer.clearLayers();L.circleMarker([lat,lon],{radius:6,color:'#143e39',weight:2,fillColor:'#2f78c4',fillOpacity:.9}).addTo(locationLayer);}
+function toggleLocation(){
+ const btn=$('locate');
+ if(!navigator.geolocation){setLocationStatus('Location is not available in this browser.');return;}
+ btn.setAttribute('aria-pressed','true');setLocationStatus('Locating…');
+ navigator.geolocation.getCurrentPosition(pos=>{showLocation(pos.coords.latitude,pos.coords.longitude);map.setView([pos.coords.latitude,pos.coords.longitude],13);setLocationStatus('Showing your location. It stays on this device.');$('followLocation').disabled=false;},err=>{btn.setAttribute('aria-pressed','false');setLocationStatus('Location unavailable: '+err.message);},{timeout:10000});
+}
+function toggleFollow(){
+ const btn=$('followLocation');
+ if(following){navigator.geolocation.clearWatch(locationWatch);locationWatch=null;following=false;btn.textContent='Follow: off';btn.setAttribute('aria-pressed','false');return;}
+ if(!navigator.geolocation){setLocationStatus('Location is not available in this browser.');return;}
+ following=true;btn.textContent='Follow: on';btn.setAttribute('aria-pressed','true');
+ locationWatch=navigator.geolocation.watchPosition(pos=>{showLocation(pos.coords.latitude,pos.coords.longitude);if(following)map.setView([pos.coords.latitude,pos.coords.longitude],Math.max(map.getZoom(),13));},err=>{setLocationStatus('Location unavailable: '+err.message);},{timeout:10000});
+}
+function clearAllRoutes(){if(routeOverlay)routeOverlay.clearLayers();allRoutesVisible=false;$('allRoutes').setAttribute('aria-pressed','false');const s=$('allRoutesStatus');if(s)s.textContent='';}
+async function showAllRoutes(){
+ if(allRoutesVisible){clearAllRoutes();return;}
+ if(!routeOverlay)routeOverlay=L.layerGroup().addTo(map);
+ routeOverlay.clearLayers();
+ const feed=$('allRoutesAgency').value,status=$('allRoutesStatus');
+ const list=meta.routes.filter(r=>!feed||r.feed===feed);let drawn=0;
+ for(const r of list){
+  const data=await api('route',{id:r.id,date:$('date').value});
+  for(const shape of data.shapes)if(shape.length)L.polyline(shape,{color:routeColor(r),weight:3,opacity:.75}).addTo(routeOverlay);
+  if(data.shapes.length)drawn++;
+  if(status)status.textContent=`Drawing routes… ${drawn} with published geometry`;
+ }
+ allRoutesVisible=true;$('allRoutes').setAttribute('aria-pressed','true');
+ if(status)status.textContent=drawn?`${drawn} routes drawn from published geometry. A route without drawn geometry has none published for this date; that is a data gap, not proof of no service.`:'No published route geometry for this selection.';
+ if(routeOverlay.getLayers().length)map.fitBounds(routeOverlay.getBounds(),{padding:[40,40],maxZoom:13});
+}
+function outingOptions(){
+ const from=resolve('outingFrom'),time=seconds($('outingTime').value);let homeBy=seconds($('outingHomeBy').value);
+ if($('outingNextDay').checked)homeBy+=86400;
+ if(homeBy<=time)throw Error('Home-by must be after the leaving time.');
+ return {from,date:$('outingDate').value,time,home_by:homeBy,stay:Number($('outingStay').value)*60,outbound_budget:Number($('outingBudget').value)*60,radius:500,buffer:Number($('outingBuffer').value)*60};
+}
+function outingCard(result){
+ const stop=result.destination,card=el('section',undefined,'resultCard');
+ card.append(el('h3',`${stop.name} · ${outingStatusLabel(result.status)}`));
+ if(result.reason?.message)card.append(el('p',result.reason.message,'small'));
+ if(result.status==='verified'){
+  card.append(el('p',`Out ${clock(result.outbound.departure)} → ${clock(result.outbound.arrival)} · home by ${clock(result.home_arrival)}`));
+  card.append(itinerary(result.outbound,'Outbound journey'),itinerary(result.return_trip,'Return journey'));
+ }
+ return card;
+}
+async function browseOutings(){
+ const params=outingOptions();const token=++request;
+ $('results').replaceChildren(el('p','Checking scheduled round trips…'));
+ const data=await api('outings',params);if(token!==request)return;
+ layers.clearLayers();
+ const summary=el('section',undefined,'resultCard');
+ summary.append(el('h3','Outing stops'),el('p',`${data.counts.verified} verified · ${data.counts.ruled_out} ruled out by the loaded schedule · ${data.counts.unknown} cannot be determined from the loaded schedules.`,'small'));
+ if(!data.search.complete)summary.append(el('p',`Search bounded: ${data.search.evaluated} of ${data.search.evaluated+data.search.unevaluated_count} reachable stops evaluated. Unevaluated stops carry no status; that is not a finding of no service.`,'notice'));
+ $('results').replaceChildren(coverageNotice(data.coverage),summary);
+ for(const c of data.candidates){
+  const stop=stops.get(c.destination.id);if(!stop)continue;
+  $('results').append(outingCard(c));
+  outingMarker(stop,c.status,()=>run(()=>verifyOuting(c.destination.id)));
+ }
+ fit();
+}
+async function verifyOuting(destinationId){
+ const params=outingOptions();
+ const to=destinationId||resolve('outingTo');
+ if(!stops.has(to))throw Error('Choose a meeting stop from the suggestions or map.');
+ if(!destinationId){$('outingTo').value=stopLabel(stops.get(to));$('outingTo').dataset.stopId=to;}
+ const data=await api('outings',{...params,to});
+ layers.clearLayers();
+ const stop=stops.get(data.destination.id);
+ if(stop)outingMarker(stop,data.status,()=>{});
+ $('results').replaceChildren(coverageNotice(data.coverage),outingCard(data));
+ if(stop)map.setView([stop.lat,stop.lon],13);
+}
+
 run(init);

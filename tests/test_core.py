@@ -24,7 +24,7 @@ class CalendarTests(unittest.TestCase):
 class RoutingTests(unittest.TestCase):
  def setUp(self):
   self.stops={k:dict(id=k,lat=42.,lon=-72.,parent='') for k in ['a','b','c']}
-  for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
+  for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'transfer_graph',return_value={}),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
  def c(self,dep,arr,a,b,trip,seq=0,pu=0,do=0,route='test:route'):return (dep,arr,a,b,trip,route,'Test',pu,do,seq)
  def test_route_chain_requires_ordered_routes(self):
   journey=[self.c(100,200,'a','b','t',route='cttransit:905'),self.c(600,700,'b','c','u',route='cttransit:82')]
@@ -105,7 +105,8 @@ class DownloadTests(unittest.TestCase):
  def test_refresh_sends_user_agent(self):
   import io,json,pathlib,tempfile,urllib.request,zipfile
   buf=io.BytesIO()
-  with zipfile.ZipFile(buf,'w') as z:z.writestr('agency.txt','x')
+  with zipfile.ZipFile(buf,'w') as z:
+   for name in ['agency.txt','stops.txt','routes.txt','trips.txt','stop_times.txt']:z.writestr(name,'x')
   seen={}
   class Resp:
    headers={'Last-Modified':'Mon, 02 Nov 2026 19:12:54 GMT'}

@@ -45,6 +45,11 @@ class OutingFixture(unittest.TestCase):
             patch.object(routing, 'network', return_value=(self.stops, {}, {})),
             patch.object(routing, 'connections', return_value=self.conns),
             patch.object(routing, 'neighbors', side_effect=lambda sid, radius, mode: walks.get(sid, [])),
+            patch.object(routing, 'transfer_graph',
+                         return_value={s: [dict(to=t, seconds=sec, meters=m,
+                                                 source='synthetic')
+                                            for t, sec, m in edges]
+                                       for s, edges in walks.items()}),
             patch.object(routing, 'coverage', return_value=self.coverage),
         ]
         for item in patches:

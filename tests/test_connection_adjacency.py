@@ -77,6 +77,7 @@ class ConnectionAdjacencyTests(unittest.TestCase):
         with patch.object(routing, 'network', return_value=(stops, {}, {})), \
              patch.object(routing, 'connections', database.connections), \
              patch.object(routing, 'neighbors', return_value=[]), \
+             patch.object(routing, 'transfer_graph', return_value={}), \
              patch.object(routing, 'coverage', return_value=[]):
             result = routing.plan('2026-11-14', 'fixture:a', 'fixture:c',
                                   0, 500, buffer=300)

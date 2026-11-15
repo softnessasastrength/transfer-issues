@@ -127,17 +127,6 @@ def build(include_optional=False):
   r=next(x for x in reports if x['feed']==source['id']);source['validation']=r
  db.close();tmp.replace(DATA/'atlas.sqlite');(DATA/'sources.json').write_text(json.dumps(sources,indent=2));(DATA/'validation.json').write_text(json.dumps(reports,indent=2));print(json.dumps(reports,indent=2))
 
-def refresh(include_optional=False):
- sources=json.loads((DATA/'sources.json').read_text())
- for s in sources:
-  if s.get('optional') and not include_optional:
-   s['status']='optional_disabled';continue
-  try:
-   req=urllib.request.Request(s['url'],headers={'User-Agent':USER_AGENT})
-   with urllib.request.urlopen(req,timeout=90) as r:content=r.read();lm=r.headers.get('Last-Modified')
-   with zipfile.ZipFile(io.BytesIO(content)) as z:z.testzip()
-   (DATA/(s['id']+'.zip')).write_bytes(content);s.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),last_modified=lm,bytes=len(content));s.pop('error',None);s.pop('refresh_error',None)
-  except Exception as e:s['refresh_error']=str(e);print(s['id'],e)
 def download_gtfs(source):
  """Try the publisher's known static GTFS URLs; never substitute unverified schedules."""
  urls=[source['url']]
@@ -149,12 +138,12 @@ def download_gtfs(source):
  for url in dict.fromkeys(urls):
   try:
    req=urllib.request.Request(url,headers={
-    'User-Agent':'Mozilla/5.0 (compatible; SouthernNewEnglandTransitAtlas/0.1; GTFS download)',
+    'User-Agent':USER_AGENT,
     'Accept':'application/zip, application/octet-stream, */*'})
    with urllib.request.urlopen(req,timeout=90) as response:
-    content=response.read(60*1024*1024+1)
+    content=response.read()
     last_modified=response.headers.get('Last-Modified')
-    final_url=response.geturl()
+    final_url=response.geturl() if hasattr(response,'geturl') else url
    if len(content)>60*1024*1024:raise ValueError('GTFS archive exceeds 60 MiB safety limit')
    with zipfile.ZipFile(io.BytesIO(content)) as archive:
     bad=archive.testzip()
@@ -167,23 +156,25 @@ def download_gtfs(source):
    errors.append(url+': '+str(exc))
  raise RuntimeError('All official GTFS download attempts failed: '+'; '.join(errors))
 
-def refresh():
+def refresh(include_optional=False):
  sources=json.loads((DATA/'sources.json').read_text())
- for source in sources:
+ for s in sources:
+  if s.get('optional') and not include_optional:
+   s['status']='optional_disabled';continue
   try:
-   content,last_modified,final_url=download_gtfs(source)
+   content,last_modified,final_url=download_gtfs(s)
    # Write only after successful archive validation. Keep the prior ZIP on failure.
-   target=DATA/(source['id']+'.zip')
+   target=DATA/(s['id']+'.zip')
    temporary=target.with_suffix('.download')
    temporary.write_bytes(content)
    temporary.replace(target)
-   source.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                 last_modified=last_modified,bytes=len(content),download_url=final_url)
-   source.pop('refresh_error',None)
-   source.pop('error',None)
+   s.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            last_modified=last_modified,bytes=len(content),download_url=final_url)
+   s.pop('refresh_error',None)
+   s.pop('error',None)
   except Exception as exc:
-   source['refresh_error']=str(exc)
-   print(source['id'],exc)
+   s['refresh_error']=str(exc)
+   print(s['id'],exc)
  (DATA/'sources.json').write_text(json.dumps(sources,indent=2))
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--refresh',action='store_true');p.add_argument('--include-optional',action='store_true');a=p.parse_args()

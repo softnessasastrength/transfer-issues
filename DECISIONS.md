@@ -339,3 +339,71 @@ scope-limited MCP access and rate limits exist.
   current official feed. None was fabricated into current routing. Major
   Connecticut city zoom buttons were added; browser access was unavailable,
   so visual acceptance remains pending. See `REGIONAL_COVERAGE.md`.
+
+# 2026-11-15 — PR #71 integration: Percival companion stack meets regional/platform main
+
+Merged `main` (regional coverage, Outings, Android/iOS/KaiOS proofs of concept,
+offline packs, street routing) into `feature/percival-mcp` (MCP companion stack).
+Resolution principles: no lost work, no invented transit data, per-hunk synthesis
+rather than blanket ours/theirs. Notable outcomes:
+
+- **Config is the single source of truth for feed optionality.**
+  `prepare_data.py` now propagates `optional` from `config/feeds.json` (main's
+  data-driven line) instead of hard-coding LIRR as optional. Per main's verified
+  regional record (REGIONAL_COVERAGE.md), LIRR is a default feed, joined by
+  Metro-North and Greyhound; the `include_optional` mechanism is unchanged and
+  applies to any feed flagged optional.
+- **Importer/routing: main's implementations adopted after full comparison.**
+  They are supersets of the feature branch's: agency-timezone validation with a
+  per-trip timezone column, publisher `seq` retained alongside a dense `ordinal`
+  (feature's seq-only change could fabricate a segment after stop clipping),
+  per-stage route-chain labels (feature's single-label prefix filter could
+  discard the only chain-completing path), GTFS transfer rules, transfer edges
+  and optional street-graph walking legs.
+- **server.py: main's superset adopted** (Outings endpoint, compact/paginated
+  payloads, strict boolean/kind/route-chain validation, expanded city list).
+  Feature's duplicate implementations of the same endpoints were identical or
+  weaker; its one unique text (meta limitation wording) was stale relative to
+  the adopted coverage policy (Amtrak is whole-network).
+- **Web UI: synthesized.** Main's Outings/location/all-routes HTML and init
+  wiring referenced functions no branch implemented (`browseOutings`,
+  `verifyOuting`, `toggleLocation`, `toggleFollow`, `showAllRoutes`,
+  `clearAllRoutes`); compact implementations were added against the existing
+  `/api/v1/outings` and route-geometry contracts, labelled in `web/app.js` as
+  integration completion. Feature's Mobility Bubble function and wiring, dropped
+  by the textual auto-merge, were restored; feature's stopId-preserving swap and
+  published-route-colour rendering were kept over main's plainer variants.
+- **Docs:** API.md and ROADMAP/DECISIONS histories unioned; README rewritten as
+  the union of both branches' verified content, corrected where the integrated
+  configuration superseded it (LIRR optionality, MNR/Greyhound coverage rows).
+
+## Integration verification fixes (same date, found by the merged test suite)
+
+- **Duplicate `refresh()` in `import_gtfs.py` removed.** Main's file defined
+  `refresh()` twice; the second definition shadowed the first, silently losing
+  the `include_optional` parameter (breaking `--include-optional` and
+  `prepare_data.py`) and the project's descriptive User-Agent (a Mozilla-style
+  UA in `download_gtfs`). Synthesized into one `refresh(include_optional=False)`
+  that keeps main's validated download path (PVTA scheme fallback, 60 MiB cap,
+  required-files check, atomic replace, prior ZIP kept on failure) with the
+  documented honest `USER_AGENT` on every request.
+- **Synthetic routing fixtures made hermetic again.** Main's `routing.scan`
+  refactor reads walk edges via `transfer_graph()`, which queries the real
+  database; the synthetic fixtures in `test_core`, `test_bubble`,
+  `test_outings` and `test_connection_adjacency` patched the older
+  `neighbors()` seam only, so they errored with "unable to open database
+  file" on any checkout without a populated `data/atlas.sqlite`. The fixtures
+  now also patch `transfer_graph` (the convention one existing test already
+  used); no assertion was changed.
+- **`tests/test_integration_config.py` added:** guards that
+  `config/feeds.json`, `config/coverage.json` overrides and the feed
+  `prepare_data.py` special-cases stay mutually consistent.
+- The download stub fixture in `test_core` now builds a minimally valid GTFS
+  archive (the five required files) to match `download_gtfs` validation; its
+  User-Agent and status assertions are unchanged.
+- Result: `python3 -m unittest discover -s tests` — 202 tests, all passing,
+  no skips, in the integration sandbox (loopback available). Standalone
+  baselines for comparison: feature branch 71/71 OK; main alone showed the
+  identical 1 failure + 30 errors fixed above, i.e. no integration
+  regressions were introduced and three pre-existing main defects were
+  repaired en route.
