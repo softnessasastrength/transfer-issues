@@ -23,13 +23,19 @@ def main():
     host = "0.0.0.0" if args.lan else "127.0.0.1"
     if args.lan:
         print("WARNING: LAN mode exposes scheduled data and MCP tools to devices that can reach this host.")
-        print("Use only on a trusted private network; no authentication is configured.")
+        print("Use only on a trusted private network. The MCP endpoint requires the bearer token below; the Atlas web/API is read-only.")
     processes = [
         subprocess.Popen([sys.executable, str(ROOT / "server.py"), "--host", host, "--port", str(args.port)], cwd=ROOT),
         subprocess.Popen([sys.executable, str(ROOT / "scripts" / "atlas_mcp_http.py"), "--host", host, "--port", str(args.mcp_port)], cwd=ROOT),
     ]
     print("Percival Atlas: http://%s:%s" % (host, args.port), flush=True)
     print("Percival MCP:  http://%s:%s/mcp" % (host, args.mcp_port), flush=True)
+    try:
+        from atlas_mcp_http import expected_token, token_file
+        print("Percival MCP token: %s" % expected_token(), flush=True)
+        print("Stored at %s (mode 0600); MCP clients must send it as 'Authorization: Bearer <token>'." % token_file(), flush=True)
+    except Exception as exc:  # token display must never block the launcher
+        print("Percival MCP token: see the atlas_mcp_http startup output (%s)" % exc, flush=True)
     print("Press Control-C to stop both services.", flush=True)
     try:
         while all(process.poll() is None for process in processes):
