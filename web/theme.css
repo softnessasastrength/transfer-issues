@@ -204,3 +204,47 @@ footer { color: var(--atlas-muted); border-color: var(--atlas-line); background:
   .preferences { margin-left: 0; width: 100%; justify-content: space-between; border-radius: var(--atlas-control-radius); }
   .mapArea { border-bottom: 1px solid var(--atlas-line); }
 }
+
+/* Percival terminal-map pass: readable mono first, expressive color second. */
+body { font-family: "IBM Plex Mono", "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+h1, h2, h3, .brand { font-family: "IBM Plex Mono", "Ubuntu Mono", ui-monospace, monospace; }
+h1 { font-weight: 650; letter-spacing: -1.8px; text-transform: none; }
+.brand span, .eyebrow, label, .edition, nav button, .mapTitle, .legend, .dataStrip { font-family: "Ubuntu Mono", "IBM Plex Mono", ui-monospace, monospace; }
+.brand { letter-spacing: -.04em; }
+nav button.selected { box-shadow: inset 0 -2px 0 var(--atlas-accent); }
+.page { max-width: 1280px; }
+
+/* Departure-board rows: amber signal, crisp columns, no fake precision. */
+.liveCard { position: relative; overflow: hidden; }
+.liveCard::before { content: "PERCIVAL / STATUS FEED"; display:block; color:var(--atlas-muted); font:10px "Ubuntu Mono", monospace; letter-spacing:1.5px; margin-bottom:10px; }
+.liveCard.live { background: linear-gradient(135deg, color-mix(in srgb, var(--atlas-surface) 92%, var(--atlas-accent) 8%), var(--atlas-surface)); }
+.liveCard.unknown { background: linear-gradient(135deg, color-mix(in srgb, var(--atlas-surface) 90%, var(--atlas-warm) 10%), var(--atlas-surface)); }
+.liveBoard { background: color-mix(in srgb, var(--atlas-bg) 78%, #111 22%); border-color: #334a43; color: #e6f4c4; font-family:"Ubuntu Mono", monospace; box-shadow: inset 0 0 30px rgba(0,0,0,.18); }
+.liveRow { grid-template-columns: minmax(70px, .7fr) minmax(120px, 1.4fr) minmax(90px, .7fr); align-items:center; border-color:#334a43; }
+.liveRow b { color:var(--atlas-accent); letter-spacing:.05em; }
+.liveRow span { color:#f4d77a; font-size:1.05em; }
+.liveRow small { color:#b9c9a4; text-transform:uppercase; letter-spacing:.08em; }
+.liveCard .notice { font-family:"Ubuntu Mono", monospace; }
+.liveControls { background:var(--atlas-surface-2); border:1px solid var(--atlas-line); padding:14px; border-radius:var(--atlas-radius); }
+.liveControls input, .liveControls select { background:var(--atlas-bg); }
+
+/* Empty states should explain the next move instead of looking broken. */
+.emptyState { border:1px dashed var(--atlas-line); border-radius:var(--atlas-radius); padding:22px 16px; color:var(--atlas-muted); background:color-mix(in srgb, var(--atlas-surface) 80%, var(--atlas-surface-2)); }
+.emptyState b { display:block; color:var(--atlas-ink); margin-bottom:5px; }
+
+@media (max-width: 900px) {
+  .page { padding:36px 22px; }
+  .liveControls { grid-template-columns:1fr 1fr; }
+  .liveControls label { align-self:end; }
+}
+@media (max-width: 650px) {
+  body { font-size:13px; }
+  .page { padding:24px 16px; }
+  .page h1 { font-size:31px; line-height:1.12; }
+  .liveControls { grid-template-columns:1fr; gap:6px; }
+  .liveControls label { margin-top:10px; }
+  .liveControls button { width:100%; margin-top:12px; }
+  .liveRow { grid-template-columns:1fr 1fr; }
+  .liveRow small { grid-column:1 / -1; }
+  nav button { min-width:0; font-size:10px; padding-inline:7px; }
+}
