@@ -649,3 +649,40 @@ stays prominent, while result stops keep the ring style. A "Stops" toggle in
 the map controls hides the ambient layer entirely (aria-pressed, default on).
 Popups are unchanged, so click-a-stop planning (Start here / Go here / Meet
 here / Departures) works exactly as before wherever stops are shown.
+## F-009 saved commute profiles — 2026-11-15
+
+- Owner-requested (Percival feature queue F-009): a commute is a standing
+  profile, not a retyped plan query. Profiles live in the existing
+  device-local Percival preferences file under a `commutes` key, validated
+  by `percival_memory` like every other preference; nothing is stored in
+  git and nothing is inferred from conversation.
+- Profile shape: home/work as Atlas stop IDs, a preferred route chain per
+  direction (outbound and return stored separately — asymmetry is the
+  normal case), and declared rideshare legs `{from_stop, to}` where
+  transit ends before the endpoint.
+- Evaluation (`commute.py`; MCP tools `percival_get_commute`,
+  `percival_set_commute`, `percival_clear_commute`, `atlas_commute_evaluate`)
+  reuses `/api/v1/plan` only; it never reimplements routing. The declared
+  chain is planned first; where it cannot run on the evaluated date, the
+  unpinned answer is shown and the note says the preference could not be
+  honoured; where it runs, an unpinned comparison states any time cost.
+- Rideshare legs are estimates only (F-004 doctrine): haversine distance
+  x 1.3 road circuity, drive time at 35-60 km/h, labelled "rideshare —
+  estimated drive, not a quote, not booked"; no price, no booking path,
+  no rideshare API. Stop coordinates resolve through the route endpoint's
+  published stop lists (the stops endpoint searches names, not IDs); a
+  stop no hinted route serves yields an explicit unknown, never a guess.
+- The return evaluation always includes the last viable return, with the
+  search bounded to the service day (deadline 28:00 GTFS extended time).
+  An unbounded window demonstrably surfaces the next evening's service
+  (a 42:53 "departure") and calls it tonight's last return.
+- Verified against the packaged ten-feed data for Tuesday 2026-11-17 with
+  representative stops (Enfield St @ Elm St -> Shoppes at Buckland Hills):
+  outbound chain 905 -> 82 applied, 07:00 -> 08:41; return chain 82 ->
+  Hartford Line applied, transit ends Windsor Locks 19:19, rideshare
+  estimate 10-18 minutes (estimated final arrival 19:29-19:37); last
+  viable return departs work 18:53, Windsor Locks 20:11. Known
+  limitation: the first plan for an unwarmed date can exceed the MCP
+  layer's 30-second call timeout (a pre-existing Atlas property, shared
+  with `atlas_plan_trip`); warm dates answer in well under a second
+  per plan.
