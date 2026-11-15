@@ -714,3 +714,23 @@ feed carries no vehicle entities; Amtrak has no public GTFS-RT and its
 map payload is encrypted. Full evidence and the production-cost options
 (vendored minimal decoder recommended if adoption is ever approved) are
 in spikes/gtfs_rt/README.md. No shipped code imports the spike.
+## 2026-11-15 — Day-trip planner with protected return anchor (branch feat/day-trip-anchor_muse)
+
+Built on the existing outings engine (evaluate/browse) and routing.plan /
+routing.latest — no parallel system. outings.plan_day composes an ordered
+list of visits: each leg is accepted only if, after the visit's minimum
+dwell, a certified path back to the anchor boarding stop still arrives by
+the anchor departure (less the transfer buffer); a leg that would break
+the anchor is refused with the reason and the day stands partial. The
+anchor is either derived (last viable return home from the final visit,
+via routing.latest) or pinned to a service: outings.last_service_departure
+reads the last departure of a route from a stop out of the imported
+connections — never a hard-coded time — and the pinned trip must itself
+start a certified journey home. Output states the anchor, its slack, and
+what happens if it is missed (the next return, or that none exists that
+day). Endpoint: /api/v1/daytrip; UI in the Outings panel.
+
+Owner's anchor belief, checked against the imported schedule: the last
+905 from Hartford (origin Asylum St @ Bushnell Park, Enfield-bound) is
+**18:17 on weekdays** — not 18:20 — and **17:17 on Saturday and Sunday**.
+The mechanism reads the value from the data in all cases.
