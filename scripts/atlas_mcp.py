@@ -17,6 +17,10 @@ try:
 except ImportError:  # direct execution as scripts/atlas_mcp.py
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
     import percival_memory
+try:
+    from .. import commute
+except ImportError:  # direct execution as scripts/atlas_mcp.py
+    import commute
 
 
 ATLAS_URL = os.environ.get("ATLAS_URL", "http://127.0.0.1:8000").rstrip("/")
@@ -189,6 +193,82 @@ TOOLS = [
         "description": "Clear all explicitly saved local Percival trip preferences after the user asks to forget them.",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
+    {
+        "name": "percival_get_commute",
+        "description": "Read Percival's saved commute profiles (F-009). With no id, lists every profile; with an id or name, returns that one. Profiles are device-local and never inferred from conversation.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"id": {"type": "string", "description": "Optional profile id or name."}},
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "percival_set_commute",
+        "description": "Save a commute profile: home and work as Atlas stop IDs (resolve names and addresses with atlas_search_stops first; there is no geocoder), a preferred feed-qualified route chain per direction (outbound and return are stored separately), and declared rideshare legs where transit ends before the endpoint. Saving under an existing id replaces that profile.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"}, "name": {"type": "string"},
+                "home_stop": {"type": "string"}, "work_stop": {"type": "string"},
+                "outbound": {
+                    "type": "object",
+                    "properties": {
+                        "routes": {"type": "array", "items": {"type": "string"}},
+                        "mode": {"type": "string", "enum": ["walk", "scooter"]},
+                    },
+                    "additionalProperties": False,
+                },
+                "return": {
+                    "type": "object",
+                    "properties": {
+                        "routes": {"type": "array", "items": {"type": "string"}},
+                        "mode": {"type": "string", "enum": ["walk", "scooter"]},
+                    },
+                    "additionalProperties": False,
+                },
+                "rideshare_legs": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "from_stop": {"type": "string"},
+                            "to": {"type": "string", "enum": ["home", "work"]},
+                        },
+                        "required": ["from_stop", "to"],
+                        "additionalProperties": False,
+                    },
+                },
+            },
+            "required": ["id", "name", "home_stop", "work_stop"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "percival_clear_commute",
+        "description": "Forget one saved commute profile, by id or name, after the user asks to remove it.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"id": {"type": "string"}},
+            "required": ["id"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "atlas_commute_evaluate",
+        "description": "Evaluate a saved commute profile for a date: planned services in both directions at the given departure times, declared chains honoured or noted where they cannot run, rideshare legs as labelled drive-time estimates, and the last viable return. Results are timetable feasibility; nothing is booked.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "profile": {"type": "string", "description": "Commute profile id or name."},
+                "date": {"type": "string", "description": "YYYY-MM-DD."},
+                "depart_time": {"type": "integer", "minimum": 0, "maximum": 86399, "description": "Outbound departure time as seconds after midnight."},
+                "return_time": {"type": "integer", "minimum": 0, "maximum": 86399, "description": "Return departure time as seconds after midnight."},
+                "deadline": {"type": "integer", "minimum": 0, "maximum": 172799},
+            },
+            "required": ["profile", "date", "depart_time", "return_time"],
+            "additionalProperties": False,
+        },
+    },
 ]
 
 
@@ -295,6 +375,22 @@ def call_tool(name, args):
         return {"preferences": percival_memory.set_values(args), "storage": "device-local", "inferred": False}
     if name == "percival_clear_preferences":
         return {"preferences": percival_memory.clear(), "storage": "device-local", "inferred": False}
+    if name == "percival_get_commute":
+        if args.get("id"):
+            profile = percival_memory.get_commute(args["id"])
+            if profile is None:
+                raise ValueError("Unknown commute profile: " + str(args["id"]))
+            return {"commute": profile, "storage": "device-local", "inferred": False}
+        return {"commutes": percival_memory.get_commutes(), "storage": "device-local", "inferred": False}
+    if name == "percival_set_commute":
+        return {"commute": percival_memory.set_commute(args), "storage": "device-local", "inferred": False}
+    if name == "percival_clear_commute":
+        return {"commutes": percival_memory.clear_commute(args["id"]), "storage": "device-local", "inferred": False}
+    if name == "atlas_commute_evaluate":
+        profile = percival_memory.get_commute(args["profile"])
+        if profile is None:
+            raise ValueError("Unknown commute profile: " + str(args["profile"]))
+        return commute.evaluate(_api, profile, args["date"], args["depart_time"], args["return_time"], args.get("deadline", 86399))
     raise ValueError("Unknown MCP tool: " + name)
 
 

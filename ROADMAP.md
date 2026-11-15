@@ -68,6 +68,16 @@ priority, not a promise that the feature is complete.
   hard home-by deadline. Bounded candidate searches expose unevaluated overflow
   as unknown. Real-data and browser acceptance remain part of the current M0.D
   delivery work; no offline pack or background task is implied.
+- **Saved commute profiles (F-009)** — FIRST SLICE BUILT (PR open, unmerged).
+  A commute is a standing profile in the device-local Percival preferences:
+  home/work as Atlas stop IDs, a preferred route chain per direction
+  (asymmetry is the normal case), and declared rideshare legs where transit
+  ends before the endpoint. `atlas_commute_evaluate` plans both directions
+  for a real date through the existing planner, notes where a declared chain
+  cannot run, labels rideshare legs as estimated drives (never a quote,
+  never booked), and always reports the last viable return. Follow-ons:
+  a web/UI surface for profiles, and address-to-stop resolution beyond the
+  existing stop search (no external geocoder by default).
 
 ### Explicitly not promised
 
