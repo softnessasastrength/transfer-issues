@@ -73,5 +73,11 @@
     "url": "https://ripta.com/RIPTA-GTFS.zip",
     "official_page": "https://www.ripta.com/mobile-applications/",
     "status": "not_downloaded"
+  },
+  {
+    "id": "gbt",
+    "url": "https://data.trilliumtransit.com/gtfs/gbt-ct-us/gbt-ct-us.zip",
+    "official_page": "https://gogbt.com/for-transit-geeks/",
+    "status": "not_downloaded"
   }
 ]

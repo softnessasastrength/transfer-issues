@@ -984,3 +984,52 @@ one pack used by the switch, no in-app download manager (the lan_server
 allowlist extension is the named follow-on), and WP10/EdgeHTML vector
 rendering is NOT claimed — the emulator decides; a capped-zoom raster
 pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
+## GBT GTFS imported — Bridgeport coverage (2026-11-15)
+
+- **Source (official):** Greater Bridgeport Transit's GTFS is published
+  by its GTFS vendor, Trillium Solutions, at
+  https://data.trilliumtransit.com/gtfs/gbt-ct-us/gbt-ct-us.zip — the
+  producer URL the Mobility Database registers for Greater Bridgeport
+  Transit (mdb-530, Bridgeport, CT). GBT's own "For Transit Geeks"
+  page (https://gogbt.com/for-transit-geeks/) is the agency's GTFS
+  contact point and is recorded as the registry's official_page.
+  Retrieved 2026-11-15; 1,335,948 bytes; SHA-256
+  b37a1d7a2331481545aee066eeeaffbd9981fa963b3e02dddf1a8cc2116162b2.
+- **Freshness:** feed_info.txt declares 2026-09-23 → 2026-12-27 for the
+  archive (publisher Trillium Solutions, Inc.; agency.txt names Greater
+  Bridgeport Transit, America/New_York) — current at retrieval, so the
+  GTFS tier applies and no PDF fallback was needed. It is the shortest
+  window of any configured feed: poll for republication before it
+  lapses on 2026-12-27.
+- **Registered** as feed `gbt` in config/feeds.json. No coverage.json
+  override: every GBT stop falls inside the default regional clip
+  (40.9–43.1, −73.8–−70.5), so the scope recorded at import is the
+  default description, like CTtransit, PVTA, WRTA, SEAT and RIPTA.
+- **Service model:** base service lives in calendar.txt (year-round
+  weekday / Saturday / Sunday service ids) and calendar_dates.txt
+  carries only four holiday exception rows (2026-11-26 and 2026-12-25
+  swap weekday service for Sunday service). frequencies.txt is present
+  but empty — no frequency-based trips are excluded. The published
+  file lists 1,209 stops; 1,183 are referenced by stop_times and all
+  imported (the parent station record brings the stored count to
+  1,184); the 26 unreferenced stops are served by no trip in this
+  edition. tests/test_gbt_feed.py pins the registry entry and the
+  calendar + holiday-exception behaviour with a synthetic archive of
+  the same shape.
+- **Import counts (2026-11-15 local six-feed build):** 1,183 stops /
+  16 routes / 1,753 trips, zero import errors, zero warnings.
+  check_data_integrity.py PASS on the rebuilt database.
+- **Verification (local six-feed build, Tue 2026-11-17):** Bridgeport
+  Transportation Center resolves (16 matches: parent station
+  gbt:2382213 plus its berths). Plans from the parent station at
+  08:00 — Bridgeport → Hartford (walk to MNR Bridgeport, MNR to New
+  Haven, Amtrak to Hartford, arrive 10:25) and Hartford → Bridgeport
+  (Amtrak to New Haven, MNR to Bridgeport, arrive 09:51). Departures
+  are carried on the terminal's 15 berth stops, not the parent record:
+  520 departures across the berths that day, first 05:20. 60-minute
+  bubble from the terminal: 467 reachable. Standing reference checks
+  unchanged: Court Square → pvta:1495; hartford:6 → pvta:5101 departs
+  30900, arrives 33428.
+- **Limits:** fixed-route GTFS only. GBT demand-response service
+  (GBT Connect) is not in the feed and is not represented; nothing
+  about it is implied.
