@@ -436,3 +436,32 @@ rather than blanket ours/theirs. Notable outcomes:
   and 755 for the launcher, the maintainer scripts, shell scripts and
   every file git records as executable, with root ownership forced via
   `dpkg-deb --root-owner-group` — the same package from any checkout.
+
+## Percival Core bundled into the Debian package (2026-11-15)
+
+- **Owner decision (2026-11-15): one package, two services.** From
+  0.0.2 the `transit-atlas` Debian package also carries Percival Core
+  (`softnessasastrength/percival`): the Atlas on 127.0.0.1:8000 and
+  Percival's front door on 127.0.0.1:8123, one install, one launcher
+  (`transit-atlas percival`), two systemd units. The Atlas package
+  already carried the Percival *companion* (MCP, chat, personality,
+  TUI); this bundles Percival *Core* proper — registry, audit,
+  executor, bring-to-me — beside it.
+- **The repositories stay separate.** Percival is never vendored into
+  this repo's history. It enters the package only as a build input:
+  `packaging/build_deb.sh` requires `PERCIVAL_DIR` (a checkout of the
+  pinned ref) and stages the whole tree under `/usr/lib/percival-core`
+  with a `BUILD_INFO` provenance file. A build without the input
+  fails loudly instead of silently shipping the pre-bundle artifact.
+- **The pin is deliberate.** `packaging/PERCIVAL_PIN` records the
+  exact `percival` commit the package bundles (initially
+  `b39a4eeca2963017d73823dff4483d6eaabef0b0`, the head that merged the
+  local runner). Bumping it is its own PR with the bump recorded here;
+  the release workflow checks out the pinned ref and gates on the
+  Percival suite as well as the Atlas suite before building.
+- **ARM64 is a hard requirement.** The owner tests in an ARM64 Linux
+  VM on Apple silicon. Both trees are pure Python stdlib — the
+  package stays `Architecture: all` with zero native binaries — and
+  the bundled `scripts/setup_ollama.sh` selects its Ollama asset and
+  pinned digest by `uname -m` (amd64 / arm64), failing loudly on
+  anything else.

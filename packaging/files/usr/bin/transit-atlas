@@ -2,6 +2,7 @@
 # transit-atlas — launcher for the Southern New England Transit Atlas.
 set -e
 ATLAS_HOME=/usr/lib/transit-atlas
+PERCIVAL_HOME=/usr/lib/percival-core
 CONF=/etc/transit-atlas/percival.conf
 [ -f "$CONF" ] && . "$CONF"
 if [ -z "${ATLAS_DATA_DIR:-}" ]; then
@@ -22,6 +23,8 @@ case "$cmd" in
   mcp-http)     exec python3 "$ATLAS_HOME/scripts/atlas_mcp_http.py" "$@" ;;
   tui)          exec python3 "$ATLAS_HOME/scripts/atlas_tui.py" "$@" ;;
   setup-ollama) exec "$ATLAS_HOME/scripts/setup_ollama.sh" "$@" ;;
-  version)      echo "transit-atlas @VERSION@" ;;
-  *) echo "usage: transit-atlas {serve|lan|prepare|mcp-http|tui|setup-ollama|version}" >&2; exit 2 ;;
+  percival)     exec python3 "$PERCIVAL_HOME/scripts/run_local.py" "$@" ;;
+  version)      echo "transit-atlas @VERSION@"
+                echo "percival-core @PERCIVAL_SHA@ (softnessasastrength/percival)" ;;
+  *) echo "usage: transit-atlas {serve|lan|prepare|mcp-http|tui|setup-ollama|percival|version}" >&2; exit 2 ;;
 esac

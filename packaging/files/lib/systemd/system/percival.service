@@ -1,0 +1,12 @@
+[Unit]
+Description=Percival Core — local household steward front door
+After=network.target transit-atlas.service
+Wants=transit-atlas.service
+[Service]
+Type=simple
+User=transit-atlas
+Environment=PERCIVAL_ATLAS_URL=http://127.0.0.1:8000
+ExecStart=/usr/bin/transit-atlas percival
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
