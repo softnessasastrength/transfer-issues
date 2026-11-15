@@ -212,4 +212,9 @@
 
 - Deferred Uber/Lyft implementation to a separate last-mile layer. The feasible first slice is user-initiated deep links from known coordinates; it must not imply live price, pickup ETA, availability, accessibility, or booking.
 - Uber's current official docs distinguish deep links from estimate APIs and state that deep links do not fetch time or price estimates. No provider credentials, booking flow, or paid API access is being added. PVTA remains schedule-only until its realtime feed contract is published to developers.
+
+## Codex session — Percival UI/UX pass
+
+- Chose IBM Plex Mono as the primary interface font with Ubuntu Mono as the technical/status fallback. The CSS uses local/system font stacks, preserving usability when the fonts are not installed.
+- Started the UI pass with a departure-board visual for live rows, countdown-style labels, clearer route/stop empty states, and compact responsive controls. No backend semantics changed.
 - Preference memory is deliberately not conversational inference: only explicit values are saved, validated, and used. It does not change feed provenance or turn unknown service into a fact.
