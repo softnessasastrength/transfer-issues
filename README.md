@@ -45,7 +45,7 @@ A failed agency download can leave coverage incomplete. An empty result is not p
 | CTtransit | Successful | 184 routes; loaded service periods vary by division |
 | CTrail / Hartford Line | Successful | 2 feed routes; planned schedule, not live arrivals |
 | WRTA | Successful | 24 routes; exception-date calendars |
-| Amtrak | Successful | 13 routes intersecting regional geographic scope |
+| Amtrak | Successful | Whole official feed: 64 routes / 645 stops / 2,461 trips; no geographic clip |
 | MBTA | Successful locally after expanded rebuild | 366 selected routes / 113,694 trips / 7,604 stops across MBTA bus, subway/light rail and commuter rail; geographic clip and feed-published calendars apply |
 | PVTA | Successful | 62 routes; service period 2026-11-02 to 2026-12-19 in the 2026-11-14 import. Earlier HTTP 403s were a User-Agent artifact in the downloader, fixed 2026-11-14 |
 | RIPTA / other CT, MA, RI agencies | **Not imported** | Required expanded coverage remains pending |
@@ -101,6 +101,10 @@ Open `http://127.0.0.1:8000/api/v1/meta` to inspect the API. The page at `/` is 
 For an existing database, the server accepts `ATLAS_DATA_DIR=/absolute/data/path`; the importer currently writes to the repository's `data/` folder. Do not expose this development server on an unsecured remote interface.
 
 The core planner excludes optional networks by default. To download and import the optional MTA LIRR feed, run `python3 scripts/prepare_data.py --include-optional`; then use the planner's **Include optional MTA rail network** control. The feed is official scheduled data, not live service.
+
+### Expanding the atlas
+
+The importer is feed-configured. Add an agency to `config/feeds.json`, give it an official GTFS URL and `official_page`, then add only the coverage policy it needs in `config/coverage.json`: geographic `bounds` for a regional clip, `whole_network: true` for a compact network feed such as Amtrak, and optional `agency_ids` or `route_types` filters when the archive contains multiple operators. The schema and routing engine do not need a new agency-specific branch. Run `python3 scripts/prepare_data.py` (or `--include-optional`) and inspect `data/validation.json` before treating the network as loaded.
 
 ### Optional live bus/train overlays
 
