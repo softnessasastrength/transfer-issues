@@ -29,6 +29,7 @@ def _unknown(provider: str, reason: str, source_url: str | None = None) -> dict:
         "source_url": source_url,
         "as_of": None,
         "predictions": [],
+        "vehicles": [],
         "alerts": [],
         "limitations": [reason, "Live status is informational and does not alter scheduled routing."],
     }
@@ -82,6 +83,32 @@ def mbta(route: str = "", stop: str = "", include_alerts: bool = True) -> dict:
     except Exception as exc:  # Provider errors are data, not server failures.
         return _unknown("mbta_v3", f"MBTA live provider unavailable: {type(exc).__name__}")
 
+    # Vehicles are an addition to the board, never a condition of it: if the
+    # vehicles endpoint fails, predictions and alerts still stand.
+    vehicles = []
+    try:
+        vehicle_params: dict[str, str] = {"page[limit]": "250"}
+        if route_id:
+            vehicle_params["filter[route]"] = route_id
+        vehicle_payload, _vehicle_url = _fetch("/vehicles", vehicle_params)
+        for row in _resource_rows(vehicle_payload):
+            rel = row.get("relationships") or {}
+            def _rel_id(name: str) -> str | None:
+                data = (rel.get(name) or {}).get("data")
+                return data.get("id") if isinstance(data, dict) else None
+            lat, lon = row.get("latitude"), row.get("longitude")
+            vehicles.append({
+                "id": row.get("id"),
+                "route_id": _rel_id("route"),
+                "vehicle": row.get("label"),
+                "position": {"latitude": lat, "longitude": lon, "bearing": row.get("bearing")} if lat is not None and lon is not None else None,
+                "timestamp": row.get("updated_at"),
+                "status": row.get("current_status"),
+                "stop_id": _rel_id("stop"),
+            })
+    except Exception:
+        vehicles = []
+
     now = _dt.datetime.now(_dt.timezone.utc).isoformat()
     return {
         "status": "live",
@@ -89,6 +116,7 @@ def mbta(route: str = "", stop: str = "", include_alerts: bool = True) -> dict:
         "as_of": now,
         "source_url": prediction_url,
         "predictions": _resource_rows(predictions),
+        "vehicles": vehicles,
         "alerts": _resource_rows(alerts_payload),
         "limitations": [
             "Provider timestamps and coverage can be stale or incomplete.",
