@@ -21,7 +21,12 @@ class RoutingTests(unittest.TestCase):
  def setUp(self):
   self.stops={k:dict(id=k,lat=42.,lon=-72.,parent='') for k in ['a','b','c']}
   for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
- def c(self,dep,arr,a,b,trip,seq=0,pu=0,do=0):return (dep,arr,a,b,trip,'test:route','Test',pu,do,seq)
+ def c(self,dep,arr,a,b,trip,seq=0,pu=0,do=0,route='test:route'):return (dep,arr,a,b,trip,route,'Test',pu,do,seq)
+ def test_route_chain_requires_ordered_routes(self):
+  journey=[self.c(100,200,'a','b','t',route='cttransit:905'),self.c(600,700,'b','c','u',route='cttransit:82')]
+  with patch.object(routing,'connections',return_value=journey):
+   self.assertTrue(routing.plan('2026-11-12','a','c',0,800,route_chain=('cttransit:905','cttransit:82'))['found'])
+   self.assertFalse(routing.plan('2026-11-12','a','c',0,800,route_chain=('cttransit:82','cttransit:905'))['found'])
  def test_through_ride(self):
   with patch.object(routing,'connections',return_value=[self.c(100,200,'a','b','t'),self.c(200,300,'b','c','t',1)]):
    r=routing.plan('2026-11-12','a','c',0,400,buffer=300);self.assertTrue(r['found']);self.assertEqual(len(r['legs']),1);self.assertEqual(r['arrival'],300)
