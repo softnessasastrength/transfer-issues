@@ -702,3 +702,15 @@ that cannot be verified contributes no markers — positions are never
 invented. Live board prediction times now render as countdowns for both
 providers. Invariant preserved: live data is informational only and never
 alters scheduled routing or feasibility.
+## 2026-11-15 — GTFS-RT protobuf spike (branch spike/gtfs-rt-protobuf_muse, TESTING ONLY)
+
+Under the owner's 2026-11-15 testing-only doctrine exception (not a
+production adoption, not a standing doctrine change), the MTA MNR/LIRR
+combined GTFS-RT feeds were decoded end-to-end with a protobuf binding in
+spikes/gtfs_rt/. Findings: routes join the static feeds perfectly on both
+railroads; LIRR trip IDs join 126/126; MNR trip IDs join 0/207 (different
+identifier space from the imported static feed's composite IDs); the MNR
+feed carries no vehicle entities; Amtrak has no public GTFS-RT and its
+map payload is encrypted. Full evidence and the production-cost options
+(vendored minimal decoder recommended if adoption is ever approved) are
+in spikes/gtfs_rt/README.md. No shipped code imports the spike.
