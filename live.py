@@ -155,7 +155,8 @@ def cttransit(route: str = "", stop: str = "", include_alerts: bool = True) -> d
         affected = alert.get("informed_entity") or []
         if route_id and affected and not any(str(x.get("route_id") or "") == route_id for x in affected):
             continue
-        if stop_id and affected and not any(str(x.get("stop_id") or "") == stop_id for x in affected):
+        known_stops = [str(x.get("stop_id") or "") for x in affected if x.get("stop_id")]
+        if stop_id and known_stops and stop_id not in known_stops:
             continue
         alert_rows.append({"id": entity.get("id"), "header": alert.get("header_text"), "description": alert.get("description_text"), "informed_entity": affected})
     header = trips.get("header") or {}
