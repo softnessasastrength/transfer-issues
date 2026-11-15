@@ -542,3 +542,14 @@ rather than blanket ours/theirs. Notable outcomes:
   one step. One stop (cttransit:597) misses bubble reachability by that
   single second (arrival 30370 vs latest_back 30369). Separate parity
   decision; not part of this change.
+
+## 2026-11-15 — import_gtfs honours ATLAS_DATA_DIR (branch fix/import-gtfs-data-dir_muse)
+
+import_gtfs.py hard-coded `DATA = ROOT/'data'` while database.py resolved
+`pathlib.Path(os.environ.get('ATLAS_DATA_DIR', ROOT/'data'))`, so an import
+run and the server could silently work on different data directories; the
+Debian package bridged the gap with a symlink. import_gtfs now resolves the
+data dir exactly as database.py does. The .deb packaging is untouched by
+this change (its symlink becomes harmless redundancy, removable in a
+packaging pass). tests/test_import_gtfs_data_dir.py asserts the override
+and the default in subprocesses, since the value is bound at import time.

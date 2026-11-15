@@ -1,9 +1,9 @@
 """Build the atlas database from official GTFS archives. Python 3.11+, stdlib only."""
-import csv, io, zipfile, sqlite3, json, hashlib, datetime, pathlib, collections, argparse, urllib.request
+import csv, io, zipfile, sqlite3, json, hashlib, datetime, pathlib, collections, argparse, urllib.request, os
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pdf_ingest import SCHEMA as PDF_SCHEMA
 ROOT=pathlib.Path(__file__).resolve().parent
-DATA=ROOT/'data'
+DATA=pathlib.Path(os.environ.get('ATLAS_DATA_DIR',ROOT/'data'))
 POLICY=json.loads((ROOT/'config'/'coverage.json').read_text())
 DAYS=['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
 PAGES={'cttransit':'https://www.cttransit.com/about/developers','hartford':'https://www.cttransit.com/about/developers','pvta':'https://pvta.com/bus_service/real_time_data.php','wrta':'https://therta.com/','amtrak':'https://www.cttransit.com/about/developers','mbta':'https://www.mbta.com/developers/gtfs','lirr':'https://api.mta.info/'}
