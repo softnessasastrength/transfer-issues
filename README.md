@@ -225,6 +225,13 @@ and source status.` The expected result names the loaded CTtransit route and
 does not invent an MTA destination. The HTTP adapter is local single-user
 infrastructure; it has no authentication and must not be exposed publicly.
 
+Percival's optional preferences are explicit and device-local. The MCP tools
+`percival_set_preferences`, `percival_get_preferences`, and
+`percival_clear_preferences` store only values the user supplies, such as a
+home stop, default origin/host, walking mode, radius, and time windows. The
+file is ignored under `data/percival_preferences.json`; nothing is inferred or
+synced to GitHub.
+
 Trip planning uses a 12-hour AM/PM clock in the browser (`8:00 AM`, `11:59 PM`) while the API continues to use service-day seconds. This is schedule planning only; no recurring reminders or background jobs are configured.
 
 ## Important calculation limits

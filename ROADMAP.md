@@ -100,6 +100,8 @@ Status update (2026-11-15, local MCP connector): `scripts/atlas_mcp.py` exposes 
 
 Status update (2026-11-15, Percival continuation): evidence-first route reports and protected draft-only visit planning are implemented in the MCP layer. The Open WebUI path has a loopback Streamable HTTP adapter with initialize/tool-discovery/notification tests and a manual validation checklist; actual Open WebUI execution remains unverified in this environment.
 
+Status update (2026-11-15, Percival local memory): explicit device-local preference tools are implemented for home/origin/host stops, time windows, ground mode and radius. Preferences are never inferred, synced or treated as transit evidence.
+
 ## M0.T — Same-phone Termux launch (AUTHORIZED; device validation pending)
 
 User requested Android/Termux execution of the current proof of concept. Scope: reuse Python/SQLite in Termux with Chrome on the same phone through loopback; document package setup, private repository authentication, first import, subsequent launches, stopping and browser-local data. `TERMUX.md` supplies the runbook. This does not authorize the deferred PWA/native-app/Apache milestones or mobile design overhaul. No backend restructuring is necessary for this launch path.

@@ -192,3 +192,8 @@
 
 - Added `scripts/percival_lan.py` to start Atlas and the MCP HTTP adapter together. Loopback remains the default; `--lan` is an explicit, loudly warned opt-in for a trusted private network.
 - This supports a lightweight phone client while keeping the database and Ollama model on the Chromebook. No authentication or public exposure is implied.
+
+## Codex session — explicit local preferences
+
+- Added `percival_memory.py` and three MCP tools for reading, setting and clearing user-supplied trip preferences. Storage defaults to ignored `data/percival_preferences.json` and uses an atomic replacement write.
+- Preference memory is deliberately not conversational inference: only explicit values are saved, validated, and used. It does not change feed provenance or turn unknown service into a fact.
