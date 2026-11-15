@@ -139,6 +139,7 @@ TOOLS = [
                 "include_optional": {"type": "boolean", "default": False},
                 "mode": {"type": "string", "enum": ["walk", "scooter"], "default": "walk"},
                 "radius": {"type": "integer", "minimum": 0, "maximum": 3000, "default": 500},
+                "route_chain": {"type": "array", "items": {"type": "string"}, "description": "Optional ordered feed-qualified route IDs to explore."},
             },
             "required": ["from_stop", "to_stop", "date", "time"],
             "additionalProperties": False,
@@ -266,6 +267,7 @@ def call_tool(name, args):
             "kind": args.get("kind", "depart"), "mode": args.get("mode", "walk"),
             "radius": args.get("radius", 500), "return": "1" if args.get("return_trip", False) else "0",
             "visit": args.get("visit_seconds", 3600),
+            "routes": ",".join(args.get("route_chain", [])),
         }
         if args.get("include_optional", False):
             params["include_optional"] = "1"
