@@ -113,6 +113,16 @@ def handle(path,q):
   if destination:
    return outings.evaluate(day,origin,destination,start,home_by,**opts)
   return outings.browse(day,origin,start,home_by,limit=number(q,'limit',40,1,100),**opts)
+ if path=='/api/v1/daytrip':
+  day=dated(q);origin=arg(q,'from');start=number(q,'time',28800,0,86399)
+  home_by=number(q,'home_by',86399,start,172799)
+  mode=arg(q,'mode','walk')
+  if mode!='walk':raise ValueError('Day trips currently require walking first and last mile')
+  visits=[v for v in arg(q,'visits').split(',') if v]
+  anchor=None
+  if arg(q,'anchor_route'):
+   anchor=dict(route=arg(q,'anchor_route'),from_stop=arg(q,'anchor_from') or (visits[-1] if visits else origin))
+  return outings.plan_day(day,origin,visits,start,dwell=number(q,'dwell',1800,0,86400),anchor=anchor,home_by=home_by,mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=planning_feeds(q),coverage_rows=db.coverage(day))
  if path in ['/api/v1/plan','/api/v1/reachability']:
   day=dated(q);origin=arg(q,'from');start=number(q,'time',28800,0,86399);deadline=number(q,'deadline',86399,start,172799)
   mode=arg(q,'mode','walk')

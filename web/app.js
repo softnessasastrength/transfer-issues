@@ -136,7 +136,7 @@ async function init() {
  $('theme').onchange=()=>{preferences.theme=$('theme').value;savePreferences();};
  $('units').onchange=()=>{const meters=Number($('radius').value)*(preferences.units==='imperial'?1/feetPerMeter:1);preferences.units=$('units').value;updatePreferences();$('radius').value=Math.round(meters*(preferences.units==='imperial'?feetPerMeter:1));savePreferences();};
  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),today=['year','month','day'].map(k=>parts.find(p=>p.type===k).value).join('-'); $('date').value=today;$('outingDate').value=today;updateDate();
- meta=await api('meta');const sourceNotice=document.querySelector('#sources .notice');if(sourceNotice)sourceNotice.textContent='Coverage is incomplete. Check each source card for its service dates and import status. Published schedules do not confirm a seat, booking, or live operation. Some local and on-demand services have no usable timetable in this planner.';stops=new Map(meta.stops.map(s=>[s.id,s]));routes=new Map(meta.routes.map(r=>[r.id,r]));setupStopPicker('from');setupStopPicker('to');setupStopPicker('outingFrom');setupStopPicker('outingTo');if(meta.sources.some(s=>s.optional)){const optionalToggle=el('label','Include optional feeds','check'),optionalInput=el('input');optionalInput.type='checkbox';optionalInput.id='includeOptional';optionalToggle.prepend(optionalInput);document.querySelector('#planner details').append(optionalToggle);}
+ meta=await api('meta');const sourceNotice=document.querySelector('#sources .notice');if(sourceNotice)sourceNotice.textContent='Coverage is incomplete. Check each source card for its service dates and import status. Published schedules do not confirm a seat, booking, or live operation. Some local and on-demand services have no usable timetable in this planner.';stops=new Map(meta.stops.map(s=>[s.id,s]));routes=new Map(meta.routes.map(r=>[r.id,r]));setupStopPicker('from');setupStopPicker('to');setupStopPicker('outingFrom');setupStopPicker('outingTo');setupStopPicker('dayVisit');setupStopPicker('anchorFrom');if(meta.sources.some(s=>s.optional)){const optionalToggle=el('label','Include optional feeds','check'),optionalInput=el('input');optionalInput.type='checkbox';optionalInput.id='includeOptional';optionalToggle.prepend(optionalInput);document.querySelector('#planner details').append(optionalToggle);}
  map=L.map('map',{preferCanvas:true}).setView([42,-72.4],8);layers=L.featureGroup().addTo(map);nearby=L.layerGroup().addTo(map);
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).on('tileerror',()=>$('tileNotice').hidden=false).addTo(map);map.on('moveend',nearbyStops);
  const fragment=document.createDocumentFragment(); for(const s of meta.stops){const label=stopLabel(s);labels.set(label,s.id);fragment.append(new Option(label,label));} $('stopList').append(fragment);
@@ -148,6 +148,7 @@ async function init() {
  $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value,aid=$('from').dataset.stopId,b=$('to').value,bid=$('to').dataset.stopId;$('from').value=b;$('to').value=a;if(bid)$('from').dataset.stopId=bid;else delete $('from').dataset.stopId;if(aid)$('to').dataset.stopId=aid;else delete $('to').dataset.stopId;};$('resetMap').onclick=()=>{following=false;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');map.setView([42,-72.4],8);};
  $('plan').onclick=()=>run(()=>plan());$('latest').onclick=()=>run(()=>plan('latest'));$('reach').onclick=()=>run(reach);$('bubble').onclick=()=>run(bubble);
  $('browseOutings').onclick=()=>run(browseOutings);$('verifyOuting').onclick=()=>run(()=>verifyOuting());
+ $('addVisit').onclick=()=>run(()=>{const id=resolve('dayVisit');dayVisits.push({id,name:stopLabel(stops.get(id))});$('dayVisit').value='';delete $('dayVisit').dataset.stopId;renderDayVisits();});$('planDay').onclick=()=>run(planDayTrip);$('anchorMode').onchange=()=>{$('anchorFields').hidden=$('anchorMode').value!=='pinned';};renderDayVisits();
  $('bookmark').onclick=()=>run(()=>{resolve('from');resolve('to');personal.bookmarks.push(Object.fromEntries(['from','to','date','time'].map(k=>[k,$(k).value])));save();$('results').replaceChildren(el('p','Search saved in My discoveries.','notice'));});
  $('saveNote').onclick=()=>run(()=>{if(!$('noteTitle').value.trim())throw Error('Give your note a title.');personal.notes.push({title:$('noteTitle').value,text:$('noteText').value});save();$('noteTitle').value='';$('noteText').value='';});
  $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(personal,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download='transit-atlas-discoveries.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -222,6 +223,37 @@ async function browseOutings(){
   $('results').append(outingCard(c));
   outingMarker(stop,c.status,()=>run(()=>verifyOuting(c.destination.id)));
  }
+ fit();
+}
+const dayVisits=[];
+function renderDayVisits(){ const host=$('dayVisitList'); host.replaceChildren(); dayVisits.forEach((v,i)=>{ const row=el('div'); row.append(el('span',`${i+1}. ${v.name} `)); const rm=button('×',()=>{dayVisits.splice(i,1);renderDayVisits();}); rm.className='chainAction'; row.append(rm); host.append(row); }); if(!dayVisits.length)host.append(el('p','No visits yet. Add stops in the order you want to visit them.','small')); }
+function durationText(s){ const m=Math.round(s/60); return m>=60?`~${Math.floor(m/60)}h${String(m%60).padStart(2,'0')}`:`~${m} min`; }
+function dayTripCard(data){
+ const card=el('section',undefined,'resultCard');
+ card.append(el('h3',data.status==='composed'?'Your day, with the way home protected':data.status==='anchor_protected'?'A visit would break the anchor — refused':'Day trip could not be composed'));
+ if(data.reason?.message)card.append(el('p',data.reason.message,'small'));
+ for(const leg of data.legs||[]){
+  const stop=stops.get(leg.to); const name=stop?stop.name:leg.to;
+  card.append(itinerary(leg.plan,leg.kind==='visit'?`To ${name}`:leg.kind==='anchor_approach'?`To the anchor at ${name}`:'The anchor home'));
+  const dwell=(data.dwells||[]).find(d=>d.stop===leg.to);
+  if(dwell&&leg.kind==='visit')card.append(el('p',`You have ${durationText(dwell.seconds)} in ${name}.`));
+ }
+ if(data.anchor){
+  const a=data.anchor, route=a.route?` route ${a.route}`:'';
+  card.append(el('p',`Anchor: ${a.kind==='pinned_service'?'last service':'last viable return'}${route} from ${(stops.get(a.from_stop)||{}).name||a.from_stop} at ${clock(a.departure)} · slack ${durationText(data.slack_seconds||0)} · home ${clock(data.home_arrival)}`,'notice'));
+ }
+ if(data.if_missed)card.append(el('p',data.if_missed.found?`If you miss it: the next way home leaves at ${clock(data.if_missed.departure)}, arriving ${clock(data.if_missed.arrival)}.`:'If you miss it: there is no later return home in the loaded schedule that day.','notice'));
+ return card;
+}
+async function planDayTrip(){
+ const base=outingOptions();
+ const params={from:base.from,date:base.date,time:base.time,home_by:base.home_by,buffer:base.buffer,radius:500,dwell:Number($('dayDwell').value)*60,visits:dayVisits.map(v=>v.id).join(',')};
+ if($('anchorMode').value==='pinned'){ params.anchor_route=$('anchorRoute').value.trim(); if($('anchorFrom').value.trim())params.anchor_from=resolve('anchorFrom'); }
+ $('results').replaceChildren(el('p','Composing your day around the anchor…'));
+ const data=await api('daytrip',params);
+ layers.clearLayers();
+ $('results').replaceChildren(coverageNotice(data.coverage),dayTripCard(data));
+ for(const leg of data.legs||[]){ const stop=stops.get(leg.to); if(stop)marker(stop); }
  fit();
 }
 async function verifyOuting(destinationId){
