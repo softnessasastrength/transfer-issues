@@ -18,7 +18,7 @@ def dated(q):
  d=arg(q,'date',datetime.date.today().isoformat());datetime.date.fromisoformat(d);return d
 
 def handle(path,q):
- if path=='/api/v1/meta':return dict(api_version='1.0',sources=db.sources(),cities=CITIES,routes=db.query('SELECT * FROM routes ORDER BY feed,short'),stops=db.query('SELECT * FROM stops'),limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','PVTA unavailable; incomplete three-state agency coverage','MBTA commuter rail only; Amtrak regional clip','Scoped GTFS transfer rules not modeled; verify station transfers'])
+ if path=='/api/v1/meta':return dict(api_version='1.0',sources=db.sources(),cities=CITIES,routes=db.query('SELECT * FROM routes ORDER BY feed,short'),stops=db.query('SELECT * FROM stops'),limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','Incomplete three-state agency coverage; not every agency is loaded','MBTA commuter rail only; Amtrak regional clip','Scoped GTFS transfer rules not modeled; verify station transfers'])
  if path=='/api/v1/coverage':return db.coverage(dated(q))
  if path=='/api/v1/departures':return dict(date=dated(q),departures=db.departures(arg(q,'stop'),dated(q),arg(q,'route')),coverage=db.coverage(dated(q)))
  if path=='/api/v1/route':

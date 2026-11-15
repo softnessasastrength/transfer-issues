@@ -8,7 +8,7 @@ Deliver a maintainable working application derived from `prototype.html`, offici
 
 Priority geography: Hartford, Springfield, Enfield, Windsor Locks, Manchester, Holyoke, Chicopee, Westfield, New Haven, Worcester.
 
-Acceptance: import available official archives and report failures honestly; exercise planner calendar, overnight, transfer and return behavior; test API and browser interactions; document limitations and reproducible setup; deliver source and data. Missing PVTA data is a substantive coverage gap, not proof that service does not exist. Do not mark full requested coverage complete until it is obtained.
+Acceptance: import available official archives and report failures honestly; exercise planner calendar, overnight, transfer and return behavior; test API and browser interactions; document limitations and reproducible setup; deliver source and data. Missing PVTA data is a substantive coverage gap, not proof that service does not exist. Do not mark full requested coverage complete until it is obtained. (Update 2026-11-14: PVTA GTFS has been obtained and imported — the block proved to be a User-Agent artifact in the downloader, not feed unavailability; see DECISIONS.md. Other agency gaps, e.g. RIPTA, remain open.)
 
 ## M1 — macOS / Apache self-hosting (DEFERRED; explicit authorization required)
 
@@ -91,6 +91,8 @@ Acceptance: representative verified interstate/local-bus/commuter-rail/Amtrak/in
 Desktop controller and loopback launcher are implemented. 17 Python regressions/HTTP tests pass; JS syntax and compilation pass. Real-data Hartford–Springfield outbound/return queries pass. Browser acceptance is blocked by Chromium's denied Unix-domain socket in this executor; the repeatable browser smoke test is supplied but unverified. No macOS execution claim. Do not mark this milestone complete until browser interactions are exercised successfully. No source feeds or existing database were modified during this work.
 
 Status update (2026-11-14, Ember session; see DECISIONS.md): 29 Python tests pass, including 12 Mobility Bubble fixture tests for the new `/api/v1/bubble` endpoint. The browser smoke test PASSED in the Ember environment (Playwright + Chromium; the earlier socket blocker does not occur there), and a fresh five-feed import was completed with PVTA still unavailable (HTTP 403). macOS/Safari acceptance remains unperformed, so M0.D is still not marked complete.
+
+Status update (2026-11-14, Ember PVTA fix session; see DECISIONS.md): the PVTA 403 was a User-Agent artifact — pvta.com rejects the default urllib UA. The downloader now sends an explicit descriptive User-Agent and PVTA imports fully: 62 routes / 13,381 trips / 1,973 stops, service 20261102–20261219. Springfield local journeys and Hartford -> Springfield journeys continuing onto PVTA legs verify against the API, and the Mobility Bubble's unknown classification for the Springfield area is resolved (PVTA stops now classify on evidence). 30 Python tests pass, including a stubbed regression test for the download header. macOS/Safari acceptance remains unperformed, so M0.D is still not marked complete.
 
 ## M0.T — Same-phone Termux launch (AUTHORIZED; device validation pending)
 

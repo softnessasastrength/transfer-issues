@@ -4,8 +4,10 @@ AUTHOR: Ember (_muse)
 AUTHORITY: Branden's MUSE ENGINEERING HANDOFF (2026-11-14) and his operating
 split of the same evening: Ember implements small verifiable things; Codex is
 reserved for the big stuff. Merge authority per handoff §6.
-EVIDENCE: DECISIONS.md session entry 2026-11-14; TESTING.md 2026-11-14 section;
-29 passing Python tests; browser smoke passed in the Ember environment.
+EVIDENCE: DECISIONS.md session entries 2026-11-14 (Mobility Bubble; PVTA
+User-Agent fix); TESTING.md 2026-11-14 sections; 30 passing Python tests;
+browser smoke passed in the Ember environment; PVTA imported and verified
+against the API on real data.
 REQUESTED_ACTION: Pick up the scoped big items below in ROADMAP priority
 order. Do not treat any of them as started. M1/M2/M3 remain deferred and are
 NOT part of this handoff.
@@ -17,19 +19,28 @@ NOT part of this handoff.
   bounded UI button, and documentation. See DECISIONS.md for the full record.
 - The atlas runs end-to-end: `python3 scripts/prepare_data.py` (first run),
   `python3 scripts/run_local.py`, http://127.0.0.1:8000. Feeds imported
-  2026-11-14; service periods are listed in DECISIONS.md. PVTA still 403.
+  2026-11-14; service periods are listed in DECISIONS.md.
+- Branch `pvta-user-agent-fix_muse` (from `feature/browser-proof-of-concept`)
+  fixes the feed downloader's missing User-Agent header. PVTA now downloads
+  and imports (62 routes / 13,381 trips / 1,973 stops, service
+  20261102–20261219); the earlier "PVTA feed unavailable" conclusion was a
+  UA artifact and is corrected in DECISIONS.md.
 
 ## Scoped big items for Codex
 
 ### 1. M0.1 PDF fallback ingestion build (ROADMAP M0.1 acceptance 2, 3, 6, 7)
 Build the reviewed-PDF pipeline: source registry entries for agencies
-without usable GTFS (PVTA first, if an official PDF timetable source can be
-verified), PDF extraction with explicit OCR provenance, normalized
+without usable GTFS, PDF extraction with explicit OCR provenance, normalized
 route/direction/timepoint/calendar tables coexisting with GTFS in SQLite,
 confidence/ambiguity gating so unreviewed or ambiguous records never enter
 routing, and GTFS+PDF fixture tests. No invented stops, times or geometry.
-This is the single largest remaining M0 gap: it is the only route to
-evaluating Holyoke / Chicopee / Westfield / Springfield bus journeys.
+STATUS CHANGE (2026-11-14): PVTA is no longer the motivating case — its
+official GTFS downloads and imports since the User-Agent fix, so Springfield /
+Holyoke / Chicopee / Westfield bus journeys already evaluate from GTFS. This
+build is now resilience work (a UA filter or endpoint change could cut a
+feed off again) and the route for agencies that genuinely publish no GTFS —
+still required by M0.1 acceptance, but no longer a Springfield blocker and
+no longer the single largest M0 gap.
 
 ### 2. Mobility Bubble performance + correctness hardening
 `/api/v1/bubble` takes ~15 s on the full Hartford dataset (forward scan +
@@ -62,18 +73,20 @@ rectangle and MBTA rail-only filter; operator/ticketing metadata;
 state-qualified place discovery; Downeaster/NH investigation with verified
 sources only. Do not start before items 1–2 stabilize ingestion and routing.
 
-### 6. PVTA source discovery (research task, feeds item 1)
-The official GTFS endpoints returned 403/404 in repeated checks (latest:
-2026-11-14, HTTP 403 recorded in data/sources.json). Find whether PVTA
-publishes GTFS through another official channel (state DOT feed, developer
-page change), recording publisher, URL, retrieval/effective dates per the
-M0.1 source hierarchy. An old aggregator archive is not acceptable as
-current service.
+### 6. PVTA source discovery — RESOLVED 2026-11-14, do not re-run as a blocker
+Closed by the User-Agent fix: the official endpoint
+`https://www.pvta.com/g_trans/google_transit.zip` serves the current feed
+(HTTP 200) to any client sending an explicit User-Agent; the 403s were
+UA filtering of the default urllib/curl agents, not feed unavailability.
+The feed imports fully and Springfield-area coverage now evaluates from
+GTFS. Remaining value in alternate sources (state DOT mirror, official PDF
+timetables) is resilience only, under item 1 — worth having if a future
+endpoint change recurs, not a prerequisite for anything.
 
 ## Reproducible commands
 
 ```bash
-python3 -m unittest discover -s tests -v     # 29 tests, all passing
+python3 -m unittest discover -s tests -v     # 30 tests, all passing
 python3 scripts/prepare_data.py              # first run only; downloads feeds
 python3 scripts/run_local.py                 # http://127.0.0.1:8000
 # Browser smoke (needs Playwright + Chromium as dev-only tooling):
@@ -89,11 +102,19 @@ the Mac mini is needed."
 
 ### VERIFIED in Ember's environment (Linux sandbox, 2026-11-14)
 
-- 29 Python unit/HTTP tests pass (`python3 -m unittest discover -s tests`),
-  including 12 new Mobility Bubble fixture tests.
+- 30 Python unit/HTTP tests pass (`python3 -m unittest discover -s tests`),
+  including 12 Mobility Bubble fixture tests and a stubbed regression test
+  asserting feed downloads send the project's User-Agent header.
 - Python compilation of all modules; `node --check web/app.js`.
-- Fresh `scripts/prepare_data.py`: five official feeds imported; PVTA
-  failed with HTTP 403 (recorded, not filled).
+- Fresh `scripts/prepare_data.py`: all six official feeds imported with no
+  refresh errors, including PVTA (62 routes / 13,381 trips / 1,973 stops,
+  service 20261102–20261219). Springfield evidence on real data for Tuesday
+  2026-11-17: 167 departures from Court Square (`pvta:1495`); Springfield
+  local plan Union Station -> Court Square on the G2; Hartford ->
+  Court Square plan chaining Hartford Line rail + a PVTA P11 leg; bubble
+  from hartford:6 now reports zero unknown feeds (PVTA's 1,973 stops moved
+  from unknown to evidence-based classification), and a Springfield Union
+  Station bubble finds 580 reachable PVTA stops.
 - `scripts/run_local.py` served the atlas; every `/api/v1/` endpoint
   exercised with curl on real data for Tuesday 2026-11-17 (inside all
   loaded service periods), including Hartford <-> Springfield with return

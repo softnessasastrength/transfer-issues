@@ -4,6 +4,10 @@ ROOT=pathlib.Path(__file__).resolve().parent
 DATA=ROOT/'data'
 DAYS=['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
 PAGES={'cttransit':'https://www.cttransit.com/about/developers','hartford':'https://www.cttransit.com/about/developers','pvta':'https://pvta.com/bus_service/real_time_data.php','wrta':'https://therta.com/','amtrak':'https://www.cttransit.com/about/developers','mbta':'https://www.mbta.com/developers/gtfs'}
+# pvta.com rejects the default urllib User-Agent with HTTP 403 (verified 2026-11-14:
+# default curl/urllib UA -> 403, this descriptive UA -> 200). Identify the project
+# honestly on every feed download rather than sending the library default.
+USER_AGENT='TransitAtlas/0.1 (+https://github.com/softnessasastrength/transfer-issues)'
 def seconds(s):
  p=s.split(':')
  if len(p)!=3: raise ValueError('Missing or invalid time')
@@ -95,9 +99,10 @@ def refresh():
  sources=json.loads((DATA/'sources.json').read_text())
  for s in sources:
   try:
-   with urllib.request.urlopen(s['url'],timeout=90) as r:content=r.read();lm=r.headers.get('Last-Modified')
+   req=urllib.request.Request(s['url'],headers={'User-Agent':USER_AGENT})
+   with urllib.request.urlopen(req,timeout=90) as r:content=r.read();lm=r.headers.get('Last-Modified')
    with zipfile.ZipFile(io.BytesIO(content)) as z:z.testzip()
-   (DATA/(s['id']+'.zip')).write_bytes(content);s.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),last_modified=lm,bytes=len(content));s.pop('error',None)
+   (DATA/(s['id']+'.zip')).write_bytes(content);s.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),last_modified=lm,bytes=len(content));s.pop('error',None);s.pop('refresh_error',None)
   except Exception as e:s['refresh_error']=str(e);print(s['id'],e)
  (DATA/'sources.json').write_text(json.dumps(sources,indent=2))
 if __name__=='__main__':
