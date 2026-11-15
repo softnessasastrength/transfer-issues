@@ -4,8 +4,23 @@
 # time). Pinned to an official release with its published SHA-256 digest.
 set -e
 OLLAMA_VERSION=v0.40.16
-OLLAMA_SHA256=87bfafb2acbc89b2e6a1be0a9043de6aa75fb450696f86bc426e65fc448f788d
-OLLAMA_URL="https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}/ollama-linux-amd64.tar.zst"
+# Pick the release asset for this machine's architecture. Each SHA-256 is
+# the digest published with the official Ollama release named above.
+case "$(uname -m)" in
+  x86_64)
+    OLLAMA_ASSET=ollama-linux-amd64.tar.zst
+    OLLAMA_SHA256=87bfafb2acbc89b2e6a1be0a9043de6aa75fb450696f86bc426e65fc448f788d
+    ;;
+  aarch64|arm64)
+    OLLAMA_ASSET=ollama-linux-arm64.tar.zst
+    OLLAMA_SHA256=e45b8e6dcb86cb9f3057396351655079c9a4879b4ced2678c9350d375dcbc224
+    ;;
+  *)
+    echo "setup-ollama: unsupported architecture '$(uname -m)' — no ${OLLAMA_VERSION} Ollama build is pinned for it" >&2
+    exit 1
+    ;;
+esac
+OLLAMA_URL="https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}/${OLLAMA_ASSET}"
 CONF=/etc/transit-atlas/percival.conf
 [ -f "$CONF" ] && . "$CONF"
 MODEL="${OLLAMA_MODEL:-qwen3:1.7b}"
