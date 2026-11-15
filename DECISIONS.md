@@ -750,3 +750,13 @@ percival_lan prints the token and its location once at startup. Operator
 impact: existing unauthenticated LAN/Open WebUI setups must add the token
 header — see README/TERMUX updates in the same change. ollama_mcp_chat.py
 speaks stdio to atlas_mcp.py, not HTTP, and is unchanged.
+## 2026-11-15 — import_gtfs honours ATLAS_DATA_DIR (branch fix/import-gtfs-data-dir_muse)
+
+import_gtfs.py hard-coded `DATA = ROOT/'data'` while database.py resolved
+`pathlib.Path(os.environ.get('ATLAS_DATA_DIR', ROOT/'data'))`, so an import
+run and the server could silently work on different data directories; the
+Debian package bridged the gap with a symlink. import_gtfs now resolves the
+data dir exactly as database.py does. The .deb packaging is untouched by
+this change (its symlink becomes harmless redundancy, removable in a
+packaging pass). tests/test_import_gtfs_data_dir.py asserts the override
+and the default in subprocesses, since the value is bound at import time.
