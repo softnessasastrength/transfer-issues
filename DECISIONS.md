@@ -1033,3 +1033,64 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
 - **Limits:** fixed-route GTFS only. GBT demand-response service
   (GBT Connect) is not in the feed and is not represented; nothing
   about it is implied.
+
+## Norwalk Transit District GTFS imported — Norwalk coverage (2026-11-15)
+
+- **Source (official):** Norwalk Transit District hosts its GTFS on
+  the agency's own InfoPoint portal (Avail Technologies' mystop
+  platform) at https://mystop.norwalktransit.com/InfoPoint/gtfs-zip.ashx
+  — the URL the FTA NTD GTFS Weblinks dataset lists for Norwalk
+  Transit District (NTD 10057) and the direct-download URL the
+  Mobility Database carries for this service (mdb-2242; that record
+  mis-labels the provider as the California "Norwalk Transit System"
+  but carries this URL with the Connecticut bounding box, matching the
+  archive's stop extents). The older agency-site GTFS_Data.zip URL in
+  the deprecated mdb-529 record returns 403 and was not used: exactly
+  one live feed exists, and this is it. Retrieved 2026-11-15; 519,729
+  bytes; SHA-256
+  95315af7abe653b8ebf55903a33ad62ace85d54c9421d62184d5e25014cf6d58.
+- **Freshness:** feed_info.txt declares 2026-10-19 → 2027-05-31 for
+  the archive (publisher Norwalk Transit District; agency.txt names
+  Norwalk Transit District, America/New_York) — current at retrieval,
+  so the GTFS tier applies and no PDF fallback was needed. But see the
+  service model: the declared end overstates the enumerated service,
+  so poll for republication before 2026-12-31.
+- **Registered** as feed `norwalk` in config/feeds.json. No
+  coverage.json override: every Norwalk stop falls inside the default
+  regional clip (40.9–43.1, −73.8–−70.5), so the scope recorded at
+  import is the default description, like CTtransit, PVTA, WRTA,
+  SEAT, RIPTA and GBT.
+- **Service model:** the mirror image of RIPTA's. calendar.txt
+  carries a single all-week base service id that no trip uses; every
+  trip's service is enumerated date-by-date in calendar_dates.txt as
+  type-1 additions — service 26 (weekdays, 531 trips) every Mon–Fri
+  2026-10-19 → 2026-12-31 except Thanksgiving and Christmas, service 7
+  (Saturdays, 254 trips) through 2026-12-26, service 8 (Sundays and
+  holidays, 158 trips) Sundays through 2026-12-27 plus the holiday
+  dates 2026-11-26, 2026-12-25, 2027-01-01, 2027-01-18 and 2027-05-31
+  running the Sunday schedule. Regular service is therefore
+  enumerated only through 2026-12-31 even though feed_info declares
+  2027-05-31. frequencies.txt is present but empty — no
+  frequency-based trips are excluded. All 253 published stops are
+  referenced by stop_times and all imported; there are no parent
+  stations (the Burnell Blvd Hub is an ordinary stop, norwalk:9).
+  tests/test_norwalk_feed.py pins the registry entry and the
+  enumerated-dates behaviour — including that a January 2027 weekday
+  has no service — with a synthetic archive of the same shape.
+- **Import counts (2026-11-15 local six-feed build):** 253 stops /
+  9 routes / 943 trips, zero import errors, zero warnings.
+  check_data_integrity.py PASS on the rebuilt database.
+- **Verification (local six-feed build, Tue 2026-11-17):** Burnell
+  Blvd Hub resolves (norwalk:9). Plans from the hub at 08:00 —
+  Norwalk → Hartford (WHEELS route 5 to South Norwalk, MNR to New
+  Haven, Amtrak to Hartford, arrive 10:25) and Hartford → Norwalk
+  (Amtrak to New Haven, MNR to South Norwalk, WHEELS route 7 to the
+  hub, arrive 10:38). 375 departures from the hub that day, first
+  05:09. 60-minute bubble from the hub: 221 reachable. Standing
+  reference checks unchanged: Court Square → pvta:1495;
+  hartford:6 → pvta:5101 departs 30900, arrives 33428.
+- **Limits:** fixed-route GTFS only. Norwalk demand-response service
+  is not in the feed and is not represented; nothing about it is
+  implied. Route 8 (Coastal Link) is operated jointly with GBT; each
+  agency publishes its own trips for it, so the Atlas carries both
+  agencies' Coastal Link trips under their own feed ids.
