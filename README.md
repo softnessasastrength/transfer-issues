@@ -64,7 +64,8 @@ python3 scripts/external_smoke.py --regional --date 2026-11-16
 | Metro-North (MNR) | Successful (disposable import check, 2026-11-15) | Whole official feed; 6 routes / 36,909 trips. Scoped transfer rules are excluded by the current importer; platform/transfer assurance is incomplete |
 | LIRR | Successful (disposable import check, 2026-11-15) | 12 routes / 1,871 trips; selected by default. Scoped transfer rules excluded; the Grand Central interchange in sample journeys is an estimated walk |
 | Greyhound | Successful (disposable import check, 2026-11-15) | Greyhound agency routes only from the FlixMobility GTFS: 150 routes / 4,799 trips; UTC timetable normalized. Ticket purchase and seat availability are not verified |
-| RIPTA / other CT, MA, RI agencies | **Not imported** | Required expanded coverage remains pending |
+| RIPTA | Successful (disposable import check, 2026-11-15) | Rhode Island statewide bus network from RIPTA's official GTFS: 59 routes / 4,969 trips / 3,553 stops; service period 2026-11-01 to 2027-01-15 per feed_info. The archive publishes no calendar.txt — every operating date is enumerated in calendar_dates.txt, and the importer honours exactly those dates. 40 single-stop stub trips in the published file cannot form a rideable segment and are excluded |
+| Other CT, MA, RI agencies | **Not imported** | Required expanded coverage remains pending |
 
 These are import counts from local checkpoints, not proof of full correctness or current service. Downloaded GTFS, generated SQLite and validation reports are **not committed**. Re-run ingestion to produce local data. No schedules from unofficial or historical sources have been substituted for missing current feeds. See [REGIONAL_COVERAGE.md](REGIONAL_COVERAGE.md) for the full regional record, including a verified scheduled New Haven → Jamaica round trip across MNR and LIRR.
 
