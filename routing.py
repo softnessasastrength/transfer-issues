@@ -102,7 +102,12 @@ def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=(),de
     leg=dict(kind=mode,from_stop=node,to_stop=dest,departure=at,arrival=t,
              meters=edge['meters'],estimated=True,transfer_source=edge['source'])
     arrivals[dest]=t;paths[dest]=current+(leg,)
-    heapq.heappush(heap,(t,next(order),dest,paths[dest],False))
+    # The initial flag travels with the walk closure: stops reached by
+    # first-mile walking from the origin are ready at their arrival time
+    # (no transfer buffer — starting a journey is not a transfer), exactly
+    # as the pre-closure scan behaved. Closures seeded by a transit
+    # alighting keep first=False, so post-transit walks still add buffer.
+    heapq.heappush(heap,(t,next(order),dest,paths[dest],first))
  relax(origin,start,(),True)
  for dep,arr,a,b,trip,route,head,pu,do,seq in connections(day):
   if dep<start:continue
