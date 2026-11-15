@@ -21,7 +21,7 @@ Planning options: `mode=walk|scooter`, `radius=0..3000` meters, `buffer=0..3600`
 
 Errors use `{"error":"message"}` with HTTP 400 for invalid input, 404 for unknown endpoint, 500 for unexpected server errors. There is no authentication or write API yet; bind to loopback only. No CORS policy or trusted reverse-proxy handling is implemented.
 
-`live` is intentionally not a timetable fallback. The first verified adapter is the official MBTA V3 JSON API (`provider=mbta`); set `MBTA_API_KEY` when using a registered key. CTtransit and PVTA live status currently return `unknown` until an official realtime contract is verified. Provider failures are returned as `unknown`, not as HTTP 500s, and scheduled `/plan`, `/route`, `/bubble` and `/reachability` never call this endpoint.
+`live` is intentionally not a timetable fallback. Verified adapters currently include the official MBTA V3 JSON API (`provider=mbta`) and CTtransit's official JSON realtime feeds (`provider=cttransit`); set `MBTA_API_KEY` when using a registered key. PVTA currently returns `unknown` because its public page confirms realtime service but does not publish a stable feed URL/schema. Provider failures are returned as `unknown`, not as HTTP 500s, and scheduled `/plan`, `/route`, `/bubble` and `/reachability` never call this endpoint.
 
 `found: false` means no result under loaded data and calculation limits, **not** that no transit exists. `estimated: false` on a transit leg denotes published schedule data rather than an estimated ground link; it does not mean live service is verified. Current coverage checks indicate the feed's outer date range, not proof that every route operates on a date. Every route/leg includes a feed identifier resolvable to the source registry.
 
