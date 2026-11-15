@@ -36,6 +36,23 @@ def sources():return json.loads((DATA/'sources.json').read_text())
 def coverage(day):
  key=day.replace('-','');return [{'feed':s['id'],'status':s['status'],'in_service_period':s.get('service_start','99999999')<=key<=s.get('service_end','00000000'),'start':s.get('service_start'),'end':s.get('service_end')} for s in sources()]
 
+def search_stops(text,feed='',limit=50):
+ """Case-insensitive substring search over loaded stop names.
+
+ Only rows present in the stops table can match; nothing is invented.
+ An empty query returns an honest empty result rather than every stop.
+ LIKE wildcards in the query are escaped so they match literally.
+ Results list prefix matches first, then alphabetical order.
+ """
+ text=(text or '').strip()
+ if not text:return dict(query=text,feed=feed or None,match_count=0,limit=limit,truncated=False,stops=[])
+ esc=text.lower().replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
+ where="LOWER(name) LIKE ? ESCAPE '\\'";args=['%'+esc+'%']
+ if feed:where+=' AND feed=?';args.append(feed)
+ total=query('SELECT COUNT(*) n FROM stops WHERE '+where,tuple(args))[0]['n']
+ rows=query('SELECT id,feed,name,lat,lon FROM stops WHERE '+where+" ORDER BY CASE WHEN LOWER(name) LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END,name,id LIMIT ?",tuple(args+[esc+'%',limit]))
+ return dict(query=text,feed=feed or None,match_count=total,limit=limit,truncated=total>len(rows),stops=rows)
+
 def departures(stop,day,route=''):
  seen=set();out=[]
  for dep,arr,a,b,trip,r,head,pu,do,seq in connections(day):
