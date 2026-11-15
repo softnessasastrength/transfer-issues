@@ -5,6 +5,7 @@ Base: `/api/v1/`. JSON, read-only GET endpoints. This is an early contract; stab
 | Endpoint | Parameters | Result |
 |---|---|---|
 | `meta` | none | API version, feeds/provenance, cities, routes, stops, limitations |
+| `live` | `provider=mbta`, optional `route`, `stop`, `alerts=0|1` | Opt-in provider overlay with `status=live|unknown`, predictions, alerts and limitations; never used by routing |
 | `coverage` | `date=YYYY-MM-DD` | Per-feed imported status and service-range bounds |
 | `departures` | `stop`, `date`, optional `route` | Boardable departures on that calendar day; coverage |
 | `stops` | `q`, optional `feed`, `limit` (default 50, range 1–500) | Stop name lookup: case-insensitive substring matches over loaded stops only, returning id, name, feed and coordinates, plus total `match_count` and a `truncated` flag; prefix matches sort first; an empty query or a query with no matches returns an empty list — stops are never invented |
@@ -19,6 +20,8 @@ Base: `/api/v1/`. JSON, read-only GET endpoints. This is an early contract; stab
 Planning options: `mode=walk|scooter`, `radius=0..3000` meters, `buffer=0..3600` seconds, comma-separated `feeds`, and `include_optional=1` to include optional networks such as LIRR when imported. Optional feeds are excluded by default. `time=0..86399`; `deadline` between `time` and 172799. `kind=latest` searches latest feasible origin start at one-minute resolution. `return=1` and `visit=0..86400` add earliest and latest return feasibility within the same deadline.
 
 Errors use `{"error":"message"}` with HTTP 400 for invalid input, 404 for unknown endpoint, 500 for unexpected server errors. There is no authentication or write API yet; bind to loopback only. No CORS policy or trusted reverse-proxy handling is implemented.
+
+`live` is intentionally not a timetable fallback. The first verified adapter is the official MBTA V3 JSON API (`provider=mbta`); set `MBTA_API_KEY` when using a registered key. CTtransit and PVTA live status currently return `unknown` until an official realtime contract is verified. Provider failures are returned as `unknown`, not as HTTP 500s, and scheduled `/plan`, `/route`, `/bubble` and `/reachability` never call this endpoint.
 
 `found: false` means no result under loaded data and calculation limits, **not** that no transit exists. `estimated: false` on a transit leg denotes published schedule data rather than an estimated ground link; it does not mean live service is verified. Current coverage checks indicate the feed's outer date range, not proof that every route operates on a date. Every route/leg includes a feed identifier resolvable to the source registry.
 
