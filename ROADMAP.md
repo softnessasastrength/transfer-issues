@@ -106,6 +106,14 @@ Status update (2026-11-15, separated live overlay): added an opt-in provider-neu
 
 Status update (2026-11-15, live board slice): added a browser Live board view backed by `/api/v1/live`, with provider/route/stop filters and explicit live/unknown messaging. This is a read-only status surface; a compact departure-board presentation with countdowns, route colors and freshness is the next UI refinement. CTtransit/PVTA remain unverified.
 
+## M0.L — Optional rideshare last-mile links (QUEUED; planning only)
+
+A future last-mile layer may offer Uber/Lyft deep links from a selected stop or itinerary endpoint. The first version must be link-only and user-initiated: no booking, payment, account-token storage, or autonomous ride requests. It may show a provider's own app handoff, but must not invent price, ETA, availability, accessibility, or coverage.
+
+Uber's official rider documentation says deep links pass parameters to the app but do not fetch time or price estimates; price estimates require API access and current policy approval. Lyft's current developer access is not sufficiently verified in this environment for an implementation claim. If pursued, use a provider-neutral `last_mile_options` contract with explicit `available`, `unknown`, and `deep_link_only` states, coordinate privacy controls, and tests that prove no booking path exists.
+
+Dependencies: stable stop coordinates, user confirmation UX, credential/terms review, and a clear distinction between transit schedule feasibility and rideshare availability. This does not authorize production credentials or paid API usage.
+
 ## M0.T — Same-phone Termux launch (AUTHORIZED; device validation pending)
 
 User requested Android/Termux execution of the current proof of concept. Scope: reuse Python/SQLite in Termux with Chrome on the same phone through loopback; document package setup, private repository authentication, first import, subsequent launches, stopping and browser-local data. `TERMUX.md` supplies the runbook. This does not authorize the deferred PWA/native-app/Apache milestones or mobile design overhaul. No backend restructuring is necessary for this launch path.
