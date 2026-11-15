@@ -143,5 +143,75 @@ class BubbleHttpTests(unittest.TestCase):
                           {'from': ['test:home'], 'budget': ['30']})
 
 
+class FirstMileReturnShapeFixture(unittest.TestCase):
+    """RT-3 regression: walk -> transit -> walk -> transit outbound where
+    the first boarding is only catchable because first-mile walking from
+    the origin carries no transfer buffer (ready == arrival at the
+    walk-reached stop). With the buffer wrongly applied there, the scan
+    boards a later first trip, reaches the destination after its last
+    feasible return has left, and the bubble reports no_feasible_return
+    for a stop that does have a way back."""
+
+    def setUp(self):
+        self.stops = {k: dict(id=k, name=k, lat=42., lon=-72., parent='')
+                      for k in ['test:home', 'test:p', 'test:q', 'test:r',
+                                'test:dest']}
+        self.conns = [
+            # First trip is catchable only with ready == arrival at p
+            # (walk 120s, departure 150s, buffer 60s).
+            (150, 450, 'test:p', 'test:q', 't1a', 'test:bus', 'Out', 0, 0, 0),
+            (1200, 1500, 'test:p', 'test:q', 't1b', 'test:bus', 'Out', 0, 0, 0),
+            (700, 1000, 'test:r', 'test:dest', 't2a', 'test:bus', 'Out', 0, 0, 0),
+            (1800, 2100, 'test:r', 'test:dest', 't2b', 'test:bus', 'Out', 0, 0, 0),
+            (1500, 1800, 'test:dest', 'test:r', 't3', 'test:bus', 'Back', 0, 0, 0),
+            (2000, 2300, 'test:q', 'test:p', 't4', 'test:bus', 'Back', 0, 0, 0),
+        ]
+        walks = {'test:home': [('test:p', 120, 130)],
+                 'test:p': [('test:home', 120, 130)],
+                 'test:q': [('test:r', 120, 130)],
+                 'test:r': [('test:q', 120, 130)]}
+        patches = [
+            patch.object(routing, 'network',
+                         return_value=(self.stops, {}, {})),
+            patch.object(routing, 'connections', return_value=self.conns),
+            patch.object(routing, 'neighbors',
+                         side_effect=lambda s, r, m: walks.get(s, [])),
+            patch.object(routing, 'transfer_graph',
+                         return_value={s: [dict(to=t, seconds=sec, meters=m,
+                                                 source='synthetic')
+                                            for t, sec, m in edges]
+                                       for s, edges in walks.items()}),
+            patch.object(routing, 'coverage', return_value=[]),
+        ]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        self.coverage = [dict(feed='test', status='imported',
+                              in_service_period=True, start='20260101',
+                              end='20261231')]
+        self.sources = [dict(id='test', status='imported',
+                             retrieved_at='2026-11-15T00:00:00+00:00',
+                             service_start='20260101', service_end='20261231',
+                             sha256='fixture')]
+
+    def test_first_mile_walk_ready_without_buffer(self):
+        arrivals, paths = routing.scan('2026-11-17', 'test:home', 0, 3600,
+                                       buffer=60)
+        self.assertEqual(arrivals['test:dest'], 1000)
+        self.assertEqual([leg['kind'] for leg in paths['test:dest']],
+                         ['walk', 'transit', 'walk', 'transit'])
+
+    def test_destination_reachable_with_return(self):
+        r = bubble.classify('2026-11-17', 'test:home', 0, budget=3600,
+                            buffer=60, coverage_rows=self.coverage,
+                            source_rows=self.sources)
+        dest = next((s for s in r['reachable'] if s['id'] == 'test:dest'),
+                    None)
+        self.assertIsNotNone(dest)
+        self.assertEqual(dest['arrival'], 1000)
+        self.assertEqual(dest['latest_return_departure'], 1500)
+        self.assertEqual(r['unreachable_reasons']['no_feasible_return'], 0)
+
+
 if __name__ == '__main__':
     unittest.main()

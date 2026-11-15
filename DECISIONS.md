@@ -436,3 +436,56 @@ rather than blanket ours/theirs. Notable outcomes:
   and 755 for the launcher, the maintainer scripts, shell scripts and
   every file git records as executable, with root ownership forced via
   `dpkg-deb --root-owner-group` — the same package from any checkout.
+
+## Transfer-buffer doctrine — first-mile walk exempt (2026-11-15)
+
+- **Doctrine adopted (owner ruling, 2026-11-15): the transfer buffer does
+  not apply to first-mile walking.** In `routing.scan`, stops reached by
+  walking from the origin are ready to board at their walk-arrival time —
+  starting a journey is not a transfer. The buffer still applies in full
+  at genuine transfers: after alighting from a vehicle, the next boarding
+  waits `arrival + buffer`. Implementation is one line: the walk closure
+  in `scan`'s `relax` propagates the popped node's `first` flag to walk
+  neighbours, so the origin-seeded closure inherits the exemption while
+  transit-seeded closures keep the buffer.
+- **Why:** applying the buffer to the first-mile walk systematically
+  missed the first catchable vehicle after a short walk (worked example:
+  the walk arrives cttransit:12294 at 29008, ready was 29308 under the
+  300 s buffer, and the first boardable trip had departed at 29040), and
+  the Mobility Bubble then classified hundreds of stops
+  `no_feasible_return` even though their return chains resolved. This
+  entry supersedes the earlier RT-3 framing of that divergence as a
+  reverse-scan defect: `bubble.py` and the reverse scan are unchanged by
+  this fix, and `latest_back` values are identical with and without it —
+  the divergence was entirely in outbound scan arrivals.
+- **Measured effect (reference bubble, current data):** origin
+  `hartford:6`, Tuesday 2026-11-17, 08:00, 60-minute budget,
+  module-level `bubble.classify` against the packaged database built
+  2026-11-15 (nine feeds; `atlas.sqlite` 856,506,368 bytes): reachable
+  **810 → 1,151**. The new behaviour loses zero stops the old behaviour
+  reached, restores all but one of the feature branch's 1,035, and
+  reaches 103 stops that neither the old behaviour nor the feature
+  branch reached (closure and exemption combined). Brute-force
+  cross-validation against `routing.plan` in both directions: 24/24
+  sampled stops agree, 0 mismatches. 1,151 is the reference count for
+  the current dataset; the 1,034 recorded earlier in this file was
+  measured on the previous six-feed dataset. README carries no numeric
+  bubble reference, so this entry is the publication point.
+- **Contract encodings amended to state the doctrine, not deleted:**
+  `test_scan_walk_then_board_with_buffer` now asserts both halves (a
+  first-mile boarding survives an excessive 700 s buffer; a
+  post-alighting boarding 60 s after arrival is blocked by a 180 s
+  buffer and succeeds with a 30 s buffer), joined by the new
+  `FirstMileReturnShapeFixture` regression tests in `test_bubble`. The
+  shared golden fixture case `walk-buffer-block` — shared verbatim with
+  the Android JVM tests — now expects arrival 900 with modes
+  `walk,test:r` instead of NONE; the fixture's `missed-transfer` case
+  continues to encode the buffer at genuine transfers. The Android
+  engine must be aligned to the same doctrine; its JVM parity suite is
+  verified by CI's android-debug check and was not run in the sandbox.
+- **Known residual, deliberately untouched:** `transfer_edges.edges()`
+  pre-ceils walk length to whole meters before dividing by speed, making
+  89,495 directed walk edges exactly +1 s versus computing seconds in
+  one step. One stop (cttransit:597) misses bubble reachability by that
+  single second (arrival 30370 vs latest_back 30369). Separate parity
+  decision; not part of this change.
