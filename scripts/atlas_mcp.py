@@ -95,6 +95,20 @@ TOOLS = [
         },
     },
     {
+        "name": "atlas_live_status",
+        "description": "Query an opt-in live provider overlay. Live status is separate from scheduled routing and may be unknown or stale.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "provider": {"type": "string", "default": "mbta", "description": "Verified provider, currently mbta."},
+                "route": {"type": "string", "description": "Optional feed-qualified route ID such as mbta:Red."},
+                "stop": {"type": "string", "description": "Optional feed-qualified stop ID such as mbta:place-pktrm."},
+                "include_alerts": {"type": "boolean", "default": True},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "atlas_fare",
         "description": "Calculate a supported scheduled fare, currently CTrail Hartford Line direct fares and CTtransit regular local fares.",
         "inputSchema": {
@@ -233,6 +247,13 @@ def call_tool(name, args):
         if args.get("route"):
             params["route"] = args["route"]
         return _api("/api/v1/departures", params)
+    if name == "atlas_live_status":
+        return _api("/api/v1/live", {
+            "provider": args.get("provider", "mbta"),
+            "route": args.get("route", ""),
+            "stop": args.get("stop", ""),
+            "alerts": "1" if args.get("include_alerts", True) else "0",
+        })
     if name == "atlas_fare":
         params = {"from": args["from_stop"], "to": args["to_stop"]}
         if args.get("route"):
