@@ -407,3 +407,21 @@ rather than blanket ours/theirs. Notable outcomes:
   identical 1 failure + 30 errors fixed above, i.e. no integration
   regressions were introduced and three pre-existing main defects were
   repaired en route.
+
+## All-routes overlay: bounded concurrency + cancel (2026-11-15, fix/all-routes-draw_muse)
+
+- `showAllRoutes` in `web/app.js` fetched `/api/v1/route` geometry strictly
+  one route at a time (~5.5 s per route on the 10-feed dataset; the all-feeds
+  draw never completed in an 11-minute browser window) and a re-click mid-draw
+  started a second concurrent draw, because the toggle state only flipped on
+  completion.
+- Fix is client-side only (server API unchanged): a fixed pool of 8 workers
+  shares the route list, progress status updates as each route lands, and a
+  draw-generation token makes a re-click cancel cleanly — in-flight results
+  are dropped, the partial overlay is cleared, and the button/status reset.
+  Changing the agency filter mid-draw now also cancels and restarts.
+- Verified: `node --check web/app.js`; full unit suite 202/202; headless
+  browser cancel pass (zero page errors, cancel state stable after settle).
+  Remaining bottleneck is per-request server cost (~5 s per route call), not
+  client serialisation; a bulk geometry endpoint is the follow-up if
+  full-scope draw time still matters (see `web/AGENTS.md` guidance).
