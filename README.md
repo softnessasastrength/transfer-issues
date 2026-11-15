@@ -64,9 +64,10 @@ python3 scripts/external_smoke.py --regional --date 2026-11-16
 | Metro-North (MNR) | Successful (disposable import check, 2026-11-15) | Whole official feed; 6 routes / 36,909 trips. Scoped transfer rules are excluded by the current importer; platform/transfer assurance is incomplete |
 | LIRR | Successful (disposable import check, 2026-11-15) | 12 routes / 1,871 trips; selected by default. Scoped transfer rules excluded; the Grand Central interchange in sample journeys is an estimated walk |
 | Greyhound | Successful (disposable import check, 2026-11-15) | Greyhound agency routes only from the FlixMobility GTFS: 150 routes / 4,799 trips; UTC timetable normalized. Ticket purchase and seat availability are not verified |
+| Peter Pan | Successful under owner doctrine exception (2026-11-15) | **UNOFFICIAL** — Peter Pan agencies only from the third-party UTEL-UIUC Intercity Bus GTFS (Peter Pan rows compiled from Transcor Data Services platform data, collected Aug 2025): 59 routes / 242 trips / 56 stops after the regional clip. The official Peter Pan GTFS is stale (its service ended 2024-12-31); this source is labelled unofficial in the feed registry, coverage policy and API source metadata, and is replaced by the official feed as soon as a current edition is published. Ticket purchase and seat availability are not verified |
 | RIPTA / other CT, MA, RI agencies | **Not imported** | Required expanded coverage remains pending |
 
-These are import counts from local checkpoints, not proof of full correctness or current service. Downloaded GTFS, generated SQLite and validation reports are **not committed**. Re-run ingestion to produce local data. No schedules from unofficial or historical sources have been substituted for missing current feeds. See [REGIONAL_COVERAGE.md](REGIONAL_COVERAGE.md) for the full regional record, including a verified scheduled New Haven → Jamaica round trip across MNR and LIRR.
+These are import counts from local checkpoints, not proof of full correctness or current service. Downloaded GTFS, generated SQLite and validation reports are **not committed**. Re-run ingestion to produce local data. With the single named exception of Peter Pan above — imported under the owner's explicit doctrine exception of 2026-11-15 and labelled unofficial wherever its provenance surfaces — no schedules from unofficial or historical sources have been substituted for missing current feeds. See [REGIONAL_COVERAGE.md](REGIONAL_COVERAGE.md) for the full regional record, including a verified scheduled New Haven → Jamaica round trip across MNR and LIRR.
 
 ## Architecture
 
@@ -152,7 +153,7 @@ For a trusted Chromebook-to-phone setup, run the combined launcher explicitly in
 python3 scripts/percival_lan.py --lan
 ```
 
-Open `http://<chromebook-lan-address>:8000` on the phone. Open WebUI can use `http://<chromebook-lan-address>:8765/mcp`. LAN mode has no authentication; use it only on a private network and stop it with Control-C when finished.
+Open `http://<chromebook-lan-address>:8000` on the phone. Open WebUI can use `http://<chromebook-lan-address>:8765/mcp`. The MCP endpoint requires the per-install bearer token: the launcher prints it once at startup, and it is stored in the data dir as `mcp_http_token` (mode 0600; `ATLAS_MCP_TOKEN` overrides it). Configure the client to send `Authorization: Bearer <token>`. Use LAN mode only on a private network and stop it with Control-C when finished.
 
 The same TUI is portable to Windows. Install Python 3.11+ and Ollama, make sure both `python` and `ollama` are on PATH, then from PowerShell run:
 

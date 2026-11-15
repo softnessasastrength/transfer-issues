@@ -173,6 +173,7 @@ a, .card a { color: var(--atlas-action-hover); }
 .dataStrip { box-shadow: none; }
 .dataStrip button { color: var(--atlas-action-hover); }
 .tileNotice { background: color-mix(in srgb, var(--atlas-warm) 23%, var(--atlas-surface)); color: var(--atlas-ink); }
+#toggleStops[aria-pressed="false"] { opacity: .55; }
 .leaflet-control-zoom a { background: var(--atlas-surface); color: var(--atlas-ink); border-color: var(--atlas-line); }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--atlas-surface); color: var(--atlas-ink); }
 .leaflet-popup-content button { box-shadow: none; }

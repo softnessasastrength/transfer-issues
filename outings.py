@@ -186,3 +186,168 @@ def browse(day, origin, earliest, home_by, minimum_stay=7200,
                     unevaluated_count=max(0, len(ranked) - limit), limit=limit,
                     note='Only evaluated stops receive a feasibility status.'),
     )
+
+
+def last_service_departure(day, route_id, from_stop):
+    """The last scheduled departure of a route from a stop on a day.
+
+    Read from the imported connections every time — an anchor is a fact
+    about the loaded schedule, never a hard-coded time. Returns None when
+    the route does not depart that stop that day.
+    """
+    best = None
+    final_arrival = {}
+    for dep, arr, a, b, trip, route, head, pu, do, seq in routing.connections(day):
+        if route != route_id:
+            continue
+        # connections(day) also carries the next service day's trips shifted
+        # by +86400 (their ids are prefixed with that date). The anchor is
+        # the requested day's own last service, plus its after-midnight tail.
+        trip_day = trip.split('|', 1)[0] if '|' in trip else None
+        if trip_day is not None and trip_day != day:
+            continue
+        if dep >= 86400 + 4 * 3600:
+            continue
+        final_arrival[trip] = arr  # rows are sequence-ordered; last write is the terminus
+        if a == from_stop and pu == 0 and (best is None or dep > best['departure']):
+            best = dict(route=route_id, trip=trip, headsign=head,
+                        from_stop=from_stop, departure=dep)
+    if best is None:
+        return None
+    best['final_arrival'] = final_arrival.get(best['trip'])
+    return best
+
+
+def plan_day(day, origin, visits, start, dwell=1800, anchor=None, home_by=86399,
+             mode='walk', radius=500, buffer=300, feeds=(), coverage_rows=None):
+    """Compose an ordered day of visits behind a protected return anchor.
+
+    The anchor is either pinned — ``anchor=dict(route=..., from_stop=...)``,
+    the last departure of that route from that stop, read from the schedule —
+    or derived: the last viable return home from the final visit. A visit leg
+    is accepted only if, after the minimum dwell at that visit, a certified
+    path back to the anchor boarding stop still arrives by the anchor
+    departure (less the transfer buffer as safety margin). A leg that would
+    break the anchor is refused with the reason, never silently planned; the
+    legs composed before it stand as a partial day.
+    """
+    coverage_rows = coverage_rows or []
+    stops = routing.network()[0]
+    for stop in [origin, *visits]:
+        if stop not in stops:
+            raise ValueError(f'Unknown stop: {stop}')
+    opts = dict(mode=mode, radius=radius, buffer=buffer, feeds=feeds)
+    result = dict(status='unknown', scheduled=True, date=day, origin=origin,
+                  visits=list(visits), earliest_departure=start, home_by=home_by,
+                  minimum_dwell=dwell, legs=[], dwells=[], coverage=coverage_rows)
+
+    # --- Resolve and certify the anchor -------------------------------------
+    if anchor and anchor.get('route'):
+        anchor_stop = anchor.get('from_stop') or (visits[-1] if visits else origin)
+        service = last_service_departure(day, anchor['route'], anchor_stop)
+        if service is None:
+            result.update(status='ruled_out', reason=dict(
+                code='anchor_service_not_found',
+                message=f"No departure of {anchor['route']} from {anchor_stop} exists in the loaded schedule for this date, so the pinned anchor cannot be protected."))
+            return result
+        anchor_departure = service['departure']
+        anchor_home = routing.plan(day, anchor_stop, origin, anchor_departure,
+                                   home_by, **opts)
+        certified = bool(anchor_home.get('found')) and anchor_home['departure'] == anchor_departure
+        anchor_info = dict(kind='pinned_service', route=anchor['route'],
+                           trip=service['trip'], headsign=service['headsign'],
+                           from_stop=anchor_stop, departure=anchor_departure,
+                           certified=certified,
+                           home_arrival=anchor_home.get('arrival') if certified else None)
+        if not certified:
+            result.update(status='unknown', reason=dict(
+                code='anchor_not_homeward',
+                message='The pinned last service does not itself start a certified journey home at its departure time, so it cannot serve as the return anchor.'),
+                anchor=anchor_info)
+            return result
+    else:
+        anchor_stop = visits[-1] if visits else origin
+        latest_home = routing.latest(day, anchor_stop, origin, start, home_by, **opts)
+        if not latest_home.get('found'):
+            problem = _incomplete_coverage(coverage_rows)
+            result.update(status='unknown' if problem else 'ruled_out',
+                          reason=problem or dict(
+                              code='no_viable_return',
+                              message='No scheduled return home exists from the final stop within the day, so no anchor can be protected.'))
+            return result
+        anchor_departure = latest_home['departure']
+        anchor_info = dict(kind='last_viable_return', route=None, trip=None,
+                           headsign=None, from_stop=anchor_stop,
+                           departure=anchor_departure, certified=True,
+                           home_arrival=latest_home['arrival'])
+
+    result['anchor'] = anchor_info
+    # What happens if the anchor is missed — stated up front, from the data.
+    after = routing.plan(day, anchor_stop, origin, anchor_departure + 1, home_by, **opts)
+    result['if_missed'] = dict(
+        found=bool(after.get('found')),
+        departure=after.get('departure') if after.get('found') else None,
+        arrival=after.get('arrival') if after.get('found') else None,
+        message=('The next way home after the anchor is the departure above.'
+                 if after.get('found') else
+                 'There is no later return home in the loaded schedule that day. Missing the anchor means no scheduled way home.'))
+
+    # --- Compose the day, protecting the anchor at every step ---------------
+    current, now = origin, start
+    for index, visit in enumerate(visits):
+        leg = routing.plan(day, current, visit, now, home_by, **opts)
+        if not leg.get('found'):
+            result.update(status='partial' if result['legs'] else 'ruled_out',
+                          refused_visit=visit, reason=dict(
+                              code='no_leg_to_visit',
+                              message=f'No scheduled itinerary reaches {visit} from {current} in the remaining day.'))
+            return result
+        arrival = leg['arrival']
+        ready = arrival + dwell
+        if visit == anchor_stop:
+            back_ok = ready <= anchor_departure
+            back_arrival = None
+        else:
+            back = routing.plan(day, visit, anchor_stop, ready, anchor_departure, **opts)
+            back_ok = bool(back.get('found')) and back['arrival'] <= anchor_departure - buffer
+            back_arrival = back.get('arrival') if back.get('found') else None
+        if not back_ok:
+            result.update(status='partial' if result['legs'] else 'anchor_protected',
+                          refused_visit=visit, reason=dict(
+                              code='would_break_anchor',
+                              message=(f'Visiting {visit} (arrive {arrival}, ready to move on at {ready} after the minimum dwell) '
+                                       f'leaves no certified path back to the anchor stop by {anchor_departure - buffer}. '
+                                       'The leg was refused to protect the anchor, not planned anyway.'),
+                              ready=ready, anchor_departure=anchor_departure,
+                              back_arrival=back_arrival))
+            return result
+        result['legs'].append(dict(kind='visit', to=visit, plan=leg))
+        current, now = visit, ready
+
+    # --- Final approach to the anchor, then the anchor home -----------------
+    if current != anchor_stop:
+        approach = routing.plan(day, current, anchor_stop, now, anchor_departure, **opts)
+        if not approach.get('found'):
+            result.update(status='partial', reason=dict(
+                code='anchor_unreachable_after_visits',
+                message='The composed visits leave no certified path to the anchor stop, despite the per-visit checks.'))
+            return result
+        result['legs'].append(dict(kind='anchor_approach', to=anchor_stop, plan=approach))
+        anchor_arrival = approach['arrival']
+    else:
+        anchor_arrival = result['legs'][-1]['plan']['arrival'] if result['legs'] else start
+    home_plan = routing.plan(day, anchor_stop, origin, anchor_departure, home_by, **opts)
+    result['legs'].append(dict(kind='anchor_home', to=origin, plan=home_plan))
+    result['slack_seconds'] = anchor_departure - anchor_arrival
+    result['home_arrival'] = home_plan.get('arrival')
+
+    # Dwell windows: from each visit's arrival until the next leg departs.
+    points = [(leg['plan']['arrival'], leg['to']) for leg in result['legs'] if leg['kind'] == 'visit']
+    departures = [leg['plan']['departure'] for leg in result['legs'][1:]] + [anchor_departure]
+    for (arrive, stop), leave in zip(points, departures):
+        result['dwells'].append(dict(stop=stop, arrive=arrive, depart=leave,
+                                     seconds=max(0, leave - arrive)))
+    result['status'] = 'composed'
+    result['reason'] = dict(code='day_composed',
+                            message='Every visit is composed with the return anchor protected.')
+    return result

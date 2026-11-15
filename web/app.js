@@ -4,7 +4,7 @@ const el = (tag, text, cls) => { const n = document.createElement(tag); if (text
 const button = (text, fn) => { const n = el('button', text); n.addEventListener('click', () => run(fn)); return n; };
 const clock = seconds => { const day=Math.floor(seconds/86400), total=Math.floor(seconds/60)%1440, hour24=Math.floor(total/60), minute=total%60, suffix=hour24<12?'AM':'PM', hour=hour24%12||12; return `${hour}:${String(minute).padStart(2,'0')} ${suffix}${day?` (+${day} day${day===1?'':'s'})`:''}`; };
 const seconds = value => { const match=String(value||'').trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i); if(!match)throw Error('Use a time such as 8:00 AM.'); let h=Number(match[1]),m=Number(match[2]||0),suffix=match[3]?.toUpperCase(); if(m>59)throw Error('Choose a valid time.'); if(suffix){if(h<1||h>12)throw Error('Use an hour from 1 to 12.');h=(h%12)+(suffix==='PM'?12:0);}else if(h>23)throw Error('Choose a valid time.'); return h*3600+m*60; };
-let meta, map, layers, nearby, stops = new Map(), routes = new Map(), labels = new Map(), request = 0, selectedRoute = null, routeChain = [];
+let meta, map, layers, nearby, stops = new Map(), routes = new Map(), labels = new Map(), request = 0, selectedRoute = null, routeChain = [], stopsVisible = true;
 const feedPalette = {cttransit:'#d85d4a',hartford:'#2f78c4',pvta:'#a64f9f',wrta:'#d58b2a',mbta:'#7556a8',amtrak:'#2f8a86'};
 function routeColor(route) {
  const published=route?.color && /^[0-9a-f]{6}$/i.test(route.color) ? `#${route.color}` : '';
@@ -64,11 +64,14 @@ function setupStopPicker(id) {
  document.addEventListener('click',event=>{if(!input.parentElement.contains(event.target))close();});
 }
 function sourceLink(feed) { const source = meta.sources.find(s => s.id === feed); const n = el('a', `Source: ${feed}`); if(source && /^https?:\/\//.test(source.url)) { n.href = source.url; n.target = '_blank'; n.rel = 'noopener'; } return n; }
-function marker(s, group=layers, color='#26776b') {
+function marker(s, group=layers, color='#26776b', ambient=false, dim=false) {
  const popup = el('div'); popup.append(el('b', s.name), el('p', s.id));
  popup.append(button('Start here', () => { $('from').value=stopLabel(s); map.closePopup(); }), button('Go here', () => { $('to').value=stopLabel(s); map.closePopup(); }), button('Meet here', () => { $('outingTo').value=stopLabel(s);$('outingTo').dataset.stopId=s.id;map.closePopup();run(()=>verifyOuting(s.id)); }), button('Departures', () => departures(s)));
  const surface=getComputedStyle(document.documentElement).getPropertyValue('--atlas-surface').trim() || '#fffdf7';
- return L.circleMarker([s.lat,s.lon], {radius:7,color,weight:2.5,fillColor:surface,fillOpacity:1}).bindPopup(popup).addTo(group);
+ // Ambient stops (the browsable field) get a small solid dot that stays quiet at
+ // every zoom; stops drawn for a plan, route or bubble keep the prominent ring.
+ const style=ambient?{radius:4,color,weight:1,opacity:dim?.3:.85,fillColor:color,fillOpacity:dim?.35:.85}:{radius:7,color,weight:2.5,fillColor:surface,fillOpacity:1};
+ return L.circleMarker([s.lat,s.lon], style).bindPopup(popup).addTo(group);
 }
 function outingMarker(stop, status, select) {
  const icon=L.divIcon({className:`outingMapIcon ${status}`,html:'<span aria-hidden="true"></span>',iconSize:[28,28],iconAnchor:[14,14]});
@@ -82,7 +85,25 @@ function outingMarker(stop, status, select) {
 }
 function outingStatusLabel(status){return status==='verified'?'Verified round trip':status==='ruled_out'?'Ruled out by schedule':'Cannot determine';}
 function fit() { if(layers.getLayers().length) { const b = layers.getBounds(); if(b.isValid()) map.fitBounds(b,{padding:[40,40],maxZoom:14}); } }
-function nearbyStops() { nearby.clearLayers(); if(map.getZoom()<12) return; let n=0; for(const s of stops.values()) if(map.getBounds().contains([s.lat,s.lon]) && n++<600) marker(s, nearby, '#657b74'); }
+function nearbyStops() {
+ nearby.clearLayers();
+ if(!stopsVisible || map.getZoom()<12) return;
+ // Density control: one dot per 30px screen cell (deterministic — the same
+ // stops win on every redraw of the same view) inside a per-zoom budget, so
+ // the field never turns into overlapping rings. Zooming in reveals the rest.
+ const zoom=map.getZoom(), cap=zoom<14?150:zoom<16?350:600, cell=30, seen=new Set(), size=map.getSize();
+ const dim=layers.getLayers().length>0; // A plan/route/bubble is on stage: ambient stops recede.
+ let n=0;
+ for(const s of stops.values()) {
+  if(n>=cap) break;
+  const p=map.latLngToContainerPoint([s.lat,s.lon]);
+  if(p.x<0||p.y<0||p.x>size.x||p.y>size.y) continue;
+  const key=Math.floor(p.x/cell)+':'+Math.floor(p.y/cell);
+  if(seen.has(key)) continue;
+  seen.add(key);
+  marker(s, nearby, '#657b74', true, dim); n++;
+ }
+}
 function chainLabel(id){const r=routes.get(id);return r?`${r.short || id} · ${r.feed}`:id;}
 function renderChain(){const host=$('routeChainItems');if(!host)return;host.replaceChildren();if(!routeChain.length){host.append(el('p','No routes chained yet. Add routes from Browse routes.','small'));return;}routeChain.forEach((id,i)=>{const row=el('div',undefined,'chainItem');row.style.setProperty('--route-color',routeColor(routes.get(id)));row.append(el('b',String(i+1).padStart(2,'0')),el('span',chainLabel(id)));const up=button('↑',()=>{if(i){[routeChain[i-1],routeChain[i]]=[routeChain[i],routeChain[i-1]];renderChain();}});const down=button('↓',()=>{if(i<routeChain.length-1){[routeChain[i+1],routeChain[i]]=[routeChain[i],routeChain[i+1]];renderChain();}});const remove=button('×',()=>{routeChain.splice(i,1);renderChain();});[up,down,remove].forEach(b=>{b.className='chainAction';row.append(b);});host.append(row);if(i<routeChain.length-1)host.append(el('span','↓ transfer','chainArrow'));});}
 function addToChain(id){if(routeChain[routeChain.length-1]===id)return;routeChain.push(id);renderChain();view('explore');$('browser').hidden=false;$('planner').hidden=true;$('browseTab').classList.add('selected');$('planTab').classList.remove('selected');}
@@ -114,10 +135,46 @@ async function plan(kind='depart') {
 async function bubble() {const params=options();delete params.deadline;params.budget=3600;params.visit=0;const token=++request;const data=await api('bubble',params);if(token!==request)return;layers.clearLayers();data.reachable.forEach(s=>marker(stops.get(s.id)));fit();const unknown=data.unknown.feeds.map(f=>f.feed).join(', ');$('results').replaceChildren(el('h3',`${data.reachable.length} stops in your 60-minute mobility bubble`),coverageNotice(data.coverage),el('p',`Every stop shown also has a feasible way home by ${clock(data.deadline)} with no visit time counted - pure travel, out and back inside the hour. ${data.unreachable_count} loaded stops were evaluated as not reachable in the window.${unknown?' Cannot be evaluated at all (missing data is not proof of no service): '+unknown+'.':''} Includes estimated ground links. Click a stop for departures.`));}
 async function reach() {const params=options();params.deadline=Math.min(Number(params.deadline),params.time+7200);const token=++request;clearAllRoutes();const data=await api('reachability',params);if(token!==request)return;layers.clearLayers();data.stops.forEach(s=>marker(stops.get(s.id)));fit();$('results').replaceChildren(el('h3',`${data.stops.length} stops reachable within two hours`),coverageNotice(data.coverage),el('p','Includes estimated ground links. Click a stop for departures.'));}
 function renderSources() { $('sourceCards').replaceChildren(); for(const s of meta.sources){const card=el('article',undefined,'card'); card.append(el('h2',s.id),el('span',s.status,'badge'),sourceLink(s.id)); for(const [key,label] of [['retrieved_at','Retrieved'],['service_start','Service begins'],['service_end','Service ends'],['scope','Coverage'],['refresh_error','Refresh error']])card.append(el('p',`${label}: ${s[key] || 'Not recorded'}`));card.append(el('p',`Validation: ${JSON.stringify(s.validation || 'Not recorded')}`,'small'));$('sourceCards').append(card);} }
-function liveCard(data) { const card=el('section',undefined,`resultCard liveCard ${data.status}`); const providerName=data.provider==='mbta_v3'?'MBTA V3':data.provider==='cttransit_json'?'CTtransit JSON':'No verified live adapter'; card.append(el('h2',data.status==='live'?'LIVE · provider response':'UNKNOWN · no verified realtime response'),el('p',providerName),el('p',data.as_of?`Checked ${new Date(data.as_of).toLocaleString()}`:'No provider timestamp available.','small')); if(data.status==='live'){const board=el('div',undefined,'liveBoard');if(!data.predictions.length)board.append(el('p','The provider returned no matching predictions.','notice'));data.predictions.forEach(p=>{const row=el('div',undefined,'liveRow');row.append(el('b',p.route?.data?.id||p.route_id||p.id||'Vehicle'),el('span',p.departure_time||p.arrival_time||p.time||'Time unavailable'),el('small',p.status||'prediction'));board.append(row);});card.append(el('h3','Predictions'),board,el('h3',`Alerts · ${data.alerts.length}`));if(data.alerts.length)data.alerts.forEach(a=>card.append(el('p',a.header||a.short_header||a.description||'Alert text unavailable','notice')));else card.append(el('p','No alerts returned for this filter.','small'));}const limitations=el('div',undefined,'notice');limitations.append(el('b','Read this as status, not a promise.'));data.limitations.forEach(x=>limitations.append(el('p',x)));card.append(limitations);return card; }
+function liveCard(data) { const card=el('section',undefined,`resultCard liveCard ${data.status}`); const providerName=data.provider==='mbta_v3'?'MBTA V3':data.provider==='cttransit_json'?'CTtransit JSON':'No verified live adapter'; card.append(el('h2',data.status==='live'?'LIVE · provider response':'UNKNOWN · no verified realtime response'),el('p',providerName),el('p',data.as_of?`Checked ${new Date(data.as_of).toLocaleString()}`:'No provider timestamp available.','small')); if(data.status==='live'){const board=el('div',undefined,'liveBoard');if(!data.predictions.length)board.append(el('p','The provider returned no matching predictions.','notice'));data.predictions.forEach(p=>{const row=el('div',undefined,'liveRow');row.append(el('b',p.route?.data?.id||p.route_id||p.id||'Vehicle'),el('span',(()=>{const raw=p.departure_time||p.arrival_time||p.time;if(raw==null)return 'Time unavailable';return liveCountdown((typeof raw==='string'&&/^\d+$/.test(raw))?Number(raw):raw);})()),el('small',p.status||'prediction'));board.append(row);});card.append(el('h3','Predictions'),board,el('h3',`Alerts · ${data.alerts.length}`));if(data.alerts.length)data.alerts.forEach(a=>card.append(el('p',a.header||a.short_header||a.description||'Alert text unavailable','notice')));else card.append(el('p','No alerts returned for this filter.','small'));if(data.vehicles&&data.vehicles.length)card.append(el('p',`${data.vehicles.length} vehicle positions reported — turn on Vehicles in the map controls to see them.`,'small'));}const limitations=el('div',undefined,'notice');limitations.append(el('b','Read this as status, not a promise.'));data.limitations.forEach(x=>limitations.append(el('p',x)));card.append(limitations);return card; }
 function liveCountdown(value){ const when=typeof value==='number'?new Date(value*1000):new Date(value);if(Number.isNaN(when.getTime()))return String(value||'Time unavailable');const delta=Math.round((when-Date.now())/60000);if(Math.abs(delta)<=1)return 'NOW';if(delta>0)return `in ${delta} min`;return `${Math.abs(delta)} min ago`; }
 function decorateLiveBoard(){ document.querySelectorAll('.liveRow span').forEach(node=>{const raw=node.textContent;if(/^in |NOW$| min ago$/.test(raw))return;node.title=raw;node.textContent=liveCountdown(raw);}); }
 async function refreshLive(){ const data=await api('live',{provider:$('liveProvider').value,route:$('liveRoute').value.trim(),stop:$('liveStop').value.trim(),alerts:'1'});$('liveResults').replaceChildren(liveCard(data));decorateLiveBoard(); }
+// Live vehicle overlay. INFORMATIONAL ONLY: positions come from the providers'
+// realtime feeds via /api/v1/live and never feed routing or feasibility.
+// A provider that cannot be verified shows "unknown" and contributes no
+// markers — positions are never invented or carried past their freshness.
+let vehicleLayer=null, vehicleTimer=null, vehiclesOn=false;
+const VEHICLE_STALE_MS=5*60*1000, VEHICLE_REFRESH_MS=30000;
+function setVehicleStatus(text){ const n=$('vehicleStatus'); if(n){ n.textContent=text; n.hidden=!text; } }
+function vehicleAgeText(ts){ const t=typeof ts==='number'?ts*1000:new Date(ts).getTime(); if(Number.isNaN(t)) return 'time unknown'; const s=Math.max(0,Math.round((Date.now()-t)/1000)); return s<60?`${s}s ago`:`${Math.round(s/60)} min ago`; }
+async function refreshVehicles(){
+ if(!vehiclesOn) return;
+ if(!vehicleLayer) vehicleLayer=L.layerGroup().addTo(map);
+ vehicleLayer.clearLayers();
+ let shown=0, stale=0; const notes=[];
+ for(const provider of ['cttransit','mbta']){
+  const label=provider==='mbta'?'MBTA':'CTtransit';
+  let data=null;
+  try{ data=await api('live',{provider,alerts:'0'}); }catch(e){ data=null; }
+  if(!data||data.status!=='live'||!Array.isArray(data.vehicles)){ notes.push(`${label} unknown`); continue; }
+  let n=0, st=0;
+  for(const v of data.vehicles){
+   const pos=v.position; if(!pos||pos.latitude==null||pos.longitude==null) continue;
+   const t=v.timestamp?(typeof v.timestamp==='number'?v.timestamp*1000:new Date(v.timestamp).getTime()):NaN;
+   const isStale=Number.isNaN(t)||(Date.now()-t>VEHICLE_STALE_MS);
+   const tip=el('div',`${v.route_id||'Route unknown'} · ${v.vehicle||v.id||'vehicle'} · ${Number.isNaN(t)?'no timestamp':'updated '+vehicleAgeText(v.timestamp)}${isStale?' · STALE':''}`);
+   L.circleMarker([pos.latitude,pos.longitude],isStale?{radius:6,color:'#5f6b66',weight:1.5,fillColor:'#a8b0ac',fillOpacity:.55}:{radius:6,color:'#7a2e0e',weight:2,fillColor:'#f2762e',fillOpacity:.95}).bindTooltip(tip).addTo(vehicleLayer);
+   n++; if(isStale) st++;
+  }
+  shown+=n; stale+=st; notes.push(`${label} ${n} vehicles${st?` (${st} stale)`:''}`);
+ }
+ setVehicleStatus(shown?`Live vehicles: ${notes.join(' · ')} · checked ${new Date().toLocaleTimeString()}`:'Live vehicles unavailable right now — showing none rather than guessing positions.');
+}
+function toggleVehicles(){
+ vehiclesOn=!vehiclesOn; $('toggleVehicles').setAttribute('aria-pressed',String(vehiclesOn));
+ if(vehiclesOn){ refreshVehicles(); vehicleTimer=setInterval(refreshVehicles,VEHICLE_REFRESH_MS); }
+ else{ clearInterval(vehicleTimer); vehicleTimer=null; if(vehicleLayer) vehicleLayer.clearLayers(); setVehicleStatus(''); }
+}
 function installLiveView(){ const page=el('section');page.id='live';page.className='view page';page.hidden=true;page.append(el('div','OPTIONAL REALTIME OVERLAY','eyebrow'),el('h1','What’s moving now.'),el('p','Live provider data sits beside the published schedule. It never changes route feasibility.'));const controls=el('div',undefined,'liveControls');const provider=el('select');provider.id='liveProvider';provider.append(new Option('MBTA V3','mbta'),new Option('CTtransit · not verified','cttransit'),new Option('PVTA · not verified','pvta'));const route=el('input');route.id='liveRoute';route.placeholder='Red or mbta:Red';const stop=el('input');stop.id='liveStop';stop.placeholder='place-pktrm or mbta:place-pktrm';[['PROVIDER',provider],['ROUTE (OPTIONAL)',route],['STOP (OPTIONAL)',stop]].forEach(([label,node])=>{controls.append(el('label',label),node);});const refresh=button('Check live status ↗',refreshLive);refresh.id='liveRefresh';refresh.className='primary';controls.append(refresh);page.append(controls);const results=el('div');results.id='liveResults';results.setAttribute('aria-live','polite');results.append(el('p','Choose a provider and check status. “Unknown” means this app cannot verify realtime data right now.','notice'));page.append(results,el('p','Live data may be delayed, incomplete, or unavailable. It is not a guarantee of arrival, boarding, transfer, accessibility, or seat availability.','small'));document.querySelector('main').after(page);const tab=el('button','Live board');tab.dataset.tab='live';document.querySelector('nav').insertBefore(tab,document.querySelector('nav [data-tab="sources"]'));tab.onclick=()=>view('live'); }
 function renderPersonal() {
  $('journalCount').textContent=personal.notes.length; $('bookmarks').replaceChildren();$('notes').replaceChildren();
@@ -136,18 +193,21 @@ async function init() {
  $('theme').onchange=()=>{preferences.theme=$('theme').value;savePreferences();};
  $('units').onchange=()=>{const meters=Number($('radius').value)*(preferences.units==='imperial'?1/feetPerMeter:1);preferences.units=$('units').value;updatePreferences();$('radius').value=Math.round(meters*(preferences.units==='imperial'?feetPerMeter:1));savePreferences();};
  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),today=['year','month','day'].map(k=>parts.find(p=>p.type===k).value).join('-'); $('date').value=today;$('outingDate').value=today;updateDate();
- meta=await api('meta');const sourceNotice=document.querySelector('#sources .notice');if(sourceNotice)sourceNotice.textContent='Coverage is incomplete. Check each source card for its service dates and import status. Published schedules do not confirm a seat, booking, or live operation. Some local and on-demand services have no usable timetable in this planner.';stops=new Map(meta.stops.map(s=>[s.id,s]));routes=new Map(meta.routes.map(r=>[r.id,r]));setupStopPicker('from');setupStopPicker('to');setupStopPicker('outingFrom');setupStopPicker('outingTo');if(meta.sources.some(s=>s.optional)){const optionalToggle=el('label','Include optional feeds','check'),optionalInput=el('input');optionalInput.type='checkbox';optionalInput.id='includeOptional';optionalToggle.prepend(optionalInput);document.querySelector('#planner details').append(optionalToggle);}
+ meta=await api('meta');const sourceNotice=document.querySelector('#sources .notice');if(sourceNotice)sourceNotice.textContent='Coverage is incomplete. Check each source card for its service dates and import status. Published schedules do not confirm a seat, booking, or live operation. Some local and on-demand services have no usable timetable in this planner.';stops=new Map(meta.stops.map(s=>[s.id,s]));routes=new Map(meta.routes.map(r=>[r.id,r]));setupStopPicker('from');setupStopPicker('to');setupStopPicker('outingFrom');setupStopPicker('outingTo');setupStopPicker('dayVisit');setupStopPicker('anchorFrom');if(meta.sources.some(s=>s.optional)){const optionalToggle=el('label','Include optional feeds','check'),optionalInput=el('input');optionalInput.type='checkbox';optionalInput.id='includeOptional';optionalToggle.prepend(optionalInput);document.querySelector('#planner details').append(optionalToggle);}
  map=L.map('map',{preferCanvas:true}).setView([42,-72.4],8);layers=L.featureGroup().addTo(map);nearby=L.layerGroup().addTo(map);
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).on('tileerror',()=>$('tileNotice').hidden=false).addTo(map);map.on('moveend',nearbyStops);
  const fragment=document.createDocumentFragment(); for(const s of meta.stops){const label=stopLabel(s);labels.set(label,s.id);fragment.append(new Option(label,label));} $('stopList').append(fragment);
  meta.cities.forEach(([name,lat,lon])=>{ $('cities').append(button(name,()=>{map.setView([lat,lon],13);$('mapStatus').textContent=`${name} · zoomed stops from loaded feeds`; })); L.circleMarker([lat,lon],{radius:4,color:'#173d39',weight:2,fillColor:'#d7e98c',fillOpacity:1}).bindTooltip(name,{permanent:true,direction:'right',className:'cityMarker'}).addTo(map); });
  [...new Set(meta.routes.map(r=>r.feed))].forEach(f=>{$('agency').append(new Option(f,f));$('allRoutesAgency').append(new Option(f,f));});
  $('allRoutes').onclick=()=>run(showAllRoutes);
- $('allRoutesAgency').onchange=()=>{if(allRoutesVisible)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
+ $('allRoutesAgency').onchange=()=>{if(allRoutesVisible||allRoutesDrawing)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>view(b.dataset.tab));$('planTab').onclick=()=>{$('planner').hidden=false;$('outingPlanner').hidden=true;$('browser').hidden=true;$('planTab').classList.add('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.remove('selected');};$('outingTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=false;$('browser').hidden=true;$('planTab').classList.remove('selected');$('outingTab').classList.add('selected');$('browseTab').classList.remove('selected');};$('browseTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=true;$('browser').hidden=false;$('planTab').classList.remove('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.add('selected');};
  $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value,aid=$('from').dataset.stopId,b=$('to').value,bid=$('to').dataset.stopId;$('from').value=b;$('to').value=a;if(bid)$('from').dataset.stopId=bid;else delete $('from').dataset.stopId;if(aid)$('to').dataset.stopId=aid;else delete $('to').dataset.stopId;};$('resetMap').onclick=()=>{following=false;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');map.setView([42,-72.4],8);};
+ $('toggleStops').onclick=()=>{stopsVisible=!stopsVisible;$('toggleStops').setAttribute('aria-pressed',String(stopsVisible));if(stopsVisible){nearby.addTo(map);nearbyStops();}else{nearby.clearLayers();map.removeLayer(nearby);}};
+ $('toggleVehicles').onclick=()=>toggleVehicles();
  $('plan').onclick=()=>run(()=>plan());$('latest').onclick=()=>run(()=>plan('latest'));$('reach').onclick=()=>run(reach);$('bubble').onclick=()=>run(bubble);
  $('browseOutings').onclick=()=>run(browseOutings);$('verifyOuting').onclick=()=>run(()=>verifyOuting());
+ $('addVisit').onclick=()=>run(()=>{const id=resolve('dayVisit');dayVisits.push({id,name:stopLabel(stops.get(id))});$('dayVisit').value='';delete $('dayVisit').dataset.stopId;renderDayVisits();});$('planDay').onclick=()=>run(planDayTrip);$('anchorMode').onchange=()=>{$('anchorFields').hidden=$('anchorMode').value!=='pinned';};renderDayVisits();
  $('bookmark').onclick=()=>run(()=>{resolve('from');resolve('to');personal.bookmarks.push(Object.fromEntries(['from','to','date','time'].map(k=>[k,$(k).value])));save();$('results').replaceChildren(el('p','Search saved in My discoveries.','notice'));});
  $('saveNote').onclick=()=>run(()=>{if(!$('noteTitle').value.trim())throw Error('Give your note a title.');personal.notes.push({title:$('noteTitle').value,text:$('noteText').value});save();$('noteTitle').value='';$('noteText').value='';});
  $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(personal,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download='transit-atlas-discoveries.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -159,7 +219,7 @@ async function init() {
 // These connect that existing UI to the existing /api/v1 contracts. Location is
 // opt-in only and never leaves the device; overlay and outing results describe
 // published schedules and label missing data as unknown, never as no service.
-let following=false, locationWatch=null, locationLayer=null, allRoutesVisible=false, routeOverlay=null;
+let following=false, locationWatch=null, locationLayer=null, allRoutesVisible=false, allRoutesDrawing=false, allRoutesDrawToken=0, routeOverlay=null;
 function setLocationStatus(text){const n=$('locationStatus');if(n){n.textContent=text;n.hidden=!text;}}
 function showLocation(lat,lon){if(!locationLayer)locationLayer=L.layerGroup().addTo(map);locationLayer.clearLayers();L.circleMarker([lat,lon],{radius:6,color:'#143e39',weight:2,fillColor:'#2f78c4',fillOpacity:.9}).addTo(locationLayer);}
 function toggleLocation(){
@@ -175,19 +235,37 @@ function toggleFollow(){
  following=true;btn.textContent='Follow: on';btn.setAttribute('aria-pressed','true');
  locationWatch=navigator.geolocation.watchPosition(pos=>{showLocation(pos.coords.latitude,pos.coords.longitude);if(following)map.setView([pos.coords.latitude,pos.coords.longitude],Math.max(map.getZoom(),13));},err=>{setLocationStatus('Location unavailable: '+err.message);},{timeout:10000});
 }
-function clearAllRoutes(){if(routeOverlay)routeOverlay.clearLayers();allRoutesVisible=false;$('allRoutes').setAttribute('aria-pressed','false');const s=$('allRoutesStatus');if(s)s.textContent='';}
+function clearAllRoutes(){allRoutesDrawToken++;allRoutesDrawing=false;if(routeOverlay)routeOverlay.clearLayers();allRoutesVisible=false;$('allRoutes').setAttribute('aria-pressed','false');const s=$('allRoutesStatus');if(s)s.textContent='';}
 async function showAllRoutes(){
+ if(allRoutesDrawing){ // A re-click while a draw is running cancels it.
+  clearAllRoutes();
+  const s=$('allRoutesStatus');if(s)s.textContent='Route drawing cancelled.';
+  return;
+ }
  if(allRoutesVisible){clearAllRoutes();return;}
  if(!routeOverlay)routeOverlay=L.layerGroup().addTo(map);
  routeOverlay.clearLayers();
  const feed=$('allRoutesAgency').value,status=$('allRoutesStatus');
- const list=meta.routes.filter(r=>!feed||r.feed===feed);let drawn=0;
- for(const r of list){
+ const list=meta.routes.filter(r=>!feed||r.feed===feed);let drawn=0,next=0;
+ const token=++allRoutesDrawToken;allRoutesDrawing=true;$('allRoutes').setAttribute('aria-pressed','true');
+ const drawOne=async r=>{
   const data=await api('route',{id:r.id,date:$('date').value});
+  if(token!==allRoutesDrawToken)return; // Cancelled while this request was in flight; drop its geometry.
   for(const shape of data.shapes)if(shape.length)L.polyline(shape,{color:routeColor(r),weight:3,opacity:.75}).addTo(routeOverlay);
   if(data.shapes.length)drawn++;
   if(status)status.textContent=`Drawing routes… ${drawn} with published geometry`;
+ };
+ try{ // Bounded concurrency: a fixed worker pool shares the route list.
+  const workers=Array.from({length:Math.min(8,list.length)},async()=>{
+   while(token===allRoutesDrawToken&&next<list.length)await drawOne(list[next++]);
+  });
+  await Promise.all(workers);
+ }catch(e){
+  if(token===allRoutesDrawToken){allRoutesDrawToken++;allRoutesDrawing=false;$('allRoutes').setAttribute('aria-pressed','false');}
+  throw e;
  }
+ if(token!==allRoutesDrawToken)return; // Cancelled; clearAllRoutes already reset state and overlay.
+ allRoutesDrawing=false;
  allRoutesVisible=true;$('allRoutes').setAttribute('aria-pressed','true');
  if(status)status.textContent=drawn?`${drawn} routes drawn from published geometry. A route without drawn geometry has none published for this date; that is a data gap, not proof of no service.`:'No published route geometry for this selection.';
  if(routeOverlay.getLayers().length)map.fitBounds(routeOverlay.getBounds(),{padding:[40,40],maxZoom:13});
@@ -222,6 +300,37 @@ async function browseOutings(){
   $('results').append(outingCard(c));
   outingMarker(stop,c.status,()=>run(()=>verifyOuting(c.destination.id)));
  }
+ fit();
+}
+const dayVisits=[];
+function renderDayVisits(){ const host=$('dayVisitList'); host.replaceChildren(); dayVisits.forEach((v,i)=>{ const row=el('div'); row.append(el('span',`${i+1}. ${v.name} `)); const rm=button('×',()=>{dayVisits.splice(i,1);renderDayVisits();}); rm.className='chainAction'; row.append(rm); host.append(row); }); if(!dayVisits.length)host.append(el('p','No visits yet. Add stops in the order you want to visit them.','small')); }
+function durationText(s){ const m=Math.round(s/60); return m>=60?`~${Math.floor(m/60)}h${String(m%60).padStart(2,'0')}`:`~${m} min`; }
+function dayTripCard(data){
+ const card=el('section',undefined,'resultCard');
+ card.append(el('h3',data.status==='composed'?'Your day, with the way home protected':data.status==='anchor_protected'?'A visit would break the anchor — refused':'Day trip could not be composed'));
+ if(data.reason?.message)card.append(el('p',data.reason.message,'small'));
+ for(const leg of data.legs||[]){
+  const stop=stops.get(leg.to); const name=stop?stop.name:leg.to;
+  card.append(itinerary(leg.plan,leg.kind==='visit'?`To ${name}`:leg.kind==='anchor_approach'?`To the anchor at ${name}`:'The anchor home'));
+  const dwell=(data.dwells||[]).find(d=>d.stop===leg.to);
+  if(dwell&&leg.kind==='visit')card.append(el('p',`You have ${durationText(dwell.seconds)} in ${name}.`));
+ }
+ if(data.anchor){
+  const a=data.anchor, route=a.route?` route ${a.route}`:'';
+  card.append(el('p',`Anchor: ${a.kind==='pinned_service'?'last service':'last viable return'}${route} from ${(stops.get(a.from_stop)||{}).name||a.from_stop} at ${clock(a.departure)} · slack ${durationText(data.slack_seconds||0)} · home ${clock(data.home_arrival)}`,'notice'));
+ }
+ if(data.if_missed)card.append(el('p',data.if_missed.found?`If you miss it: the next way home leaves at ${clock(data.if_missed.departure)}, arriving ${clock(data.if_missed.arrival)}.`:'If you miss it: there is no later return home in the loaded schedule that day.','notice'));
+ return card;
+}
+async function planDayTrip(){
+ const base=outingOptions();
+ const params={from:base.from,date:base.date,time:base.time,home_by:base.home_by,buffer:base.buffer,radius:500,dwell:Number($('dayDwell').value)*60,visits:dayVisits.map(v=>v.id).join(',')};
+ if($('anchorMode').value==='pinned'){ params.anchor_route=$('anchorRoute').value.trim(); if($('anchorFrom').value.trim())params.anchor_from=resolve('anchorFrom'); }
+ $('results').replaceChildren(el('p','Composing your day around the anchor…'));
+ const data=await api('daytrip',params);
+ layers.clearLayers();
+ $('results').replaceChildren(coverageNotice(data.coverage),dayTripCard(data));
+ for(const leg of data.legs||[]){ const stop=stops.get(leg.to); if(stop)marker(stop); }
  fit();
 }
 async function verifyOuting(destinationId){
