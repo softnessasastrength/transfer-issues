@@ -106,6 +106,8 @@ Status update (2026-11-15, separated live overlay): added an opt-in provider-neu
 
 Status update (2026-11-15, live board slice): added a browser Live board view backed by `/api/v1/live`, with provider/route/stop filters and explicit live/unknown messaging. This is a read-only status surface; a compact departure-board presentation with countdowns, route colors and freshness is the next UI refinement. CTtransit/PVTA remain unverified.
 
+Status update (2026-11-15, CTtransit verification): the official CTtransit developer page exposes statewide JSON realtime trip updates, vehicle positions and alerts. Added a dependency-free JSON adapter and fixtures for route/stop filtering. PVTA remains schedule-only: its official realtime page confirms beta GPS/departure data and a usage agreement but does not expose a stable feed URL/schema in the accessible developer material.
+
 ## M0.L — Optional rideshare last-mile links (QUEUED; planning only)
 
 A future last-mile layer may offer Uber/Lyft deep links from a selected stop or itinerary endpoint. The first version must be link-only and user-initiated: no booking, payment, account-token storage, or autonomous ride requests. It may show a provider's own app handoff, but must not invent price, ETA, availability, accessibility, or coverage.
