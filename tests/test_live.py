@@ -54,6 +54,42 @@ class LiveTests(unittest.TestCase):
         self.assertEqual(result["vehicles"][0]["route_id"], "905")
         self.assertEqual(result["alerts"][0]["header"], "Detour")
 
+    def test_unknown_result_has_empty_vehicles(self):
+        result = live.status("pvta")
+        self.assertEqual(result["vehicles"], [])
+
+    @patch("live.urlopen")
+    def test_mbta_normalizes_vehicles(self, urlopen):
+        urlopen.side_effect = [
+            Response({"data": []}),
+            Response({"data": []}),
+            Response({"data": [{"id": "v9", "attributes": {"label": "1709", "latitude": 42.36, "longitude": -71.06, "bearing": 90, "current_status": "IN_TRANSIT_TO", "updated_at": "2026-11-15T12:00:00Z"}, "relationships": {"route": {"data": {"id": "Red"}}, "stop": {"data": {"id": "place-pktrm"}}}}]}),
+        ]
+        result = live.mbta()
+        self.assertEqual(result["status"], "live")
+        self.assertEqual(len(result["vehicles"]), 1)
+        vehicle = result["vehicles"][0]
+        self.assertEqual(vehicle["route_id"], "Red")
+        self.assertEqual(vehicle["vehicle"], "1709")
+        self.assertEqual(vehicle["position"]["latitude"], 42.36)
+        self.assertEqual(vehicle["position"]["longitude"], -71.06)
+        self.assertEqual(vehicle["timestamp"], "2026-11-15T12:00:00Z")
+        self.assertEqual(vehicle["stop_id"], "place-pktrm")
+        vehicle_request = urlopen.call_args_list[2].args[0]
+        self.assertIn("/vehicles", vehicle_request.full_url)
+
+    @patch("live.urlopen")
+    def test_mbta_vehicle_failure_keeps_predictions(self, urlopen):
+        urlopen.side_effect = [
+            Response({"data": [{"id": "p1", "attributes": {"departure_time": "2026-11-15T12:00:00Z"}}]}),
+            Response({"data": []}),
+            TimeoutError(),
+        ]
+        result = live.mbta()
+        self.assertEqual(result["status"], "live")
+        self.assertEqual(result["predictions"][0]["id"], "p1")
+        self.assertEqual(result["vehicles"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -71,8 +71,21 @@ def handle(path,q):
  if path=='/api/v1/pdf-schedules':return db.pdf_schedules(arg(q,'document'))
  if path=='/api/v1/fares':
   origin=arg(q,'from');destination=arg(q,'to');names=db.query('SELECT id,name FROM stops WHERE id IN (?,?)',(origin,destination));name_map={x['id']:x['name'] for x in names}
-  if arg(q,'route','') not in ('','hartford:HART'):return {'status':'unknown','reason':'Only direct CTrail Hartford Line fares are currently supported.'}
-  return fares.hartford_line_fare(name_map.get(origin,''),name_map.get(destination,''))
+  route=arg(q,'route','')
+  if route in ('','hartford:HART'):return fares.hartford_line_fare(name_map.get(origin,''),name_map.get(destination,''))
+  if route=='hartford:SLE':return fares.shore_line_east_fare(name_map.get(origin,''),name_map.get(destination,''))
+  if route.startswith('pvta:'):
+   if route.split(':',1)[1]=='B79':return fares.pvta_b79_fare(name_map.get(origin,''),name_map.get(destination,''))
+   return fares.pvta_fare_free()
+  if route.startswith('cttransit:'):
+   short=route.split(':',1)[1];cls=fares.cttransit_route_class(short)
+   if cls=='express':
+    board=arg(q,'from_zone','');exit_zone=arg(q,'to_zone','')
+    if not board or not exit_zone:return {'status':'unknown','reason':'CTtransit express fares require from_zone and to_zone (published fare zones A-F).'}
+    return fares.cttransit_express_fare(board,exit_zone)
+   if cls=='local':return fares.cttransit_local_fare()
+   return {'status':'unknown','reason':f'CTtransit route {short} is in the 900 express series but is not a verified express route in current official material; fare not priced.'}
+  return {'status':'unknown','reason':'Supported direct fare lookups: CTrail Hartford Line and Shore Line East station pairs, CTtransit local fares and express zone fares (from_zone/to_zone), and PVTA (currently fare-free; B79 station pairs).'}
  if path=='/api/v1/route':
   route=arg(q,'id');trips=db.query('SELECT * FROM trips WHERE route=?',(route,));active=db.active_services(dated(q));trips=[t for t in trips if t['service'] in active]
   shapes={};
