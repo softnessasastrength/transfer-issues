@@ -3,6 +3,10 @@ import unittest
 from unittest.mock import patch
 import import_gtfs,database,routing,server
 class TimeTests(unittest.TestCase):
+ def test_whole_network_policy_bypasses_default_bounds(self):
+  with patch.object(import_gtfs,'POLICY',{'default':{'bounds':[40,41,-74,-73]},'feeds':{'amtrak':{'whole_network':True}}}):
+   self.assertTrue(import_gtfs.in_scope('amtrak',47.6,-122.3))
+   self.assertFalse(import_gtfs.in_scope('unknown',47.6,-122.3))
  def test_extended_day(self):self.assertEqual(import_gtfs.seconds('25:10:00'),90600)
  def test_invalid_times(self):
   for s in ['12:61:00','-1:00:00','','12:00']:
