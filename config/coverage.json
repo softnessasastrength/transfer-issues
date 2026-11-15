@@ -11,7 +11,8 @@
       "description": "MBTA bus, subway, light rail, commuter rail and ferry routes in the regional service area"
     },
     "amtrak": {
-      "description": "Amtrak routes intersecting the regional geographic clip"
+      "whole_network": true,
+      "description": "Whole official Amtrak GTFS network; no geographic clip"
     },
     "lirr": {
       "bounds": [40.4, 41.35, -74.3, -71.7],
