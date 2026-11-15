@@ -110,6 +110,8 @@ Status update (2026-11-15, CTtransit verification): the official CTtransit devel
 
 Status update (2026-11-15, Percival UI/UX pass): began the ordered visual pass with a departure-board treatment for live rows, explicit empty states for route/stop search, mono typography stacks (IBM Plex Mono primary, Ubuntu Mono technical), and responsive live controls. Backend semantics are unchanged; browser-device visual acceptance remains pending.
 
+Status update (2026-11-15, route chaining): added optional ordered route constraints to scheduled planning and the UI chain builder. Users can express sequences such as 905 → 30 or 905 → 24X; the planner still requires actual loaded stops, calendars, transfer buffers and published timetable feasibility. Automatic planning remains unchanged when no chain is selected.
+
 ## M0.L — Optional rideshare last-mile links (QUEUED; planning only)
 
 A future last-mile layer may offer Uber/Lyft deep links from a selected stop or itinerary endpoint. The first version must be link-only and user-initiated: no booking, payment, account-token storage, or autonomous ride requests. It may show a provider's own app handoff, but must not invent price, ETA, availability, accessibility, or coverage.
