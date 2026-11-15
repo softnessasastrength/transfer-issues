@@ -1,0 +1,25 @@
+/* Playground-only layout. Component styling comes from the app's own
+   style.css / theme.css; nothing here alters the app. */
+.pgHead{padding:22px 26px 6px;max-width:1200px;margin:auto}
+.pgHead h1{font-size:30px;margin:0 0 6px}
+.pgBar{position:sticky;top:0;z-index:500;display:flex;flex-wrap:wrap;gap:10px 26px;padding:12px 26px;background:var(--surface,#fffef8);border-bottom:1px solid var(--line)}
+.pgSwitch{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pgLabel{font-size:10px;font-weight:800;letter-spacing:1.4px;margin-right:2px}
+.pgSwitch button[aria-pressed="true"]{background:var(--ink);color:#fff}
+#pgStageWrap{padding:18px 12px 40px;overflow-x:auto}
+#pgStage{margin:auto;width:100%}
+.pgSection{max-width:1200px;margin:0 auto 26px;padding:4px 14px}
+.pgSection h2{border-bottom:1px solid var(--line);padding-bottom:6px}
+.pgSideDemo{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.pgSideDemo #citySidebar{flex:none}
+.pgMapHost{flex:1;min-width:0;height:400px}
+#pgMap{height:100%;width:100%}
+.pgStripDemo .pgStripWrap{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.pgStripDemo .cities{top:12px}
+.pgScopeRow{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.pgScopeRow label{margin:0}
+.pgScopeRow select{width:auto}
+.pgRouteList{margin-top:10px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.pgRouteRow{font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.pgRouteRow:last-child{border-bottom:0}
+@media(max-width:650px){.pgSideDemo{flex-direction:column}.pgMapHost{height:300px}}
