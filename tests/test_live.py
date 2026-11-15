@@ -40,6 +40,20 @@ class LiveTests(unittest.TestCase):
         self.assertEqual(result["status"], "unknown")
         self.assertEqual(result["provider"], "mbta_v3")
 
+    @patch("live.urlopen")
+    def test_cttransit_json_normalizes_trip_vehicle_and_alert(self, urlopen):
+        urlopen.side_effect = [
+            Response({"header": {"timestamp": 1700000000}, "entity": [{"id": "t1", "trip_update": {"trip": {"route_id": "905", "trip_id": "x"}, "stop_time_update": [{"stop_id": "HFD", "departure": {"time": 1700000100, "delay": 60}}]}}]}),
+            Response({"entity": [{"id": "v1", "vehicle": {"trip": {"route_id": "905"}, "position": {"latitude": 41.76}}}]}),
+            Response({"entity": [{"id": "a1", "alert": {"header_text": "Detour", "informed_entity": [{"route_id": "905"}]}}]}),
+        ]
+        result = live.cttransit("cttransit:905", "cttransit:HFD")
+        self.assertEqual(result["status"], "live")
+        self.assertEqual(result["provider"], "cttransit_json")
+        self.assertEqual(result["predictions"][0]["delay"], 60)
+        self.assertEqual(result["vehicles"][0]["route_id"], "905")
+        self.assertEqual(result["alerts"][0]["header"], "Detour")
+
 
 if __name__ == "__main__":
     unittest.main()
