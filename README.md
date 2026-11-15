@@ -102,7 +102,7 @@ The core planner excludes optional networks by default. To download and import t
 
 ### Optional live bus/train overlays
 
-`GET /api/v1/live?provider=mbta&route=mbta:Red&stop=place-pktrm` queries the official MBTA V3 JSON API for predictions and alerts. It is an informational overlay, not a replacement for the published timetable: provider failures and unverified agencies return `status: "unknown"`, and live data never changes route feasibility. Set `MBTA_API_KEY` if you have one; the MBTA portal says keys are optional for experimentation. CTtransit/PVTA live adapters are intentionally not claimed yet.
+`GET /api/v1/live?provider=mbta&route=mbta:Red&stop=place-pktrm` queries the official MBTA V3 JSON API; `provider=cttransit` queries CTtransit's official JSON realtime feeds. These are informational overlays, not replacements for the published timetable: provider failures and unverified agencies return `status: "unknown"`, and live data never changes route feasibility. Set `MBTA_API_KEY` if you have one; the MBTA portal says keys are optional for experimentation. PVTA remains schedule-only until its public realtime feed contract is available.
 
 Percival/MCP clients can call the same overlay through `atlas_live_status`. That makes a buses-first, trains.fyi-like product direction possible without mixing realtime claims into the schedule planner: add verified agency adapters one at a time, then build freshness, vehicle map, alert, and stop-board views on this contract.
 
