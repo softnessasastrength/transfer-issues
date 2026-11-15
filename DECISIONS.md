@@ -437,6 +437,59 @@ rather than blanket ours/theirs. Notable outcomes:
   every file git records as executable, with root ownership forced via
   `dpkg-deb --root-owner-group` — the same package from any checkout.
 
+## Percival Core bundled into the Debian package (2026-11-15)
+
+- **Owner decision (2026-11-15): one package, two services.** From
+  0.0.2 the `transit-atlas` Debian package also carries Percival Core
+  (`softnessasastrength/percival`): the Atlas on 127.0.0.1:8000 and
+  Percival's front door on 127.0.0.1:8123, one install, one launcher
+  (`transit-atlas percival`), two systemd units. The Atlas package
+  already carried the Percival *companion* (MCP, chat, personality,
+  TUI); this bundles Percival *Core* proper — registry, audit,
+  executor, bring-to-me — beside it.
+- **The repositories stay separate.** Percival is never vendored into
+  this repo's history. It enters the package only as a build input:
+  `packaging/build_deb.sh` requires `PERCIVAL_DIR` (a checkout of the
+  pinned ref) and stages the whole tree under `/usr/lib/percival-core`
+  with a `BUILD_INFO` provenance file. A build without the input
+  fails loudly instead of silently shipping the pre-bundle artifact.
+- **The pin is deliberate.** `packaging/PERCIVAL_PIN` records the
+  exact `percival` commit the package bundles (initially
+  `b39a4eeca2963017d73823dff4483d6eaabef0b0`, the head that merged the
+  local runner). Bumping it is its own PR with the bump recorded here;
+  the release workflow checks out the pinned ref and gates on the
+  Percival suite as well as the Atlas suite before building.
+- **ARM64 is a hard requirement.** The owner tests in an ARM64 Linux
+  VM on Apple silicon. Both trees are pure Python stdlib — the
+  package stays `Architecture: all` with zero native binaries — and
+  the bundled `scripts/setup_ollama.sh` selects its Ollama asset and
+  pinned digest by `uname -m` (amd64 / arm64), failing loudly on
+  anything else.
+- **Install-and-setup in one (owner addendum, 2026-11-15).** The
+  launcher gains `transit-atlas setup`: prepare the data if the
+  database is absent (as the `transit-atlas` user where the system
+  layout requires it), then bring both services up — `systemctl
+  enable --now` under systemd, backgrounded `nohup` servers with
+  logs beside the data directory without it — print both URLs and
+  the stop commands, and stay idempotent on re-runs.
+- **Build-machine independence fix (found during the 0.0.2 bundle
+  verification).** `build_deb.sh`'s mode normalisation followed the
+  app tree's `data` symlink; on a build machine without
+  `/var/lib/transit-atlas/data` (any clean runner — including the
+  release workflow's) the dangling symlink failed the build. Every
+  earlier build had been masked by a locally installed package. The
+  strip pass now covers files and directories only.
+- **Printed instructions must work for the person reading them
+  (found during the 0.0.2 verification).** A non-root smoke test
+  proved the shipped trees are world-readable (the v0.0.1 lockdown —
+  0660 files, 2770 dirs, `root:transit-atlas` — does not recur: the
+  build normalises to 644/755, `root:root`), but a bare
+  `transit-atlas prepare` from a personal account still fails by
+  design: the seed registry and database live in the service-owned
+  `/var/lib/transit-atlas/data`. The postinst banner and
+  `docs/RELEASING.md` now print the working forms — `sudo
+  transit-atlas setup`, or `sudo -u transit-atlas transit-atlas
+  prepare` — instead of the bare command.
 ## Transfer-buffer doctrine — first-mile walk exempt (2026-11-15)
 
 - **Doctrine adopted (owner ruling, 2026-11-15): the transfer buffer does

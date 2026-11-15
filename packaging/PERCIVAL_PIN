@@ -1,0 +1,7 @@
+# Pinned Percival Core ref bundled into the transit-atlas package.
+# Repository: softnessasastrength/percival
+# Bump deliberately: replace the SHA below with the new percival main
+# head, note the bump in DECISIONS.md, and let both release-gate suites
+# run. The release workflow checks out exactly this ref; a local build
+# must pass a matching tree as PERCIVAL_DIR (see docs/RELEASING.md).
+b39a4eeca2963017d73823dff4483d6eaabef0b0
