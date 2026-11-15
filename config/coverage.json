@@ -30,6 +30,11 @@
       "agency_ids": ["GREYHOUND-us"],
       "route_types": [3],
       "description": "Greyhound routes only from the current FlixMobility GTFS; seats and tickets unverified"
+    },
+    "peterpan": {
+      "agency_ids": ["40", "71"],
+      "route_types": [3],
+      "description": "UNOFFICIAL — Peter Pan Bus Lines (agency 40) and Peter Pan (BZ) (agency 71) only, from the third-party UTEL-UIUC Intercity Bus GTFS (Peter Pan rows compiled from Transcor Data Services platform data, collected Aug 2025), imported under the owner doctrine exception of 2026-11-15 and labelled unofficial/stale. The official Peter Pan GTFS is stale since 2024-12-31 and replaces this source as soon as a current official edition is published. Regional geographic clip applies; seats and tickets unverified"
     }
   }
 }

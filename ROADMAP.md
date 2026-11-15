@@ -36,8 +36,9 @@ priority, not a promise that the feature is complete.
 - **Connecticut and Massachusetts coverage** — IN PROGRESS. Add current
   source-backed Greyhound and Metro-North schedules, enable LIRR for trips to
   friends near its stations, and expose major Connecticut city map shortcuts.
-  Hartford DASH and Shore Line East appear in existing feeds. Peter Pan's
-  public GTFS is historical (2024); GHTD Link and ADA paratransit require
+  Hartford DASH and Shore Line East appear in existing feeds. Peter Pan is
+  imported from a third-party compilation under a labelled owner exception
+  (its public GTFS is historical, 2024 — see `DECISIONS.md`); GHTD Link and ADA paratransit require
   booking, and a CTtransit service named Flex remains unverified. Continue
   local-agency inventory, provenance and transfer-rule work before claiming
   complete CT/MA coverage. See `REGIONAL_COVERAGE.md`.
@@ -68,6 +69,16 @@ priority, not a promise that the feature is complete.
   hard home-by deadline. Bounded candidate searches expose unevaluated overflow
   as unknown. Real-data and browser acceptance remain part of the current M0.D
   delivery work; no offline pack or background task is implied.
+- **Saved commute profiles (F-009)** — FIRST SLICE BUILT (PR open, unmerged).
+  A commute is a standing profile in the device-local Percival preferences:
+  home/work as Atlas stop IDs, a preferred route chain per direction
+  (asymmetry is the normal case), and declared rideshare legs where transit
+  ends before the endpoint. `atlas_commute_evaluate` plans both directions
+  for a real date through the existing planner, notes where a declared chain
+  cannot run, labels rideshare legs as estimated drives (never a quote,
+  never booked), and always reports the last viable return. Follow-ons:
+  a web/UI surface for profiles, and address-to-stop resolution beyond the
+  existing stop search (no external geocoder by default).
 
 ### Explicitly not promised
 
