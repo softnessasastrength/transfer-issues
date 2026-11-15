@@ -436,3 +436,18 @@ rather than blanket ours/theirs. Notable outcomes:
   and 755 for the launcher, the maintainer scripts, shell scripts and
   every file git records as executable, with root ownership forced via
   `dpkg-deb --root-owner-group` — the same package from any checkout.
+
+## 2026-11-15 — Stop marker treatment (branch feat/stop-marker-treatment_muse)
+
+Owner feedback: the ambient stop dots were visual noise, worst when zoomed in.
+Before: every stop in the viewport (up to 600) was drawn with the same
+radius-7 / weight-2.5 ring marker used for plan results, from zoom 12 up, with
+no way to hide the layer. Now: ambient stops use a small solid dot (radius 4,
+weight 1) that never grows; rendering is density-controlled — one dot per
+30px screen cell (deterministic, so the same stops win on redraw) inside a
+per-zoom budget (150 at z12–13, 350 at z14–15, 600 at z16+); when a plan,
+route or bubble result is on the map the ambient field dims so the result
+stays prominent, while result stops keep the ring style. A "Stops" toggle in
+the map controls hides the ambient layer entirely (aria-pressed, default on).
+Popups are unchanged, so click-a-stop planning (Start here / Go here / Meet
+here / Departures) works exactly as before wherever stops are shown.
