@@ -69,7 +69,7 @@ def handle(path,q):
   day=dated(q);origin=arg(q,'from');start=number(q,'time',28800,0,86399);deadline=number(q,'deadline',86399,start,172799)
   mode=arg(q,'mode','walk')
   if mode not in ['walk','scooter']:raise ValueError('Unknown ground mode')
-  opts=dict(mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=planning_feeds(q))
+  opts=dict(mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=planning_feeds(q),route_chain=tuple(filter(None,arg(q,'routes').split(','))))
   if path.endswith('reachability'):
    arr,paths=routing.scan(day,origin,start,deadline,**opts);stops=routing.network()[0]
    return dict(stops=[dict(id=k,arrival=v,lat=stops[k]['lat'],lon=stops[k]['lon']) for k,v in arr.items()],coverage=db.coverage(day))
@@ -82,6 +82,11 @@ def handle(path,q):
    if ready<=deadline:
     result['return']=routing.plan(day,dest,origin,ready,deadline,**opts);result['return']['fare']=fares.for_plan(result['return'],names,{x['id']:x for x in route_rows});result['latest_return']=routing.latest(day,dest,origin,ready,deadline,**opts)
    else:result['return']={'found':False,'message':'Visit ends after the selected return deadline.'}
+  if opts['route_chain']:
+   actual=[]
+   for leg in result.get('legs',[]):
+    if leg.get('kind')=='transit' and (not actual or actual[-1]!=leg.get('route')):actual.append(leg.get('route'))
+   result['requested_route_chain']=list(opts['route_chain']);result['route_chain_matched']=all(i<len(actual) and actual[i]==wanted for i,wanted in enumerate(opts['route_chain']))
   return result
  raise LookupError('Unknown API endpoint')
 
