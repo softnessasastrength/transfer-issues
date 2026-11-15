@@ -100,6 +100,12 @@ For an existing database, the server accepts `ATLAS_DATA_DIR=/absolute/data/path
 
 The core planner excludes optional networks by default. To download and import the optional MTA LIRR feed, run `python3 scripts/prepare_data.py --include-optional`; then use the planner's **Include optional MTA rail network** control. The feed is official scheduled data, not live service.
 
+### Optional live bus/train overlays
+
+`GET /api/v1/live?provider=mbta&route=mbta:Red&stop=place-pktrm` queries the official MBTA V3 JSON API for predictions and alerts. It is an informational overlay, not a replacement for the published timetable: provider failures and unverified agencies return `status: "unknown"`, and live data never changes route feasibility. Set `MBTA_API_KEY` if you have one; the MBTA portal says keys are optional for experimentation. CTtransit/PVTA live adapters are intentionally not claimed yet.
+
+Percival/MCP clients can call the same overlay through `atlas_live_status`. That makes a buses-first, trains.fyi-like product direction possible without mixing realtime claims into the schedule planner: add verified agency adapters one at a time, then build freshness, vehicle map, alert, and stop-board views on this contract.
+
 For one terminal control panel, run `./scripts/atlas_tui.py`. It starts/stops the web app, prepares core or optional feeds, runs the smoke test, runs tests, shows feed status, checks Atlas/Ollama health, starts Ollama when needed, and launches **Percival**, the local transit companion. Its canonical character file is mirrored in [`personality.md`](personality.md) from the [`softnessasastrength/percival`](https://github.com/softnessasastrength/percival) repository.
 
 On a Chromebook/Linux shell, the shortest local-AI flow is:
