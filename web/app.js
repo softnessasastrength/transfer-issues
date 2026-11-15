@@ -138,12 +138,12 @@ async function init() {
  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),today=['year','month','day'].map(k=>parts.find(p=>p.type===k).value).join('-'); $('date').value=today;$('outingDate').value=today;updateDate();
  meta=await api('meta');const sourceNotice=document.querySelector('#sources .notice');if(sourceNotice)sourceNotice.textContent='Coverage is incomplete. Check each source card for its service dates and import status. Published schedules do not confirm a seat, booking, or live operation. Some local and on-demand services have no usable timetable in this planner.';stops=new Map(meta.stops.map(s=>[s.id,s]));routes=new Map(meta.routes.map(r=>[r.id,r]));setupStopPicker('from');setupStopPicker('to');setupStopPicker('outingFrom');setupStopPicker('outingTo');if(meta.sources.some(s=>s.optional)){const optionalToggle=el('label','Include optional feeds','check'),optionalInput=el('input');optionalInput.type='checkbox';optionalInput.id='includeOptional';optionalToggle.prepend(optionalInput);document.querySelector('#planner details').append(optionalToggle);}
  map=L.map('map',{preferCanvas:true}).setView([42,-72.4],8);layers=L.featureGroup().addTo(map);nearby=L.layerGroup().addTo(map);
- L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).on('tileerror',()=>$('tileNotice').hidden=false).addTo(map);map.on('moveend',nearbyStops);
+ onlineBaseLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).on('tileerror',()=>$('tileNotice').hidden=false).addTo(map);map.on('moveend',nearbyStops);
  const fragment=document.createDocumentFragment(); for(const s of meta.stops){const label=stopLabel(s);labels.set(label,s.id);fragment.append(new Option(label,label));} $('stopList').append(fragment);
  meta.cities.forEach(([name,lat,lon])=>{ $('cities').append(button(name,()=>{map.setView([lat,lon],13);$('mapStatus').textContent=`${name} · zoomed stops from loaded feeds`; })); L.circleMarker([lat,lon],{radius:4,color:'#173d39',weight:2,fillColor:'#d7e98c',fillOpacity:1}).bindTooltip(name,{permanent:true,direction:'right',className:'cityMarker'}).addTo(map); });
  [...new Set(meta.routes.map(r=>r.feed))].forEach(f=>{$('agency').append(new Option(f,f));$('allRoutesAgency').append(new Option(f,f));});
  $('allRoutes').onclick=()=>run(showAllRoutes);
- $('allRoutesAgency').onchange=()=>{if(allRoutesVisible)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
+ $('allRoutesAgency').onchange=()=>{if(allRoutesVisible)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();renderMapPacks();$('tileSource').onchange=()=>setTileSource();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>view(b.dataset.tab));$('planTab').onclick=()=>{$('planner').hidden=false;$('outingPlanner').hidden=true;$('browser').hidden=true;$('planTab').classList.add('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.remove('selected');};$('outingTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=false;$('browser').hidden=true;$('planTab').classList.remove('selected');$('outingTab').classList.add('selected');$('browseTab').classList.remove('selected');};$('browseTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=true;$('browser').hidden=false;$('planTab').classList.remove('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.add('selected');};
  $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value,aid=$('from').dataset.stopId,b=$('to').value,bid=$('to').dataset.stopId;$('from').value=b;$('to').value=a;if(bid)$('from').dataset.stopId=bid;else delete $('from').dataset.stopId;if(aid)$('to').dataset.stopId=aid;else delete $('to').dataset.stopId;};$('resetMap').onclick=()=>{following=false;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');map.setView([42,-72.4],8);};
  $('plan').onclick=()=>run(()=>plan());$('latest').onclick=()=>run(()=>plan('latest'));$('reach').onclick=()=>run(reach);$('bubble').onclick=()=>run(bubble);
@@ -160,6 +160,7 @@ async function init() {
 // opt-in only and never leaves the device; overlay and outing results describe
 // published schedules and label missing data as unknown, never as no service.
 let following=false, locationWatch=null, locationLayer=null, allRoutesVisible=false, routeOverlay=null;
+let onlineBaseLayer=null, localBaseLayer=null, mapPacks=[];
 function setLocationStatus(text){const n=$('locationStatus');if(n){n.textContent=text;n.hidden=!text;}}
 function showLocation(lat,lon){if(!locationLayer)locationLayer=L.layerGroup().addTo(map);locationLayer.clearLayers();L.circleMarker([lat,lon],{radius:6,color:'#143e39',weight:2,fillColor:'#2f78c4',fillOpacity:.9}).addTo(locationLayer);}
 function toggleLocation(){
@@ -236,5 +237,24 @@ async function verifyOuting(destinationId){
  $('results').replaceChildren(coverageNotice(data.coverage),outingCard(data));
  if(stop)map.setView([stop.lat,stop.lon],13);
 }
+
+function localPackLayer(pack){ return protomapsL.leafletLayer({url:pack.url,attribution:'© OpenStreetMap contributors (ODbL) · Local offline pack',paintRules:[
+ {dataLayer:'water',symbolizer:new protomapsL.PolygonSymbolizer({fill:'#b9d2e2'})},
+ {dataLayer:'waterway',symbolizer:new protomapsL.LineSymbolizer({color:'#9dbfd8',width:1})},
+ {dataLayer:'landcover',symbolizer:new protomapsL.PolygonSymbolizer({fill:'#dde9d4'})},
+ {dataLayer:'landuse',symbolizer:new protomapsL.PolygonSymbolizer({fill:'#e9e4d6'})},
+ {dataLayer:'building',symbolizer:new protomapsL.PolygonSymbolizer({fill:'#d8cfc0'})},
+ {dataLayer:'transportation',symbolizer:new protomapsL.LineSymbolizer({color:'#c9cdc2',width:3})},
+ {dataLayer:'transportation',symbolizer:new protomapsL.LineSymbolizer({color:'#fffef8',width:2})},
+]}); }
+async function renderMapPacks(){ try{ const data=await api('packs'); mapPacks=data.packs; }catch{ mapPacks=[]; }
+ const opt=$('tileSource').querySelector('option[value="local"]');
+ if(mapPacks.length){ opt.disabled=false; opt.textContent=`Base map: Local pack (${mapPacks[0].name})`; }
+ const host=$('mapPackList'); if(!host)return; host.replaceChildren();
+ if(!mapPacks.length){ host.append(el('p','No offline map packs are installed in the data directory. Build one with scripts/build_map_pack.sh — downloads happen only when you run it.','small')); return; }
+ for(const p of mapPacks){ const row=el('div',undefined,'leg'); row.append(el('b',p.name),el('p',`${p.region} · ${(p.size_bytes/1048576).toFixed(1)} MB`),el('p',p.source,'small')); host.append(row); } }
+function setTileSource(){ const wantLocal=$('tileSource').value==='local'&&mapPacks.length&&window.protomapsL;
+ if(wantLocal){ if(!localBaseLayer)localBaseLayer=localPackLayer(mapPacks[0]); map.removeLayer(onlineBaseLayer); localBaseLayer.addTo(map); $('tileNotice').hidden=true; }
+ else { if(localBaseLayer)map.removeLayer(localBaseLayer); onlineBaseLayer.addTo(map); } }
 
 run(init);

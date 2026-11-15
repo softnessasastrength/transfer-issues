@@ -542,3 +542,36 @@ rather than blanket ours/theirs. Notable outcomes:
   one step. One stop (cttransit:597) misses bubble reachability by that
   single second (arrival 30370 vs latest_back 30369). Separate parity
   decision; not part of this change.
+
+## 2026-11-15 — Offline map pack spike: PMTiles + Range serving + tile-source switch
+
+The base map can go fully local. `scripts/build_map_pack.sh` (operator-run
+only — the app never downloads a pack) builds a PMTiles vector pack from
+Geofabrik Connecticut + Massachusetts extracts (replication timestamp
+2026-11-14T21:20:41Z, downloaded 2026-11-15, MD5-verified against
+Geofabrik's published sums — a truncated MA download once passed curl
+silently and caused hours of misleading failures, so the check is part of
+the recipe) with planetiler 0.10.2 (OpenMapTiles schema). Measured pack:
+Greater Springfield–Hartford bbox (-72.75, 41.68, -72.42, 42.18), z8–z16,
+**64,943,623 bytes**, 45/45 z12 tiles inside the bbox window present.
+Two build gotchas are recorded in the script: planetiler 0.10.x silently
+honours only the LAST --osm-path (the states are merged with osmium merge
+into one sorted PBF first), and planetiler's own downloader is bypassed
+by pre-fetching its auxiliary sources with curl.
+Serving: packs live in `DATA/packs/` (never in git); `GET /api/v1/packs`
+lists them from a packs.json manifest; `GET /packs/<file>` serves byte
+ranges (206/Content-Range, suffix + open-ended, 416, traversal rejected)
+because PMTiles readers need Range and SimpleHTTPRequestHandler lacks it.
+UI: a Base map switch (Online / Local pack) in the map controls, Local
+disabled until a pack exists; rendering by vendored protomaps-leaflet
+3.0.1 (BSD-3-Clause) with compact OpenMapTiles paint rules; when local is
+active the attribution reads "© OpenStreetMap contributors (ODbL) ·
+Local offline pack", and the Sources page lists installed packs.
+Verified offline: with every external host blocked in headless Chromium,
+the map drew Hartford from the pack (30,553 sampled painted pixels:
+water, roads, landcover, buildings), zero page errors. Limitations: no
+text labels on the local layer yet (offline glyph fonts are a follow-on),
+one pack used by the switch, no in-app download manager (the lan_server
+allowlist extension is the named follow-on), and WP10/EdgeHTML vector
+rendering is NOT claimed — the emulator decides; a capped-zoom raster
+pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.

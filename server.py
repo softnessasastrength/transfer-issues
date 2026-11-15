@@ -1,7 +1,7 @@
 """Loopback HTTP development server; API contract in API.md."""
 from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from urllib.parse import urlparse,parse_qs
-import argparse,datetime,json,pathlib,os
+import argparse,datetime,json,pathlib,os,re
 import database as db
 import routing
 import bubble as bubble_mod
@@ -39,6 +39,17 @@ def planning_feeds(q):
  if requested or flag(q,'include_optional'):return requested
  return tuple(s['id'] for s in db.sources() if not s.get('optional'))
 
+def packs_dir():return db.DATA/'packs'
+def packs_list():
+ d=packs_dir();manifest={}
+ try:manifest=json.loads((d/'packs.json').read_text()).get('packs',{})
+ except Exception:manifest={}
+ rows=[]
+ if d.exists():
+  for f in sorted(d.glob('*.pmtiles')):
+   info=manifest.get(f.name,{})
+   rows.append(dict(id=f.name,name=info.get('name',f.stem),region=info.get('region',''),source=info.get('source','© OpenStreetMap contributors (ODbL)'),size_bytes=f.stat().st_size,url='/packs/'+f.name))
+ return dict(packs=rows,count=len(rows))
 def dated(q):
  d=arg(q,'date',datetime.date.today().isoformat());datetime.date.fromisoformat(d);return d
 
@@ -146,12 +157,38 @@ def handle(path,q):
     if leg.get('kind')=='transit' and (not actual or actual[-1]!=leg.get('route')):actual.append(leg.get('route'))
    result['requested_route_chain']=list(opts['route_chain']);result['route_chain_matched']=all(i<len(actual) and actual[i]==wanted for i,wanted in enumerate(opts['route_chain']))
   return result
+ if path=='/api/v1/packs':return packs_list()
  raise LookupError('Unknown API endpoint')
 
 class Handler(SimpleHTTPRequestHandler):
  def __init__(self,*args,**kwargs):super().__init__(*args,directory=str(ROOT/'web'),**kwargs)
+ def serve_pack(self,name):
+  # PMTiles readers fetch byte ranges; SimpleHTTPRequestHandler cannot.
+  if '/' in name or '\\' in name or not name.endswith('.pmtiles'):self.send_error(404);return
+  target=packs_dir()/name
+  if not target.is_file():self.send_error(404);return
+  size=target.stat().st_size;start,end,status=0,size-1,200
+  m=re.match(r'bytes=(\d*)-(\d*)$',(self.headers.get('Range') or '').strip())
+  if m:
+   a,b=m.groups()
+   if a=='':start=max(0,size-int(b or 0))
+   else:start=int(a);end=min(size-1,int(b)) if b else size-1
+   if start>end or start>=size:
+    self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.send_header('Content-Length','0');self.end_headers();return
+   status=206
+  length=end-start+1
+  self.send_response(status);self.send_header('Content-Type','application/octet-stream');self.send_header('Accept-Ranges','bytes');self.send_header('Content-Length',str(length))
+  if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
+  self.end_headers()
+  with target.open('rb') as fh:
+   fh.seek(start);remaining=length
+   while remaining>0:
+    chunk=fh.read(min(1<<20,remaining))
+    if not chunk:break
+    self.wfile.write(chunk);remaining-=len(chunk)
  def do_GET(self):
   parsed=urlparse(self.path)
+  if parsed.path.startswith('/packs/'):return self.serve_pack(parsed.path[len('/packs/'):])
   if parsed.path.startswith('/api/'):
    try:result=handle(parsed.path,parse_qs(parsed.query));status=200
    except (ValueError,KeyError) as e:result={'error':str(e)};status=400
