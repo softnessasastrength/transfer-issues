@@ -6,7 +6,7 @@ ROOT=pathlib.Path(__file__).resolve().parent
 DATA=pathlib.Path(os.environ.get('ATLAS_DATA_DIR',ROOT/'data'))
 POLICY=json.loads((ROOT/'config'/'coverage.json').read_text())
 DAYS=['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
-PAGES={'cttransit':'https://www.cttransit.com/about/developers','hartford':'https://www.cttransit.com/about/developers','pvta':'https://pvta.com/bus_service/real_time_data.php','wrta':'https://therta.com/','amtrak':'https://www.cttransit.com/about/developers','mbta':'https://www.mbta.com/developers/gtfs','lirr':'https://api.mta.info/'}
+PAGES={'cttransit':'https://www.cttransit.com/about/developers','hartford':'https://www.cttransit.com/about/developers','pvta':'https://pvta.com/bus_service/real_time_data.php','wrta':'https://therta.com/','amtrak':'https://www.cttransit.com/about/developers','mbta':'https://www.mbta.com/developers/gtfs','lirr':'https://api.mta.info/','seat':'https://www.southeastareatransitdistrict.com/gtfs-feed/'}
 # pvta.com rejects the default urllib User-Agent with HTTP 403 (verified 2026-11-14:
 # default curl/urllib UA -> 403, this descriptive UA -> 200). Identify the project
 # honestly on every feed download rather than sending the library default.

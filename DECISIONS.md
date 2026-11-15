@@ -773,3 +773,45 @@ what it is, why EdgeHTML needs it, and the verification status: Chromium-
 verified, with the actual Windows 10 Mobile emulator run still the owner's
 step — no EdgeHTML claim is made until then. The bundle is a snapshot, not
 a live mirror: re-run the build script whenever app.js changes.
+## SEAT (Southeast Area Transit District) feed added (2026-11-15)
+
+- **Decision:** register SEAT as the tenth configured feed
+  (`config/feeds.json` id `seat`), owner-approved 2026-11-15 after the
+  CT cities sweep found Norwich and Groton with zero stops in the data
+  because their local district was not imported. This follows the
+  user-controlled network doctrine: the owner selects agencies; no
+  other agency was added or changed.
+- **Source (GTFS tier; no PDF fallback needed):** SEAT's own GTFS page
+  (https://www.southeastareatransitdistrict.com/gtfs-feed/) publishes
+  the current archive; the download URL registered is the Remix-hosted
+  zip the FTA NTD GTFS weblink lists for SEAT
+  (https://gtfs.remix.com/seat_preston_ct_us.zip). The archive
+  self-identifies: `feed_info.txt` publisher "Southeast Area Transit
+  District", contact info@seatbus.com, version "Updated: Aug 13, 2026".
+- **Freshness verified before import:** feed service window
+  2026-06-29 → 2027-06-27 (feed_info and calendar agree), covering the
+  import date and the 2026-11-17 reference date. Retrieved 2026-11-15;
+  archive SHA-256
+  f020c77423df7369b02172c68fa80ac22349432d6457bf40a349e9ea49af5a9d.
+- **Import (full ten-feed `scripts/prepare_data.py` build, 2026-11-15):**
+  SEAT 17 routes / 808 trips / 610 stops, zero errors, zero warnings.
+  No coverage-policy entry was needed: every SEAT stop falls inside
+  the default regional clip. All nine pre-existing feeds reproduced
+  their established counts; the packaged database grew from
+  856,506,368 to 863,408,128 bytes.
+- **Verification (scratch server on the rebuilt database, Tuesday
+  2026-11-17, 08:00):** Norwich Transportation Center
+  (`seat:2508339`) and Groton Square (`seat:2508625`) resolve and plan
+  to/from Hartford (`hartford:6`) in both directions via New London
+  and Amtrak (Norwich→Hartford 08:00→11:36; Hartford→Norwich
+  08:00→11:55; Groton→Hartford 08:00→11:36; Hartford→Groton
+  08:00→11:15). New London is unregressed: `amtrak:NLC` still
+  resolves, and SEAT's New London Union Station stop
+  (`seat:2508298`) interchanges with Amtrak by the estimated walk.
+  60-minute bubbles: Norwich 219 reachable, Groton 9 (small because
+  the bubble requires a same-hour return and SEAT headways are long —
+  a service fact, not a planner failure). Standing reference checks
+  unchanged: Court Square search returns exactly `pvta:1495`;
+  Hartford → Springfield Union Station plans 08:35 → 09:17.
+- **Limits:** fixed-route GTFS only. SEAT demand-response service is
+  not in the feed and is not represented; nothing about it is implied.

@@ -61,5 +61,11 @@
     "status": "not_downloaded",
     "source_status": "unofficial",
     "provenance": "UNOFFICIAL third-party compilation: UTEL-UIUC Intercity Bus GTFS (IBG). Its Peter Pan rows were compiled from Transcor Data Services (TDS) platform data, collected 2025-08-15 to 2025-08-29 (IBG Data_Source.csv). Imported under the owner's explicit doctrine exception of 2026-11-15 and labelled unofficial/stale wherever provenance surfaces. The official Peter Pan GTFS (Trillium, listed by MassDOT) is stale: its published service ended 2024-12-31. SUNSET: replace this source with the official feed as soon as a current official edition is published."
+  },
+  {
+    "id": "seat",
+    "url": "https://gtfs.remix.com/seat_preston_ct_us.zip",
+    "official_page": "https://www.southeastareatransitdistrict.com/gtfs-feed/",
+    "status": "not_downloaded"
   }
 ]
