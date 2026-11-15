@@ -78,3 +78,36 @@
 - Verification: full suite 51/51 (40 pre-existing + 11 new adapter tests in `tests/test_vercel_adapter.py`: path resolution, status mapping, 405 handling, fixture end-to-end). On real data, adapter responses were byte-identical to the local server's on 8 cases — stops lookup, coverage, plan Hartford→Springfield, plan with return, the bubble reference case (1,034 reachable, 758,777-byte body), and the 400/404 error paths. The bundle layout was also run standalone from a separate tree (adapter + root modules + `data/` only) with identical reference answers. Vercel's own `@vercel/python` builder (v32.0.0, invoked directly as in the Percival session) accepts the project: entrypoint `handler` detected, Python 3.12 selected, Lambda produced with the correct layout (generated `vc__handler__python.py` wrapper, vendored runtime, all required paths present).
 - Sandbox staging defect (recorded so it is not misread as a project problem): in THIS sandbox, the builder's file-staging streams deterministically truncate large bundled files at exactly 65,536 bytes — reproduced with a minimal project whose only large file was a 307,200-byte includeFile containing no Atlas code — and in Atlas runs the same defect zeroed `server.py`/`routing.py` as collateral. Pristine sources were hash-verified intact before every run; the corruption is in this environment's copy streams, not in the project files or the Vercel configuration. Consequence: a byte-intact local bundle extraction could not be produced here, so the decisive byte-level check is the first real deploy's build log plus the three reference queries (stops `Court Square` → `pvta:1495`; plan Hartford→Springfield found; bubble from `hartford:6` = 1,034 reachable). The `vercel build` CLI itself also stops at its project-link/auth gate in this sandbox (same limitation as the Percival session). One earlier pristine-build failure in this session was sandbox disk exhaustion (`/tmp` is a 512 MB tmpfs; Errno 28) — an environment artifact, not a feed or importer problem; the retry on the overlay filesystem succeeded as recorded above.
 - Remaining owner step (single action): in the Vercel dashboard, create/link a project for this repo (root = repo root, branch `feature/browser-proof-of-concept` until the owner promotes it) and deploy — or `vercel link` + `vercel deploy --prod` from a checkout. Then run the three reference queries above against the deployment URL. Hobby build rate limits observed elsewhere tonight may delay the build; that is a quota wait, not a failure.
+
+## Codex Luna session — 2026-11-14, latency chunks L2.1–L2.3
+
+- **L2.1 startup pre-warm:** `server.py` now builds `routing.network()` and
+  `database.connections(day)` before listening. `ATLAS_DATE` selects the date;
+  otherwise it uses today. The first Hartford→Springfield HTTP plan after
+  startup returned HTTP 200 in 0.66 s, compared with the handoff's 19.54 s
+  cold-request baseline. Existing response keys were preserved. Focused test,
+  full suite (42 tests), compilation, and diff checks passed.
+- **L2.2 plan early exit:** `routing.scan` accepts the plan destination and
+  stops once sorted departures exceed the best destination arrival. Synthetic
+  local and intercity through-ride tests preserve the destination itinerary
+  while consuming fewer connections; reachability and bubble scans still scan
+  the full day. Same-process medians: local 0.013 s vs 1.574 s for the old
+  full-scan path (profile baseline 1.98 s); Hartford→Springfield 0.063 s vs
+  1.660 s (baseline 2.10 s). Full suite passed.
+- **L2.3 reverse latest:** `routing.latest()` proposes a minute from the
+  Mobility Bubble reverse computation and certifies it against the forward
+  planner at that minute and the next; disagreements use the exact former
+  binary search. The fixture and three sampled real-data pairs returned the
+  same complete result dictionaries as binary search. A target-origin cutoff
+  in the reverse pass avoids scanning departures earlier than the proposed
+  latest start. Warm composite median was 0.952 s vs the profile baseline
+  7.84 s; the post-L2.2 binary-only counterfactual was 0.834 s. Full suite
+  passed (42 tests).
+
+- **L2.4 bubble walk propagation:** replaced up to 12 full-dictionary passes
+  per reverse fixpoint round with a queue that revisits only stops whose
+  feasible time improved. The Hartford 2026-11-17 reference classification
+  stayed at 1,034 reachable, 12,041 unreachable, and zero unknown. Three-run
+  warm classification median fell from 2.095 s to 1.194 s (43% faster). The
+  12 focused bubble tests passed; the final full suite passed (42 tests),
+  along with Python compilation and `git diff --check`.
