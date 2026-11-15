@@ -62,3 +62,11 @@ th{background:var(--button)}.badge{background:var(--button)}
  :root:not([data-theme="light"]) textarea::placeholder{color:#b1c3ba;opacity:1}
  :root:not([data-theme="light"]) .cityMarker{color:#e6f1e9}
 }
+
+/* City shortcuts stay on the map and remain reachable by keyboard. */
+.cities{display:block;max-height:138px;overflow:auto;padding:7px 9px;background:var(--surface,#fffef8);border:1px solid var(--line);border-radius:8px;box-shadow:0 5px 18px #143e3926}
+.cityGroup{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:3px 0}
+.cityGroup+.cityGroup{border-top:1px solid var(--line);margin-top:5px;padding-top:8px}
+.cityGroupLabel{font-size:10px;font-weight:800;letter-spacing:1.2px;min-width:90px;color:var(--muted)}
+.cities .cityGroup button{padding:7px 10px;min-height:34px}
+@media(max-width:700px){.cities{max-height:98px}.cityGroupLabel{width:100%}}

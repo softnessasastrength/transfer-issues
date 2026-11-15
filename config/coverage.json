@@ -17,7 +17,19 @@
     "lirr": {
       "bounds": [40.4, 41.35, -74.3, -71.7],
       "route_types": [2],
-      "description": "Optional MTA Long Island Rail Road coverage"
+      "description": "MTA Long Island Rail Road coverage including the New York connection"
+    },
+    "mnr": {
+      "whole_network": true,
+      "agency_ids": ["1"],
+      "route_types": [2],
+      "description": "Whole official Metro-North Railroad schedule, including Connecticut branches"
+    },
+    "greyhound": {
+      "whole_network": true,
+      "agency_ids": ["GREYHOUND-us"],
+      "route_types": [3],
+      "description": "Greyhound routes only from the current FlixMobility GTFS; seats and tickets unverified"
     }
   }
 }

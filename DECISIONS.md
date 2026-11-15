@@ -318,3 +318,24 @@ scope-limited MCP access and rate limits exist.
   the synthetic fixture proves the gap behavior. The active database was
   untouched. The full suite passed 100 tests; a Bubble HTTP test patch leak
   was fixed after it caused a false failure in the combined run.
+
+# 2026-11-15 — CT/MA operator evidence and UTC timetable normalization
+
+- The requested coverage expansion is source-gated. Greyhound uses the current
+  FlixMobility GTFS but selects only `GREYHOUND-us` routes; MTA Metro-North is
+  added and LIRR is enabled by default for trips near its stations. Existing
+  CTtransit GTFS contains Hartford DASH; the Hartford archive contains SLE.
+- GTFS agency times are measured from agency-local noon minus 12 elapsed hours.
+  The Greyhound feed uses UTC, so connection materialization now normalizes
+  each trip against the selected New York service day. Synthetic tests cover
+  normal dates, a next-UTC-day evening trip, and ordering through the fall DST
+  fold. The web clock's ambiguous DST-hour presentation remains unresolved.
+- A disposable six-feed import passed structural integrity after preserving
+  parent stations and removing transfer rules with clipped endpoints. It
+  returned a scheduled New Haven → Jamaica outing with both legs, but this
+  does not establish ticket availability or a guaranteed Grand Central walk.
+- Peter Pan's reachable GTFS file ends in 2024 and is historical test data;
+  GHTD Link is booking-dependent; CTtransit Flex was not identified in the
+  current official feed. None was fabricated into current routing. Major
+  Connecticut city zoom buttons were added; browser access was unavailable,
+  so visual acceptance remains pending. See `REGIONAL_COVERAGE.md`.
