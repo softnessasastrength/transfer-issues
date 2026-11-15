@@ -702,6 +702,179 @@ that cannot be verified contributes no markers — positions are never
 invented. Live board prediction times now render as countdowns for both
 providers. Invariant preserved: live data is informational only and never
 alters scheduled routing or feasibility.
+## 2026-11-15 — GTFS-RT protobuf spike (branch spike/gtfs-rt-protobuf_muse, TESTING ONLY)
+
+Under the owner's 2026-11-15 testing-only doctrine exception (not a
+production adoption, not a standing doctrine change), the MTA MNR/LIRR
+combined GTFS-RT feeds were decoded end-to-end with a protobuf binding in
+spikes/gtfs_rt/. Findings: routes join the static feeds perfectly on both
+railroads; LIRR trip IDs join 126/126; MNR trip IDs join 0/207 (different
+identifier space from the imported static feed's composite IDs); the MNR
+feed carries no vehicle entities; Amtrak has no public GTFS-RT and its
+map payload is encrypted. Full evidence and the production-cost options
+(vendored minimal decoder recommended if adoption is ever approved) are
+in spikes/gtfs_rt/README.md. No shipped code imports the spike.
+## 2026-11-15 — Day-trip planner with protected return anchor (branch feat/day-trip-anchor_muse)
+
+Built on the existing outings engine (evaluate/browse) and routing.plan /
+routing.latest — no parallel system. outings.plan_day composes an ordered
+list of visits: each leg is accepted only if, after the visit's minimum
+dwell, a certified path back to the anchor boarding stop still arrives by
+the anchor departure (less the transfer buffer); a leg that would break
+the anchor is refused with the reason and the day stands partial. The
+anchor is either derived (last viable return home from the final visit,
+via routing.latest) or pinned to a service: outings.last_service_departure
+reads the last departure of a route from a stop out of the imported
+connections — never a hard-coded time — and the pinned trip must itself
+start a certified journey home. Output states the anchor, its slack, and
+what happens if it is missed (the next return, or that none exists that
+day). Endpoint: /api/v1/daytrip; UI in the Outings panel.
+
+Owner's anchor belief, checked against the imported schedule: the last
+905 from Hartford (origin Asylum St @ Bushnell Park, Enfield-bound) is
+**18:17 on weekdays** — not 18:20 — and **17:17 on Saturday and Sunday**.
+The mechanism reads the value from the data in all cases.
+## 2026-11-15 — MCP HTTP hardening (RT-4) (branch fix/mcp-http-auth_muse)
+
+scripts/atlas_mcp_http.py previously dispatched any POST: wildcard CORS,
+a session id that was issued but never checked, no Host validation, and an
+unbounded request body — an unauthenticated preference write from a foreign
+Origin was demonstrated in red-team phase 2. Now: every POST requires a
+per-install bearer token (`Authorization: Bearer`), sourced from
+`ATLAS_MCP_TOKEN` when set, else a token file `mcp_http_token` in the data
+dir created with mode 0600 and reused across restarts; no
+Access-Control-Allow-* headers are emitted; the Host header must name this
+machine (loopback names, the bind host, or the machine's LAN addresses when
+bound wide); bodies over 1 MiB are refused with 413 before being read.
+percival_lan prints the token and its location once at startup. Operator
+impact: existing unauthenticated LAN/Open WebUI setups must add the token
+header — see README/TERMUX updates in the same change. ollama_mcp_chat.py
+speaks stdio to atlas_mcp.py, not HTTP, and is unchanged.
+## 2026-11-15 — import_gtfs honours ATLAS_DATA_DIR (branch fix/import-gtfs-data-dir_muse)
+
+import_gtfs.py hard-coded `DATA = ROOT/'data'` while database.py resolved
+`pathlib.Path(os.environ.get('ATLAS_DATA_DIR', ROOT/'data'))`, so an import
+run and the server could silently work on different data directories; the
+Debian package bridged the gap with a symlink. import_gtfs now resolves the
+data dir exactly as database.py does. The .deb packaging is untouched by
+this change (its symlink becomes harmless redundancy, removable in a
+packaging pass). tests/test_import_gtfs_data_dir.py asserts the override
+and the default in subprocesses, since the value is bound at import time.
+## 2026-11-15 — WP10/EdgeHTML build shipped in-repo (branch feat/wp10-shim_muse)
+
+The verified Windows Phone 10 shim (built during the PR #71 integration
+from the audit in WP10_EDGEHTML_AUDIT) now lives in the repo: web/wp10.html
+(index.html pointed at the transpiled bundle), web/app-wp10.js (app.js via
+esbuild --target=es2017 --format=iife, byte-identical to the verified
+2026-11-15 build), web/polyfills-wp10.js (prepended to the bundle;
+replaceChildren / Object.fromEntries / Element.remove), and
+scripts/build_wp10.sh as the regeneration recipe. docs/WP10.md explains
+what it is, why EdgeHTML needs it, and the verification status: Chromium-
+verified, with the actual Windows 10 Mobile emulator run still the owner's
+step — no EdgeHTML claim is made until then. The bundle is a snapshot, not
+a live mirror: re-run the build script whenever app.js changes.
+## SEAT (Southeast Area Transit District) feed added (2026-11-15)
+
+- **Decision:** register SEAT as the tenth configured feed
+  (`config/feeds.json` id `seat`), owner-approved 2026-11-15 after the
+  CT cities sweep found Norwich and Groton with zero stops in the data
+  because their local district was not imported. This follows the
+  user-controlled network doctrine: the owner selects agencies; no
+  other agency was added or changed.
+- **Source (GTFS tier; no PDF fallback needed):** SEAT's own GTFS page
+  (https://www.southeastareatransitdistrict.com/gtfs-feed/) publishes
+  the current archive; the download URL registered is the Remix-hosted
+  zip the FTA NTD GTFS weblink lists for SEAT
+  (https://gtfs.remix.com/seat_preston_ct_us.zip). The archive
+  self-identifies: `feed_info.txt` publisher "Southeast Area Transit
+  District", contact info@seatbus.com, version "Updated: Aug 13, 2026".
+- **Freshness verified before import:** feed service window
+  2026-06-29 → 2027-06-27 (feed_info and calendar agree), covering the
+  import date and the 2026-11-17 reference date. Retrieved 2026-11-15;
+  archive SHA-256
+  f020c77423df7369b02172c68fa80ac22349432d6457bf40a349e9ea49af5a9d.
+- **Import (full ten-feed `scripts/prepare_data.py` build, 2026-11-15):**
+  SEAT 17 routes / 808 trips / 610 stops, zero errors, zero warnings.
+  No coverage-policy entry was needed: every SEAT stop falls inside
+  the default regional clip. All nine pre-existing feeds reproduced
+  their established counts; the packaged database grew from
+  856,506,368 to 863,408,128 bytes.
+- **Verification (scratch server on the rebuilt database, Tuesday
+  2026-11-17, 08:00):** Norwich Transportation Center
+  (`seat:2508339`) and Groton Square (`seat:2508625`) resolve and plan
+  to/from Hartford (`hartford:6`) in both directions via New London
+  and Amtrak (Norwich→Hartford 08:00→11:36; Hartford→Norwich
+  08:00→11:55; Groton→Hartford 08:00→11:36; Hartford→Groton
+  08:00→11:15). New London is unregressed: `amtrak:NLC` still
+  resolves, and SEAT's New London Union Station stop
+  (`seat:2508298`) interchanges with Amtrak by the estimated walk.
+  60-minute bubbles: Norwich 219 reachable, Groton 9 (small because
+  the bubble requires a same-hour return and SEAT headways are long —
+  a service fact, not a planner failure). Standing reference checks
+  unchanged: Court Square search returns exactly `pvta:1495`;
+  Hartford → Springfield Union Station plans 08:35 → 09:17.
+- **Limits:** fixed-route GTFS only. SEAT demand-response service is
+  not in the feed and is not represented; nothing about it is implied.
+## RIPTA GTFS imported — Rhode Island coverage (2026-11-15)
+
+- **Source (official):** RIPTA's developer page
+  (https://www.ripta.com/mobile-applications/) links the GTFS schedule
+  dataset; the archive is served from https://ripta.com/RIPTA-GTFS.zip
+  (redirecting to https://ripta.com/system/files/gtfs_file/RIPTA-GTFS.zip).
+  Retrieved 2026-11-15; 2,235,955 bytes; SHA-256
+  2aa2cd24209215c6a2b5d2d170527a555529af5fd58d5041713f35dbc2795f97.
+- **Freshness:** feed_info.txt declares 2026-11-01 → 2027-01-15 for the
+  Rhode Island Public Transit Authority — current at retrieval, so the
+  GTFS tier applies and no PDF fallback was needed.
+- **Registered** as feed `ripta` in config/feeds.json. No coverage.json
+  override: every RIPTA stop falls inside the default regional clip
+  (40.9–43.1, −73.8–−70.5), so the scope recorded at import is the
+  default description, like CTtransit, PVTA and WRTA.
+- **Service model:** the archive ships no calendar.txt. All service is
+  enumerated as type-1 calendar_dates rows (203 rows, 7 service ids,
+  dated 2026-10-13 → 2027-01-15; every weekday, Saturday and Sunday in
+  the window is listed). The importer's existing calendar/exception
+  model honours exactly those dates; tests/test_ripta_feed.py pins the
+  behaviour with a synthetic archive of the same shape (service on a
+  listed date, none on an unlisted one).
+- **Import counts (2026-11-15 local build):** 3,553 stops / 59 routes /
+  4,969 trips, zero import errors. The published file carries 5,009
+  trips; the 40 not imported are single-stop stub records (one
+  stop_time each) that cannot form a rideable segment.
+- **Verification (local 7-feed build, Tue 2026-11-17):** Providence
+  resolves at Kennedy Plaza (12 stops match; ripta:16400 carries 151
+  departures that day). Plans from Kennedy Plaza at 08:00 —
+  Providence → Hartford (RIPTA 51 to Providence Station, walk to
+  Amtrak, Amtrak via New Haven, arrive 11:36), Providence → Boston
+  South Station (Amtrak from Providence, arrive 09:33),
+  Providence → Newport (RIPTA 24 to Newport Transit Center, arrive
+  09:27). Standing reference checks unchanged: Court Square →
+  pvta:1495; hartford:6 → pvta:5101 departs 30900, arrives 33428.
+## 2026-11-15 — City selector as a sidebar; favicon + touch icon (branch feat/city-selector-sidebar_muse)
+
+The city buttons floated over the map as an absolute-positioned strip.
+They now live in a persistent left sidebar (web/index.html: nav#citySidebar
+beside a .mapCanvas wrapper that keeps the map and its overlays), stacked
+above the map at narrow widths instead of covering it. Behaviour is
+unchanged underneath: a city click still does the same setView + status
+update (now with aria-pressed/selected state, plus a Regional view entry
+mirroring the reset control, which also clears the selection), and the
+sidebar's NETWORK SCOPE buttons drive the existing #agency and
+#allRoutesAgency selects — setting their values and dispatching their
+change events — so the route browser filter and the all-routes overlay
+(including Job 1's mid-draw cancel/restart) see exactly the same state as
+before. The selects themselves remain and stay in sync via syncScope.
+Also: the app shipped no icons (the owner's Safari log showed 404s for
+/favicon.ico, /apple-touch-icon.png, /apple-touch-icon-precomposed.png) —
+web/favicon.svg (a minimal compass mark in the app palette) and a generated
+180x180 web/apple-touch-icon.png are added with link tags in index.html.
+Sidebar implementation note: two pre-existing bare-`nav` rules collided
+with the new <nav> sidebar — style.css's `nav{display:flex}` /
+`nav button{border:0}` and theme.css's `@media (max-width:900px)
+nav{order:3}` (both written for the header nav). The sidebar block in
+style.css pins `#citySidebar{order:0;display:block}` and restores button
+borders inside it; without that, the sidebar stacked *below* the map at
+narrow widths (found by the 400px browser pass, fixed, re-verified).
 
 ## setup-ollama extraction — tarball layout defect (2026-11-15)
 
