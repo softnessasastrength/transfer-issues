@@ -5,7 +5,9 @@
 - Generated local SQLite `PRAGMA integrity_check`: passed (`ok`).
 - Direct API metadata smoke check and active-service query: passed against local imported data.
 - Initial checkpoint browser/end-to-end verification was not performed. See the newer desktop record below.
-- PDF fixture tests and full GTFS fixture/import validation: **not implemented**.
+- Reviewed-PDF fixture validation: `python3 -m unittest tests.test_pdf_ingest -v` (hash/provenance, OCR metadata, chronology, ambiguity and routing gate). PDF rows are intentionally kept outside routing; official PDF extraction and stop-link review still require an operator-supplied manifest.
+- Standalone external smoke test: `python3 scripts/external_smoke.py`; add `--routing --date YYYY-MM-DD` to exercise the planner. This starts and stops the loopback server itself and uses only Python's standard library.
+- Optional MTA fixture coverage: `test_optional_planning_feeds_are_excluded_by_default` verifies that LIRR-style optional feeds stay out of normal plans and enter only with `include_optional=1`.
 
 These tests establish limited checkpoint behavior, not complete GTFS compliance, complete source coverage or safe travel recommendations. Do not mark M0 or M0.1 complete on this evidence.
 

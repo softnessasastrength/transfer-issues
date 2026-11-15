@@ -34,5 +34,12 @@
     "url": "https://cdn.mbta.com/MBTA_GTFS.zip",
     "official_page": "https://www.mbta.com/developers/gtfs",
     "status": "not_downloaded"
+  },
+  {
+    "id": "lirr",
+    "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfslirr.zip",
+    "official_page": "https://api.mta.info/",
+    "status": "not_downloaded",
+    "optional": true
   }
 ]

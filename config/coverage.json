@@ -1,0 +1,23 @@
+{
+  "default": {
+    "bounds": [40.9, 43.1, -73.8, -70.5],
+    "description": "Connecticut and southern/central New England regional clip"
+  },
+  "feeds": {
+    "mbta": {
+      "bounds": [41.0, 42.9, -71.7, -70.0],
+      "agency_ids": ["1"],
+      "route_types": [0, 1, 2, 3, 4, 5, 6, 7],
+      "description": "MBTA bus, subway, light rail, commuter rail and ferry routes in the regional service area"
+    },
+    "amtrak": {
+      "whole_network": true,
+      "description": "Whole official Amtrak GTFS network; no geographic clip"
+    },
+    "lirr": {
+      "bounds": [40.4, 41.35, -74.3, -71.7],
+      "route_types": [2],
+      "description": "Optional MTA Long Island Rail Road coverage"
+    }
+  }
+}
