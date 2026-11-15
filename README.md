@@ -32,6 +32,8 @@ Open **http://127.0.0.1:8000** in your desktop browser. Stop the server with Con
 
 Start with **Browse routes → 905**, select a trip for its timetable, or click **Hartford** to zoom to published stops. For a rail example, choose **HARTFORD [hartford:6]** to **SPRINGFIELD [hartford:9]**. Pick a date within the downloaded feed's service period (see Data & sources); expired feeds may correctly yield no trips. The `2026-11-12` example was checked directly against the development database, not as a live service guarantee. Network access is needed for street tiles, but official shape/stop layers are local. Missing tiles show a visible notice.
 
+To request a specific sequence such as **905 → 30** or **905 → 24X**, open **Browse routes**, use **+ chain** on each route in order, then return to **Plan a journey**. Reorder or remove chain chips before searching. The planner only accepts a published itinerary that follows the chain; it still applies scheduled transfer buffers and does not guarantee the real-world connection.
+
 Bookmarks and journal entries are device/browser/origin-local; use **My discoveries → Export my data** before clearing browser storage or moving machines. Import appends entries to preserve existing records. No personal records are committed to Git.
 
 A failed agency download can leave coverage incomplete. An empty result is not proof that no real journey exists. Reservation/seat availability and fares are not checked.
