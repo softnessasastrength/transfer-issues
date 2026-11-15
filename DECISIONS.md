@@ -207,4 +207,9 @@
 
 - Added a browser Live board view without changing the existing planner. It accepts provider, route and stop filters and displays provider freshness, predictions, alerts and limitations.
 - Chose a provider/stop-board foundation before building a full departure-board visual: countdowns and route/headsign presentation require consistent provider timestamps and normalized route relationships. The next refinement will add those fields where the provider supplies them, with explicit unknown fallbacks.
+
+## Codex session — rideshare boundary
+
+- Deferred Uber/Lyft implementation to a separate last-mile layer. The feasible first slice is user-initiated deep links from known coordinates; it must not imply live price, pickup ETA, availability, accessibility, or booking.
+- Uber's current official docs distinguish deep links from estimate APIs and state that deep links do not fetch time or price estimates. No provider credentials, booking flow, or paid API access is being added. PVTA remains schedule-only until its realtime feed contract is published to developers.
 - Preference memory is deliberately not conversational inference: only explicit values are saved, validated, and used. It does not change feed provenance or turn unknown service into a fact.
