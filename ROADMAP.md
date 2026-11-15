@@ -112,6 +112,8 @@ Status update (2026-11-15, Percival UI/UX pass): began the ordered visual pass w
 
 Status update (2026-11-15, route chaining): added optional ordered route constraints to scheduled planning and the UI chain builder. Users can express sequences such as 905 → 30 or 905 → 24X; the planner still requires actual loaded stops, calendars, transfer buffers and published timetable feasibility. Automatic planning remains unchanged when no chain is selected.
 
+Status update (2026-11-15, Amtrak expansion): enabled `whole_network` coverage policy for the official Amtrak GTFS archive and rebuilt locally with 64 routes, 645 stops and 2,461 trips, with no importer errors. Added a generic feed-page fallback so future configured networks do not require a Python hard-coded page-map edit. This is full coverage of the current downloaded Amtrak archive, not a live-service, ticketing, reservation or guaranteed-connection claim.
+
 ## M0.L — Optional rideshare last-mile links (QUEUED; planning only)
 
 A future last-mile layer may offer Uber/Lyft deep links from a selected stop or itinerary endpoint. The first version must be link-only and user-initiated: no booking, payment, account-token storage, or autonomous ride requests. It may show a provider's own app handoff, but must not invent price, ETA, availability, accessibility, or coverage.
