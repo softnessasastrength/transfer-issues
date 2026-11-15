@@ -202,4 +202,9 @@
 - Added `live.py` and `GET /api/v1/live` as an isolated provider layer. The first adapter targets the official MBTA V3 JSON API's predictions and alerts resources; it accepts namespaced Atlas route/stop IDs and normalizes JSON:API resources.
 - Chose explicit `live`/`unknown` states instead of silently falling back to schedule data. Provider errors are data and do not make the main HTTP API fail; `/plan`, `/route`, `/bubble` and `/reachability` do not import or invoke live status.
 - CTtransit and PVTA were left as `unknown` rather than guessing undocumented endpoints. This is the foundation for a bus-focused trains.fyi-like view, but live coverage still requires one verified adapter per agency and freshness/accessibility UX work.
+
+## Codex session — live board UI
+
+- Added a browser Live board view without changing the existing planner. It accepts provider, route and stop filters and displays provider freshness, predictions, alerts and limitations.
+- Chose a provider/stop-board foundation before building a full departure-board visual: countdowns and route/headsign presentation require consistent provider timestamps and normalized route relationships. The next refinement will add those fields where the provider supplies them, with explicit unknown fallbacks.
 - Preference memory is deliberately not conversational inference: only explicit values are saved, validated, and used. It does not change feed provenance or turn unknown service into a fact.
