@@ -12,6 +12,32 @@ from urllib.request import Request, urlopen
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 PERSONALITY_PATH = os.path.join(ROOT, "personality.md")
+BEGIN_MARKER = "<!-- BEGIN CHARACTER PROMPT -->"
+END_MARKER = "<!-- END CHARACTER PROMPT -->"
+
+
+def extract_character_prompt(text):
+    """Return only the character prompt (§2) from personality.md.
+
+    The file's own §1 rule: the model receives the text between the BEGIN /
+    END CHARACTER PROMPT markers — not the §1 how-to, §3 rehearsal guide or
+    §4 knobs, which are for humans and otherwise leak into the prompt (the
+    model ends up paraphrasing its instructions instead of inhabiting the
+    character). If the markers are absent, fall back to the whole file
+    rather than failing.
+    """
+    begin = text.find(BEGIN_MARKER)
+    end = text.find(END_MARKER)
+    if begin == -1 or end == -1 or end <= begin:
+        return text
+    return text[begin + len(BEGIN_MARKER):end].strip()
+
+
+def load_personality():
+    if os.path.exists(PERSONALITY_PATH):
+        with open(PERSONALITY_PATH, encoding="utf-8") as fh:
+            return extract_character_prompt(fh.read())
+    return "You are Percival, a local transit assistant."
 
 
 class McpProcess:
@@ -95,7 +121,7 @@ def main():
     try:
         mcp.request("initialize")
         mcp.tools = mcp.request("tools/list").get("tools", [])
-        personality = open(PERSONALITY_PATH, encoding="utf-8").read() if os.path.exists(PERSONALITY_PATH) else "You are Percival, a local transit assistant."
+        personality = load_personality()
         personality += "\n\nOperational rule: for every transit fact, use Atlas tools before answering. For route descriptions, call atlas_route_report and report the matched identity, operator/feed, source status, date coverage and limitations. For a visit or 'come to me' request, call atlas_come_to_me and protect the return journey; never imply that a message, booking or purchase occurred. If a date or departure time is missing, ask a concise follow-up instead of guessing. Format answers as Known, Estimated, Unknown, then Next step when useful."
         messages = [{"role": "system", "content": personality}]
         if args.prompt:

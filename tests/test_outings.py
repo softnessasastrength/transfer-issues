@@ -146,6 +146,59 @@ class OutingFixture(unittest.TestCase):
         self.assertGreater(result['search']['unevaluated_count'], 0)
 
 
+class DayTripTests(unittest.TestCase):
+    def setUp(self):
+        self.fixture = OutingFixture('test_valid_trip_has_both_itineraries_and_meeting_window')
+        self.fixture.setUp()
+        self.addCleanup(self.fixture.tearDown)
+
+    def plan_day(self, visits, start=0, dwell=300, home_by=1200, anchor=None):
+        return outings.plan_day(
+            '2026-11-14', 'test:home', visits, start, dwell=dwell,
+            anchor=anchor, home_by=home_by, radius=0, buffer=0,
+            coverage_rows=self.fixture.complete_coverage)
+
+    def test_last_service_departure_reads_the_schedule(self):
+        svc = outings.last_service_departure('2026-11-14', 'test:route', 'test:valid')
+        self.assertEqual(svc['departure'], 1000)
+        self.assertEqual(svc['trip'], 'back-valid')
+        svc = outings.last_service_departure('2026-11-14', 'test:route', 'test:home')
+        self.assertEqual(svc['departure'], 86500)
+        self.assertIsNone(outings.last_service_departure(
+            '2026-11-14', 'test:absent', 'test:home'))
+
+    def test_derived_anchor_composes_a_day(self):
+        result = self.plan_day(['test:valid'])
+        self.assertEqual(result['status'], 'composed')
+        self.assertEqual(result['anchor']['kind'], 'last_viable_return')
+        self.assertEqual(result['anchor']['departure'], 1000)
+        self.assertEqual(result['dwells'][0]['seconds'], 800)
+        self.assertEqual(result['slack_seconds'], 800)
+        self.assertFalse(result['if_missed']['found'])
+
+    def test_pinned_anchor_uses_last_scheduled_departure(self):
+        result = self.plan_day(['test:valid'], anchor=dict(
+            route='test:route', from_stop='test:valid'))
+        self.assertEqual(result['status'], 'composed')
+        self.assertEqual(result['anchor']['kind'], 'pinned_service')
+        self.assertEqual(result['anchor']['departure'], 1000)
+        self.assertEqual(result['anchor']['trip'], 'back-valid')
+        self.assertTrue(result['anchor']['certified'])
+
+    def test_visit_that_would_break_the_anchor_is_refused(self):
+        result = self.plan_day(['test:short'], anchor=dict(
+            route='test:route', from_stop='test:valid'))
+        self.assertEqual(result['status'], 'anchor_protected')
+        self.assertEqual(result['refused_visit'], 'test:short')
+        self.assertEqual(result['reason']['code'], 'would_break_anchor')
+        self.assertEqual(result['legs'], [])
+
+    def test_no_viable_return_means_no_anchor(self):
+        result = self.plan_day(['test:noreturn'])
+        self.assertEqual(result['status'], 'ruled_out')
+        self.assertEqual(result['reason']['code'], 'no_viable_return')
+
+
 class OutingHttpTests(unittest.TestCase):
     def test_selected_outing_endpoint_contract(self):
         fixture = OutingFixture('test_valid_trip_has_both_itineraries_and_meeting_window')
@@ -165,6 +218,21 @@ class OutingHttpTests(unittest.TestCase):
     def test_outings_requires_walking_mode(self):
         with self.assertRaisesRegex(ValueError, 'requires walking'):
             server.handle('/api/v1/outings', {'mode': ['scooter']})
+
+    def test_daytrip_endpoint_composes_with_pinned_anchor(self):
+        fixture = OutingFixture('test_valid_trip_has_both_itineraries_and_meeting_window')
+        fixture.setUp()
+        self.addCleanup(fixture.tearDown)
+        with patch.object(server.db, 'coverage', return_value=fixture.complete_coverage), \
+                patch.object(server.db, 'sources', return_value=[{'id': 'test'}]):
+            result = server.handle('/api/v1/daytrip', {
+                'from': ['test:home'], 'visits': ['test:valid'],
+                'date': ['2026-11-14'], 'time': ['0'], 'home_by': ['1200'],
+                'dwell': ['300'], 'radius': ['0'], 'buffer': ['0'],
+                'anchor_route': ['test:route'], 'anchor_from': ['test:valid'],
+            })
+        self.assertEqual(result['status'], 'composed')
+        self.assertEqual(result['anchor']['departure'], 1000)
 
 
 if __name__ == '__main__':
