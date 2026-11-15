@@ -4,7 +4,7 @@ const el = (tag, text, cls) => { const n = document.createElement(tag); if (text
 const button = (text, fn) => { const n = el('button', text); n.addEventListener('click', () => run(fn)); return n; };
 const clock = seconds => { const day=Math.floor(seconds/86400), total=Math.floor(seconds/60)%1440, hour24=Math.floor(total/60), minute=total%60, suffix=hour24<12?'AM':'PM', hour=hour24%12||12; return `${hour}:${String(minute).padStart(2,'0')} ${suffix}${day?` (+${day} day${day===1?'':'s'})`:''}`; };
 const seconds = value => { const match=String(value||'').trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i); if(!match)throw Error('Use a time such as 8:00 AM.'); let h=Number(match[1]),m=Number(match[2]||0),suffix=match[3]?.toUpperCase(); if(m>59)throw Error('Choose a valid time.'); if(suffix){if(h<1||h>12)throw Error('Use an hour from 1 to 12.');h=(h%12)+(suffix==='PM'?12:0);}else if(h>23)throw Error('Choose a valid time.'); return h*3600+m*60; };
-let meta, map, layers, nearby, stops = new Map(), routes = new Map(), labels = new Map(), request = 0, selectedRoute = null, routeChain = [];
+let meta, map, layers, nearby, stops = new Map(), routes = new Map(), labels = new Map(), request = 0, selectedRoute = null, routeChain = [], stopsVisible = true;
 const feedPalette = {cttransit:'#d85d4a',hartford:'#2f78c4',pvta:'#a64f9f',wrta:'#d58b2a',mbta:'#7556a8',amtrak:'#2f8a86'};
 function routeColor(route) {
  const published=route?.color && /^[0-9a-f]{6}$/i.test(route.color) ? `#${route.color}` : '';
@@ -64,11 +64,14 @@ function setupStopPicker(id) {
  document.addEventListener('click',event=>{if(!input.parentElement.contains(event.target))close();});
 }
 function sourceLink(feed) { const source = meta.sources.find(s => s.id === feed); const n = el('a', `Source: ${feed}`); if(source && /^https?:\/\//.test(source.url)) { n.href = source.url; n.target = '_blank'; n.rel = 'noopener'; } return n; }
-function marker(s, group=layers, color='#26776b') {
+function marker(s, group=layers, color='#26776b', ambient=false, dim=false) {
  const popup = el('div'); popup.append(el('b', s.name), el('p', s.id));
  popup.append(button('Start here', () => { $('from').value=stopLabel(s); map.closePopup(); }), button('Go here', () => { $('to').value=stopLabel(s); map.closePopup(); }), button('Meet here', () => { $('outingTo').value=stopLabel(s);$('outingTo').dataset.stopId=s.id;map.closePopup();run(()=>verifyOuting(s.id)); }), button('Departures', () => departures(s)));
  const surface=getComputedStyle(document.documentElement).getPropertyValue('--atlas-surface').trim() || '#fffdf7';
- return L.circleMarker([s.lat,s.lon], {radius:7,color,weight:2.5,fillColor:surface,fillOpacity:1}).bindPopup(popup).addTo(group);
+ // Ambient stops (the browsable field) get a small solid dot that stays quiet at
+ // every zoom; stops drawn for a plan, route or bubble keep the prominent ring.
+ const style=ambient?{radius:4,color,weight:1,opacity:dim?.3:.85,fillColor:color,fillOpacity:dim?.35:.85}:{radius:7,color,weight:2.5,fillColor:surface,fillOpacity:1};
+ return L.circleMarker([s.lat,s.lon], style).bindPopup(popup).addTo(group);
 }
 function outingMarker(stop, status, select) {
  const icon=L.divIcon({className:`outingMapIcon ${status}`,html:'<span aria-hidden="true"></span>',iconSize:[28,28],iconAnchor:[14,14]});
@@ -82,7 +85,25 @@ function outingMarker(stop, status, select) {
 }
 function outingStatusLabel(status){return status==='verified'?'Verified round trip':status==='ruled_out'?'Ruled out by schedule':'Cannot determine';}
 function fit() { if(layers.getLayers().length) { const b = layers.getBounds(); if(b.isValid()) map.fitBounds(b,{padding:[40,40],maxZoom:14}); } }
-function nearbyStops() { nearby.clearLayers(); if(map.getZoom()<12) return; let n=0; for(const s of stops.values()) if(map.getBounds().contains([s.lat,s.lon]) && n++<600) marker(s, nearby, '#657b74'); }
+function nearbyStops() {
+ nearby.clearLayers();
+ if(!stopsVisible || map.getZoom()<12) return;
+ // Density control: one dot per 30px screen cell (deterministic — the same
+ // stops win on every redraw of the same view) inside a per-zoom budget, so
+ // the field never turns into overlapping rings. Zooming in reveals the rest.
+ const zoom=map.getZoom(), cap=zoom<14?150:zoom<16?350:600, cell=30, seen=new Set(), size=map.getSize();
+ const dim=layers.getLayers().length>0; // A plan/route/bubble is on stage: ambient stops recede.
+ let n=0;
+ for(const s of stops.values()) {
+  if(n>=cap) break;
+  const p=map.latLngToContainerPoint([s.lat,s.lon]);
+  if(p.x<0||p.y<0||p.x>size.x||p.y>size.y) continue;
+  const key=Math.floor(p.x/cell)+':'+Math.floor(p.y/cell);
+  if(seen.has(key)) continue;
+  seen.add(key);
+  marker(s, nearby, '#657b74', true, dim); n++;
+ }
+}
 function chainLabel(id){const r=routes.get(id);return r?`${r.short || id} · ${r.feed}`:id;}
 function renderChain(){const host=$('routeChainItems');if(!host)return;host.replaceChildren();if(!routeChain.length){host.append(el('p','No routes chained yet. Add routes from Browse routes.','small'));return;}routeChain.forEach((id,i)=>{const row=el('div',undefined,'chainItem');row.style.setProperty('--route-color',routeColor(routes.get(id)));row.append(el('b',String(i+1).padStart(2,'0')),el('span',chainLabel(id)));const up=button('↑',()=>{if(i){[routeChain[i-1],routeChain[i]]=[routeChain[i],routeChain[i-1]];renderChain();}});const down=button('↓',()=>{if(i<routeChain.length-1){[routeChain[i+1],routeChain[i]]=[routeChain[i],routeChain[i+1]];renderChain();}});const remove=button('×',()=>{routeChain.splice(i,1);renderChain();});[up,down,remove].forEach(b=>{b.className='chainAction';row.append(b);});host.append(row);if(i<routeChain.length-1)host.append(el('span','↓ transfer','chainArrow'));});}
 function addToChain(id){if(routeChain[routeChain.length-1]===id)return;routeChain.push(id);renderChain();view('explore');$('browser').hidden=false;$('planner').hidden=true;$('browseTab').classList.add('selected');$('planTab').classList.remove('selected');}
@@ -143,9 +164,10 @@ async function init() {
  meta.cities.forEach(([name,lat,lon])=>{ $('cities').append(button(name,()=>{map.setView([lat,lon],13);$('mapStatus').textContent=`${name} · zoomed stops from loaded feeds`; })); L.circleMarker([lat,lon],{radius:4,color:'#173d39',weight:2,fillColor:'#d7e98c',fillOpacity:1}).bindTooltip(name,{permanent:true,direction:'right',className:'cityMarker'}).addTo(map); });
  [...new Set(meta.routes.map(r=>r.feed))].forEach(f=>{$('agency').append(new Option(f,f));$('allRoutesAgency').append(new Option(f,f));});
  $('allRoutes').onclick=()=>run(showAllRoutes);
- $('allRoutesAgency').onchange=()=>{if(allRoutesVisible)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
+ $('allRoutesAgency').onchange=()=>{if(allRoutesVisible||allRoutesDrawing)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>view(b.dataset.tab));$('planTab').onclick=()=>{$('planner').hidden=false;$('outingPlanner').hidden=true;$('browser').hidden=true;$('planTab').classList.add('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.remove('selected');};$('outingTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=false;$('browser').hidden=true;$('planTab').classList.remove('selected');$('outingTab').classList.add('selected');$('browseTab').classList.remove('selected');};$('browseTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=true;$('browser').hidden=false;$('planTab').classList.remove('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.add('selected');};
  $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value,aid=$('from').dataset.stopId,b=$('to').value,bid=$('to').dataset.stopId;$('from').value=b;$('to').value=a;if(bid)$('from').dataset.stopId=bid;else delete $('from').dataset.stopId;if(aid)$('to').dataset.stopId=aid;else delete $('to').dataset.stopId;};$('resetMap').onclick=()=>{following=false;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');map.setView([42,-72.4],8);};
+ $('toggleStops').onclick=()=>{stopsVisible=!stopsVisible;$('toggleStops').setAttribute('aria-pressed',String(stopsVisible));if(stopsVisible){nearby.addTo(map);nearbyStops();}else{nearby.clearLayers();map.removeLayer(nearby);}};
  $('plan').onclick=()=>run(()=>plan());$('latest').onclick=()=>run(()=>plan('latest'));$('reach').onclick=()=>run(reach);$('bubble').onclick=()=>run(bubble);
  $('browseOutings').onclick=()=>run(browseOutings);$('verifyOuting').onclick=()=>run(()=>verifyOuting());
  $('bookmark').onclick=()=>run(()=>{resolve('from');resolve('to');personal.bookmarks.push(Object.fromEntries(['from','to','date','time'].map(k=>[k,$(k).value])));save();$('results').replaceChildren(el('p','Search saved in My discoveries.','notice'));});
@@ -159,7 +181,7 @@ async function init() {
 // These connect that existing UI to the existing /api/v1 contracts. Location is
 // opt-in only and never leaves the device; overlay and outing results describe
 // published schedules and label missing data as unknown, never as no service.
-let following=false, locationWatch=null, locationLayer=null, allRoutesVisible=false, routeOverlay=null;
+let following=false, locationWatch=null, locationLayer=null, allRoutesVisible=false, allRoutesDrawing=false, allRoutesDrawToken=0, routeOverlay=null;
 function setLocationStatus(text){const n=$('locationStatus');if(n){n.textContent=text;n.hidden=!text;}}
 function showLocation(lat,lon){if(!locationLayer)locationLayer=L.layerGroup().addTo(map);locationLayer.clearLayers();L.circleMarker([lat,lon],{radius:6,color:'#143e39',weight:2,fillColor:'#2f78c4',fillOpacity:.9}).addTo(locationLayer);}
 function toggleLocation(){
@@ -175,19 +197,37 @@ function toggleFollow(){
  following=true;btn.textContent='Follow: on';btn.setAttribute('aria-pressed','true');
  locationWatch=navigator.geolocation.watchPosition(pos=>{showLocation(pos.coords.latitude,pos.coords.longitude);if(following)map.setView([pos.coords.latitude,pos.coords.longitude],Math.max(map.getZoom(),13));},err=>{setLocationStatus('Location unavailable: '+err.message);},{timeout:10000});
 }
-function clearAllRoutes(){if(routeOverlay)routeOverlay.clearLayers();allRoutesVisible=false;$('allRoutes').setAttribute('aria-pressed','false');const s=$('allRoutesStatus');if(s)s.textContent='';}
+function clearAllRoutes(){allRoutesDrawToken++;allRoutesDrawing=false;if(routeOverlay)routeOverlay.clearLayers();allRoutesVisible=false;$('allRoutes').setAttribute('aria-pressed','false');const s=$('allRoutesStatus');if(s)s.textContent='';}
 async function showAllRoutes(){
+ if(allRoutesDrawing){ // A re-click while a draw is running cancels it.
+  clearAllRoutes();
+  const s=$('allRoutesStatus');if(s)s.textContent='Route drawing cancelled.';
+  return;
+ }
  if(allRoutesVisible){clearAllRoutes();return;}
  if(!routeOverlay)routeOverlay=L.layerGroup().addTo(map);
  routeOverlay.clearLayers();
  const feed=$('allRoutesAgency').value,status=$('allRoutesStatus');
- const list=meta.routes.filter(r=>!feed||r.feed===feed);let drawn=0;
- for(const r of list){
+ const list=meta.routes.filter(r=>!feed||r.feed===feed);let drawn=0,next=0;
+ const token=++allRoutesDrawToken;allRoutesDrawing=true;$('allRoutes').setAttribute('aria-pressed','true');
+ const drawOne=async r=>{
   const data=await api('route',{id:r.id,date:$('date').value});
+  if(token!==allRoutesDrawToken)return; // Cancelled while this request was in flight; drop its geometry.
   for(const shape of data.shapes)if(shape.length)L.polyline(shape,{color:routeColor(r),weight:3,opacity:.75}).addTo(routeOverlay);
   if(data.shapes.length)drawn++;
   if(status)status.textContent=`Drawing routes… ${drawn} with published geometry`;
+ };
+ try{ // Bounded concurrency: a fixed worker pool shares the route list.
+  const workers=Array.from({length:Math.min(8,list.length)},async()=>{
+   while(token===allRoutesDrawToken&&next<list.length)await drawOne(list[next++]);
+  });
+  await Promise.all(workers);
+ }catch(e){
+  if(token===allRoutesDrawToken){allRoutesDrawToken++;allRoutesDrawing=false;$('allRoutes').setAttribute('aria-pressed','false');}
+  throw e;
  }
+ if(token!==allRoutesDrawToken)return; // Cancelled; clearAllRoutes already reset state and overlay.
+ allRoutesDrawing=false;
  allRoutesVisible=true;$('allRoutes').setAttribute('aria-pressed','true');
  if(status)status.textContent=drawn?`${drawn} routes drawn from published geometry. A route without drawn geometry has none published for this date; that is a data gap, not proof of no service.`:'No published route geometry for this selection.';
  if(routeOverlay.getLayers().length)map.fitBounds(routeOverlay.getBounds(),{padding:[40,40],maxZoom:13});
