@@ -1,13 +1,29 @@
 """Build the atlas database from official GTFS archives. Python 3.11+, stdlib only."""
 import csv, io, zipfile, sqlite3, json, hashlib, datetime, pathlib, collections, argparse, urllib.request
+from pdf_ingest import SCHEMA as PDF_SCHEMA
 ROOT=pathlib.Path(__file__).resolve().parent
 DATA=ROOT/'data'
+POLICY=json.loads((ROOT/'config'/'coverage.json').read_text())
 DAYS=['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
-PAGES={'cttransit':'https://www.cttransit.com/about/developers','hartford':'https://www.cttransit.com/about/developers','pvta':'https://pvta.com/bus_service/real_time_data.php','wrta':'https://therta.com/','amtrak':'https://www.cttransit.com/about/developers','mbta':'https://www.mbta.com/developers/gtfs'}
+PAGES={'cttransit':'https://www.cttransit.com/about/developers','hartford':'https://www.cttransit.com/about/developers','pvta':'https://pvta.com/bus_service/real_time_data.php','wrta':'https://therta.com/','amtrak':'https://www.cttransit.com/about/developers','mbta':'https://www.mbta.com/developers/gtfs','lirr':'https://api.mta.info/'}
 # pvta.com rejects the default urllib User-Agent with HTTP 403 (verified 2026-11-14:
 # default curl/urllib UA -> 403, this descriptive UA -> 200). Identify the project
 # honestly on every feed download rather than sending the library default.
 USER_AGENT='TransitAtlas/0.1 (+https://github.com/softnessasastrength/transfer-issues)'
+
+def coverage_policy(feed):
+ p=dict(POLICY.get('default',{}));p.update(POLICY.get('feeds',{}).get(feed,{}));return p
+
+def in_scope(feed,lat,lon):
+ south,north,west,east=coverage_policy(feed).get('bounds',POLICY['default']['bounds'])
+ return south<=lat<=north and west<=lon<=east
+
+def route_is_selected(feed,route):
+ p=coverage_policy(feed)
+ if p.get('agency_ids') and route.get('agency_id') not in p['agency_ids']:return False
+ if p.get('route_types') and int(route.get('route_type',-1)) not in p['route_types']:return False
+ return True
+
 def seconds(s):
  p=s.split(':')
  if len(p)!=3: raise ValueError('Missing or invalid time')
@@ -20,7 +36,7 @@ def rows(z,name):
  if not names:return iter(())
  return csv.DictReader(io.TextIOWrapper(z.open(names[0]),encoding='utf-8-sig',newline=''))
 
-def build():
+def build(include_optional=False):
  sources=json.loads((DATA/'sources.json').read_text());tmp=DATA/'atlas.build.sqlite';tmp.unlink(missing_ok=True)
  db=sqlite3.connect(tmp);db.executescript('''
  PRAGMA journal_mode=OFF;
@@ -32,9 +48,11 @@ def build():
  CREATE TABLE exceptions(service TEXT,date TEXT,type INTEGER);
  CREATE TABLE shapes(id TEXT,seq INTEGER,lat REAL,lon REAL);
  CREATE TABLE transfers(a TEXT,b TEXT,type INTEGER,seconds INTEGER);
- ''');reports=[]
+ ''');db.executescript(PDF_SCHEMA);reports=[]
  for source in sources:
   feed=source['id'];source['official_page']=PAGES[feed];path=DATA/(feed+'.zip');r={'feed':feed,'errors':{},'warnings':{},'counts':{}}; reports.append(r)
+  if source.get('optional') and not include_optional:
+   source['status']='optional_disabled';source['scope']='Optional feed; enable explicitly to import';continue
   if not path.exists():continue
   print('Importing',feed,flush=True);source['sha256']=hashlib.sha256(path.read_bytes()).hexdigest();z=zipfile.ZipFile(path);prefix=lambda x:feed+':'+x
   required={'agency.txt','stops.txt','routes.txt','trips.txt','stop_times.txt'}
@@ -46,13 +64,12 @@ def build():
    try:
     lat,lon=float(s['stop_lat']),float(s['stop_lon'])
     if not -90<=lat<=90 or not -180<=lon<=180:raise ValueError()
-    # Geographic scope: CT and southern/central New England. National rail is clipped.
-    if not (40.9<=lat<=43.1 and -73.8<=lon<=-70.5):continue
+    # Geographic scope is an explicit per-feed policy; no geometry is invented.
+    if not in_scope(feed,lat,lon):continue
     valid[k]=s;db.execute('INSERT INTO stops VALUES(?,?,?,?,?,?,?)',(prefix(k),feed,s['stop_name'],lat,lon,prefix(s.get('parent_station','')) if s.get('parent_station') else '',s.get('wheelchair_boarding','0')))
    except (ValueError,KeyError):r['errors']['invalid_stop_coordinate']=r['errors'].get('invalid_stop_coordinate',0)+1
   routes={x['route_id']:x for x in rows(z,'routes')};trips={x['trip_id']:x for x in rows(z,'trips')}
-  # MBTA: retain regional rail only; Worcester and onward Boston connections, not subway/bus.
-  if feed=='mbta':trips={k:t for k,t in trips.items() if routes[t['route_id']]['route_type']=='2'}
+  trips={k:t for k,t in trips.items() if t['route_id'] in routes and route_is_selected(feed,routes[t['route_id']])}
   freq={x['trip_id'] for x in rows(z,'frequencies')};r['warnings']['frequency_trips_excluded']=len(freq)
   grouped=collections.defaultdict(list)
   for t in rows(z,'stop_times'):
@@ -72,7 +89,7 @@ def build():
    used_routes.add(t['route_id']);shape=t.get('shape_id','');used_shapes.add(shape)
    db.execute('INSERT INTO trips VALUES(?,?,?,?,?,?)',(prefix(k),prefix(t['route_id']),prefix(t['service_id']),t.get('trip_headsign',''),t.get('direction_id',''),prefix(shape)))
    # Keep sequence gaps so the router never invents a connection over an omitted stop.
-   db.executemany('INSERT INTO times VALUES(?,?,?,?,?,?,?)',[(prefix(k),i,prefix(s),arr,dep,pu,do) for i,(seq,s,arr,dep,pu,do) in enumerate(ts) if s in valid]);used_stops.update(s[1] for s in ts if s[1] in valid);n+=1
+   db.executemany('INSERT INTO times VALUES(?,?,?,?,?,?,?)',[(prefix(k),seq,prefix(s),arr,dep,pu,do) for seq,s,arr,dep,pu,do in ts if s in valid]);used_stops.update(s[1] for s in ts if s[1] in valid);n+=1
   for k in used_routes:
    t=routes[k];db.execute('INSERT INTO routes VALUES(?,?,?,?,?,?,?)',(prefix(k),feed,t.get('route_short_name',''),t.get('route_long_name',''),t['route_type'],t.get('route_color',''),agents.get(t.get('agency_id',''),{}).get('agency_name',feed)))
   for s in rows(z,'shapes'):
@@ -88,16 +105,18 @@ def build():
     r['warnings']['scoped_transfer_rules_not_supported']=r['warnings'].get('scoped_transfer_rules_not_supported',0)+1;continue
    db.execute('INSERT INTO transfers VALUES(?,?,?,?)',(prefix(t['from_stop_id']),prefix(t['to_stop_id']),int(t.get('transfer_type') or 0),int(t.get('min_transfer_time') or 0)))
   dates=[c['start_date'] for c in cal]+[c['end_date'] for c in cal]+[e['date'] for e in exc]
-  source.update(status='imported',service_start=min(dates),service_end=max(dates),scope='Regional rail only' if feed=='mbta' else 'Regional geographic clip' if feed=='amtrak' else 'All valid trips in geographic scope')
+  source.update(status='imported',service_start=min(dates),service_end=max(dates),scope=coverage_policy(feed).get('description','All valid trips in geographic scope'))
   r['counts']={'stops':len(used_stops),'routes':len(used_routes),'trips':n};db.commit()
  db.executescript('''CREATE INDEX times_trip ON times(trip,seq);CREATE INDEX times_stop ON times(stop,dep);CREATE INDEX trips_service ON trips(service);CREATE INDEX shapes_id ON shapes(id,seq);CREATE INDEX exceptions_date ON exceptions(date);DELETE FROM stops WHERE id NOT IN (SELECT stop FROM times);''');db.commit()
  for source in sources:
   r=next(x for x in reports if x['feed']==source['id']);source['validation']=r
  db.close();tmp.replace(DATA/'atlas.sqlite');(DATA/'sources.json').write_text(json.dumps(sources,indent=2));(DATA/'validation.json').write_text(json.dumps(reports,indent=2));print(json.dumps(reports,indent=2))
 
-def refresh():
+def refresh(include_optional=False):
  sources=json.loads((DATA/'sources.json').read_text())
  for s in sources:
+  if s.get('optional') and not include_optional:
+   s['status']='optional_disabled';continue
   try:
    req=urllib.request.Request(s['url'],headers={'User-Agent':USER_AGENT})
    with urllib.request.urlopen(req,timeout=90) as r:content=r.read();lm=r.headers.get('Last-Modified')
@@ -106,6 +125,6 @@ def refresh():
   except Exception as e:s['refresh_error']=str(e);print(s['id'],e)
  (DATA/'sources.json').write_text(json.dumps(sources,indent=2))
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('--refresh',action='store_true');a=p.parse_args()
- if a.refresh:refresh()
- build()
+ p=argparse.ArgumentParser();p.add_argument('--refresh',action='store_true');p.add_argument('--include-optional',action='store_true');a=p.parse_args()
+ if a.refresh:refresh(a.include_optional)
+ build(a.include_optional)

@@ -5,6 +5,7 @@ import argparse,datetime,json,pathlib,os
 import database as db
 import routing
 import bubble as bubble_mod
+import fares
 ROOT=pathlib.Path(__file__).resolve().parent
 CITIES=[('Hartford',41.7658,-72.6734),('Springfield',42.106,-72.593),('Enfield',41.998,-72.585),('Windsor Locks',41.929,-72.627),('Manchester',41.776,-72.521),('Holyoke',42.204,-72.617),('Chicopee',42.148,-72.608),('Westfield',42.125,-72.750),('New Haven',41.298,-72.925),('Worcester',42.261,-71.795),('Providence',41.824,-71.413)]
 
@@ -13,6 +14,11 @@ def number(q,k,default,lo,hi):
  n=int(arg(q,k,str(default)))
  if not lo<=n<=hi:raise ValueError(k+' out of range')
  return n
+
+def planning_feeds(q):
+ requested=tuple(filter(None,arg(q,'feeds').split(',')))
+ if requested or arg(q,'include_optional','0')=='1':return requested
+ return tuple(s['id'] for s in db.sources() if not s.get('optional'))
 
 def dated(q):
  d=arg(q,'date',datetime.date.today().isoformat());datetime.date.fromisoformat(d);return d
@@ -26,10 +32,15 @@ def warm_caches(day=None):
  return day
 
 def handle(path,q):
- if path=='/api/v1/meta':return dict(api_version='1.0',sources=db.sources(),cities=CITIES,routes=db.query('SELECT * FROM routes ORDER BY feed,short'),stops=db.query('SELECT * FROM stops'),limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','Incomplete three-state agency coverage; not every agency is loaded','MBTA commuter rail only; Amtrak regional clip','Scoped GTFS transfer rules not modeled; verify station transfers'])
+ if path=='/api/v1/meta':return dict(api_version='1.0',sources=db.sources(),cities=CITIES,routes=db.query('SELECT * FROM routes ORDER BY feed,short'),stops=db.stops(),station_codes='Amtrak CT/MA codes from config/station_codes.json',limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','Incomplete three-state agency coverage; not every agency is loaded','Amtrak regional clip; selected MBTA coverage follows config/coverage.json','Scoped GTFS transfer rules not modeled; verify station transfers'])
  if path=='/api/v1/coverage':return db.coverage(dated(q))
  if path=='/api/v1/departures':return dict(date=dated(q),departures=db.departures(arg(q,'stop'),dated(q),arg(q,'route')),coverage=db.coverage(dated(q)))
  if path=='/api/v1/stops':return db.search_stops(arg(q,'q'),arg(q,'feed'),number(q,'limit',50,1,500))
+ if path=='/api/v1/pdf-schedules':return db.pdf_schedules(arg(q,'document'))
+ if path=='/api/v1/fares':
+  origin=arg(q,'from');destination=arg(q,'to');names=db.query('SELECT id,name FROM stops WHERE id IN (?,?)',(origin,destination));name_map={x['id']:x['name'] for x in names}
+  if arg(q,'route','') not in ('','hartford:HART'):return {'status':'unknown','reason':'Only direct CTrail Hartford Line fares are currently supported.'}
+  return fares.hartford_line_fare(name_map.get(origin,''),name_map.get(destination,''))
  if path=='/api/v1/route':
   route=arg(q,'id');trips=db.query('SELECT * FROM trips WHERE route=?',(route,));active=db.active_services(dated(q));trips=[t for t in trips if t['service'] in active]
   shapes={};
@@ -50,21 +61,23 @@ def handle(path,q):
   day=dated(q);origin=arg(q,'from');start=number(q,'time',28800,0,86399)
   mode=arg(q,'mode','walk')
   if mode not in ['walk','scooter']:raise ValueError('Unknown ground mode')
-  return bubble_mod.classify(day,origin,start,budget=number(q,'budget',3600,60,14400),visit=number(q,'visit',0,0,86400),mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=tuple(filter(None,arg(q,'feeds').split(','))),coverage_rows=db.coverage(day),source_rows=db.sources())
+  return bubble_mod.classify(day,origin,start,budget=number(q,'budget',3600,60,14400),visit=number(q,'visit',0,0,86400),mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=planning_feeds(q),coverage_rows=db.coverage(day),source_rows=db.sources())
  if path in ['/api/v1/plan','/api/v1/reachability']:
   day=dated(q);origin=arg(q,'from');start=number(q,'time',28800,0,86399);deadline=number(q,'deadline',86399,start,172799)
   mode=arg(q,'mode','walk')
   if mode not in ['walk','scooter']:raise ValueError('Unknown ground mode')
-  opts=dict(mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=tuple(filter(None,arg(q,'feeds').split(','))))
+  opts=dict(mode=mode,radius=number(q,'radius',500,0,3000),buffer=number(q,'buffer',300,0,3600),feeds=planning_feeds(q))
   if path.endswith('reachability'):
    arr,paths=routing.scan(day,origin,start,deadline,**opts);stops=routing.network()[0]
    return dict(stops=[dict(id=k,arrival=v,lat=stops[k]['lat'],lon=stops[k]['lon']) for k,v in arr.items()],coverage=db.coverage(day))
   dest=arg(q,'to');kind=arg(q,'kind','depart');fn=routing.latest if kind=='latest' else routing.plan
   result=fn(day,origin,dest,start,deadline,**opts)
+  if result.get('found'):
+   ids={leg[k] for leg in result.get('legs',[]) for k in ('from_stop','to_stop') if k in leg};names={x['id']:x['name'] for x in db.query('SELECT id,name FROM stops WHERE id IN ('+','.join('?' for _ in ids)+')',tuple(ids))} if ids else {};route_ids={leg.get('route') for leg in result.get('legs',[]) if leg.get('route')};route_rows=db.query('SELECT id,short,type,agency FROM routes WHERE id IN ('+','.join('?' for _ in route_ids)+')',tuple(route_ids)) if route_ids else [];result['fare']=fares.for_plan(result,names,{x['id']:x for x in route_rows})
   if arg(q,'return')=='1' and result['found']:
    ready=result['arrival']+number(q,'visit',3600,0,86400)
    if ready<=deadline:
-    result['return']=routing.plan(day,dest,origin,ready,deadline,**opts);result['latest_return']=routing.latest(day,dest,origin,ready,deadline,**opts)
+    result['return']=routing.plan(day,dest,origin,ready,deadline,**opts);result['return']['fare']=fares.for_plan(result['return'],names,{x['id']:x for x in route_rows});result['latest_return']=routing.latest(day,dest,origin,ready,deadline,**opts)
    else:result['return']={'found':False,'message':'Visit ends after the selected return deadline.'}
   return result
  raise LookupError('Unknown API endpoint')

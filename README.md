@@ -12,7 +12,7 @@ An independent, local-first transit exploration project for Connecticut, Massach
 - Desktop controller for geographic route/stop browsing, timetables, outbound/return/latest/reachability searches, source cards, browser-local bookmarks/journal and JSON backups; Leaflet 1.9.4 is vendored.
 - Authoritative roadmap and persistent agent/workflow instructions.
 
-**Not yet implemented or accepted:** reviewed PDF fallback, unified PDF/GTFS provenance tables, safe versioned refresh/rollback, complete source discovery, comprehensive validation, browser acceptance and macOS hardware checks. Apache/macOS production hosting, PWA, native iOS and the New Hampshire/intercity expansion remain later milestones.
+**Not yet implemented or accepted:** automatic/current-PDF source discovery, PDF-to-stop review tooling, unified PDF/GTFS activation and version rollback, complete source discovery, comprehensive validation, browser acceptance and macOS hardware checks. The first reviewed-PDF registry and non-routing normalized tables now exist; Apache/macOS production hosting, PWA, native iOS and the New Hampshire/intercity expansion remain later milestones.
 
 For same-phone Android hosting in Termux, see [TERMUX.md](TERMUX.md). Device validation remains pending.
 
@@ -44,7 +44,7 @@ A failed agency download can leave coverage incomplete. An empty result is not p
 | CTrail / Hartford Line | Successful | 2 feed routes; planned schedule, not live arrivals |
 | WRTA | Successful | 24 routes; exception-date calendars |
 | Amtrak | Successful | 13 routes intersecting regional geographic scope |
-| MBTA | Successful | 14 commuter-rail routes only; bus/subway excluded |
+| MBTA | Successful locally after expanded rebuild | 366 selected routes / 113,694 trips / 7,604 stops across MBTA bus, subway/light rail and commuter rail; geographic clip and feed-published calendars apply |
 | PVTA | Successful | 62 routes; service period 2026-11-02 to 2026-12-19 in the 2026-11-14 import. Earlier HTTP 403s were a User-Agent artifact in the downloader, fixed 2026-11-14 |
 | RIPTA / other CT, MA, RI agencies | **Not imported** | Required expanded coverage remains pending |
 
@@ -69,6 +69,7 @@ Official GTFS ZIP -> import_gtfs.py -> local SQLite
 - `routing.py`: earliest arrival, geographic transfer estimates, latest-start search.
 - `server.py`: development HTTP server and versioned JSON endpoints; see [API.md](API.md).
 - `config/feeds.json`: checked-in official source URLs; no generated feed content or secrets.
+- `config/coverage.json`: explicit per-feed geographic and route/agency selection policy; MBTA is no longer hard-coded to rail-only.
 - `data/`: ignored raw archives, source metadata, validation output and normalized SQLite.
 - `tests/`: isolated synthetic unit tests; these do not establish full transit correctness.
 
@@ -82,6 +83,9 @@ Requires Python 3.11+ and an internet connection for initial official feed downl
 python3 scripts/prepare_data.py
 python3 -m unittest discover -s tests -v
 python3 server.py
+# From a normal terminal, start and test the server automatically:
+python3 scripts/external_smoke.py
+# Add --routing to exercise a Hartford scheduled query as well.
 ```
 
 The server warms its stop network and selected service-day connection list
@@ -93,6 +97,135 @@ The first command seeds `data/sources.json` only if missing, downloads feeds and
 Open `http://127.0.0.1:8000/api/v1/meta` to inspect the API. The page at `/` is the desktop proof of concept. Open `prototype.html` directly for the original schematic only.
 
 For an existing database, the server accepts `ATLAS_DATA_DIR=/absolute/data/path`; the importer currently writes to the repository's `data/` folder. Do not expose this development server on an unsecured remote interface.
+
+The core planner excludes optional networks by default. To download and import the optional MTA LIRR feed, run `python3 scripts/prepare_data.py --include-optional`; then use the planner's **Include optional MTA rail network** control. The feed is official scheduled data, not live service.
+
+For one terminal control panel, run `./scripts/atlas_tui.py`. It starts/stops the web app, prepares core or optional feeds, runs the smoke test, runs tests, shows feed status, checks Atlas/Ollama health, starts Ollama when needed, and launches **Percival**, the local transit companion. Its canonical character file is mirrored in [`personality.md`](personality.md) from the [`softnessasastrength/percival`](https://github.com/softnessasastrength/percival) repository.
+
+On a Chromebook/Linux shell, the shortest local-AI flow is:
+
+```bash
+./scripts/atlas_tui.py
+# press s: Start stack
+# press c: Chat with Percival
+# press a: Advanced controls
+```
+
+The default TUI is intentionally small: `s` starts Atlas and Ollama, `c`
+opens Percival, `r` refreshes health, `a` opens engineering controls, and `q`
+quits. Use `python3 scripts/atlas_tui.py --advanced` to go straight to the
+full menu.
+
+For a trusted Chromebook-to-phone setup, run the combined launcher explicitly
+in LAN mode:
+
+```bash
+python3 scripts/percival_lan.py --lan
+```
+
+Open `http://<chromebook-lan-address>:8000` on the phone. Open WebUI can use
+`http://<chromebook-lan-address>:8765/mcp`. LAN mode has no authentication;
+use it only on a private network and stop it with Control-C when finished.
+
+The same TUI is portable to Windows. Install Python 3.11+ and Ollama, make
+sure both `python` and `ollama` are on PATH, then from PowerShell run:
+
+```powershell
+python scripts\atlas_tui.py
+```
+
+Choose **Start Percival stack**, then **Chat with Percival**. Windows uses the
+same loopback ports (`8000` for Atlas and `11434` for Ollama); no Bash, WSL or
+Unix permissions are required.
+
+### MCP connector for local clankers
+
+The repository includes a dependency-free MCP stdio server at
+`scripts/atlas_mcp.py`. It lets an MCP-capable Ollama client or local agent
+search stops, inspect coverage, list departures, calculate supported fares and
+plan scheduled trips. It does not fetch live arrivals and it does not start
+the web server for you.
+
+In one terminal, start the Atlas API:
+
+```bash
+python3 scripts/run_local.py
+```
+
+Configure the MCP-capable client with this server command:
+
+```json
+{
+  "mcpServers": {
+    "transit-atlas": {
+      "command": "python3",
+      "args": ["/absolute/path/to/transfer-issues/scripts/atlas_mcp.py"],
+      "env": {"ATLAS_URL": "http://127.0.0.1:8000"}
+    }
+  }
+}
+```
+
+Ollama by itself is a model runner; the host must support MCP stdio. The
+connector remains local, requires no credentials, and requires the Atlas HTTP
+server to be running. Change `ATLAS_URL` for another local port.
+
+If you only have the Ollama CLI, use the included bridge to supply the MCP
+host:
+
+```bash
+python3 scripts/ollama_mcp_chat.py --model qwen3:1.7b
+```
+
+It requires Ollama (`ollama serve`, usually already running) and the Atlas
+server (`python3 scripts/run_local.py`). For a one-shot prompt, append it to
+the command. The bridge defaults to Qwen3 non-thinking mode for faster tool
+calls; add `--think` when you want slower, deeper reasoning. The bridge tells
+the model to resolve stop codes through Atlas before planning, and to ask for
+a missing departure time rather than inventing one. Numeric route prompts also
+receive a deterministic Atlas route lookup before the model answers, reducing
+small-model hallucinations such as inventing an agency or destination.
+
+For LibreChat, the current stdio connector can be configured directly in
+`librechat.yaml`:
+
+```yaml
+mcpServers:
+  transit-atlas:
+    type: stdio
+    command: python3
+    args:
+      - /home/brandenalgo/transfer-issues/scripts/atlas_mcp.py
+    env:
+      ATLAS_URL: http://127.0.0.1:8000
+```
+
+For Open WebUI, run the loopback HTTP adapter in a separate terminal:
+
+```bash
+python3 scripts/atlas_mcp_http.py
+```
+
+Register `http://127.0.0.1:8765/mcp` as a Streamable HTTP MCP server. The
+Atlas API still needs to be running on port 8000. If Open WebUI runs inside
+Docker, `127.0.0.1` refers to the container; use the host gateway/address
+that the container can reach and keep both services firewalled to your local
+machine.
+
+Open WebUI validation checklist:
+
+```bash
+python3 scripts/run_local.py
+python3 scripts/atlas_mcp_http.py
+```
+
+Then add the MCP server in Open WebUI, enable its tools for the selected
+model, and ask: `Use Atlas tools to identify route 905, then report its feed
+and source status.` The expected result names the loaded CTtransit route and
+does not invent an MTA destination. The HTTP adapter is local single-user
+infrastructure; it has no authentication and must not be exposed publicly.
+
+Trip planning uses a 12-hour AM/PM clock in the browser (`8:00 AM`, `11:59 PM`) while the API continues to use service-day seconds. This is schedule planning only; no recurring reminders or background jobs are configured.
 
 ## Important calculation limits
 

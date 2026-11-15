@@ -100,3 +100,95 @@
   warm classification median fell from 2.095 s to 1.194 s (43% faster). The
   12 focused bubble tests passed; the final full suite passed (42 tests),
   along with Python compilation and `git diff --check`.
+# Implementation record — reviewed PDF fallback foundation (Codex, 2026-11-15)
+
+- Added `pdf_ingest.py` and PDF tables to fresh SQLite builds. A PDF is accepted only with a human-reviewed manifest containing the official source URL, SHA-256, retrieval/effective dates, extraction method and reviewer metadata. OCR manifests must name an OCR extractor; invalid hashes, dates, times, duplicates and non-chronological stop times are rejected.
+- Normalized PDF documents, schedule rows and stop times coexist separately from GTFS. Ambiguous, pending, low-confidence or unlinked rows are retained for audit but are never marked routing-eligible; routing does not consume PDF rows yet. This prevents a timetable stop name from becoming invented geometry.
+- Added read-only `GET /api/v1/pdf-schedules` for source traceability and five fixture tests covering reviewed OCR records, ambiguity, pending/unlinked gating, hash mismatch and chronology. This is a foundation, not M0.1 completion: real official PDF extraction, source discovery, reviewer tooling, activation/version rollback and PDF routing remain open.
+
+## Codex session — external smoke test
+
+- Added `scripts/external_smoke.py`, a standard-library-only command that starts the real loopback server on a temporary port, checks the homepage/controller plus metadata, coverage, stop lookup and PDF registry endpoints, optionally exercises a Hartford plan, and always shuts the server down. This gives a normal Terminal workflow independent of Codex's socket restrictions and avoids claiming browser acceptance.
+
+## Codex session — MBTA full-mode coverage
+
+- Replaced the importer’s hard-coded MBTA commuter-rail-only filter with `config/coverage.json`. The MBTA policy selects agency `1`, route types 0–7, and a Boston/southern New England bounds policy; other feeds retain the default regional clip unless configured otherwise.
+- Corrected clipped-trip persistence to retain the published `stop_sequence` instead of re-numbering retained stops. Connections therefore cannot be invented across an out-of-scope stop.
+- Rebuilt the local database from the already-downloaded official MBTA archive without refreshing the network: 366 routes, 113,694 trips and 7,604 stops. The archive reported 605 invalid coordinates and 6,218 scoped transfer rules not modeled; these remain visible limitations. This is expanded scheduled coverage, not proof of live service or completed MBTA transfer/accessibility validation.
+
+## Codex session — minimalist transit theming
+
+- Added a separate `web/theme.css` layer so visual changes do not tangle with controller behavior. Light, dark and system modes now share the same tokenized surfaces, controls and focus treatment.
+- Chose a quiet, desaturated basemap with solid published route colors by feed/GTFS route color. Estimated walking/scooter links remain the single warm dashed visual, preserving the distinction between scheduled transit and geographic estimates. Route browsing buttons use the same solid color stripe.
+- No routing semantics or stored browser data changed. Static JS/CSS validation remains required; full visual browser acceptance still belongs in the external smoke/browser workflow.
+
+## Codex session — SLE and optional MTA rail
+
+- Verified the loaded data already contains Shore Line East: 40 `hartford:SLE` trips across New Haven, Branford, Guilford, Madison, Clinton, Westbrook, Old Saybrook and New London; the Amtrak archive also publishes a separate Shore Line East slice. It remains core regional scheduled coverage rather than a fabricated line.
+- Added an optional LIRR feed entry and `--include-optional` import path. Optional feeds are excluded from planner scans by default; the UI toggle sends `include_optional=1` to include them after import. This keeps the core map/planner focused while allowing broader MTA rail exploration.
+- Added a ranked keyboard-accessible stop picker with feed labels, replacing reliance on the browser-native datalist for station selection. Raw IDs remain accepted for compatibility but are no longer the primary user-facing label.
+
+## Codex session — source-backed fare estimates
+
+- Added `fares.py`, `/api/v1/fares`, and itinerary fare display. The first supported table is the adult one-way CTrail Hartford Line matrix effective 2026-07-01, with source and purchase links included in responses. Direct Hartford Line plans now show the calculated fare.
+- Added the current regular adult CTtransit local 2-hour fare as a simple supported fare. Express routes, reduced fares, passes, fare capping, and unsupported mixed-agency combinations remain explicit unknown/partial results instead of guessed prices.
+- Fare estimates are informational scheduled-data calculations, not ticket guarantees. Fare tests cover matrix symmetry, unknown stations, local-bus fare and express-zone gating.
+
+## Codex session — unified TUI and LIRR feed correction
+
+- Added `scripts/atlas_tui.py` as the single terminal control panel for starting/stopping the web app, core or optional feed preparation, external smoke tests, regression tests and feed status. It uses only the Python standard library and writes the server log to ignored `data/atlas-tui-server.log`.
+- Corrected the optional LIRR current static URL from `gtfs_lirr.zip` to `gtfslirr.zip`; the former produced the reported 403 because it was the wrong object name. The MTA developer resource confirms LIRR feeds are available without an API key, and the current static URL is recorded by the feed registry sources. The legacy MTA URL remains documented by public feed catalogs as historical fallback evidence.
+
+## Codex session — 12-hour trip scheduling
+
+- Browser time fields now accept explicit AM/PM values such as `8:00 AM` and `11:59 PM`; itinerary, departure, return and latest-start displays use a 12-hour clock. The API and routing engine remain integer service-day seconds, so existing clients and overnight behavior are preserved.
+- This is user-selected trip scheduling only. No recurring reminders, background jobs or automated notifications were added.
+
+## Codex session — Amtrak CT/MA station codes
+
+- Added `config/station_codes.json` for the Amtrak stations actually present in the loaded CT/MA regional data. The API now exposes `station_code`, state and human label fields; the stop picker displays codes such as HFD, NHV, SPG, WOR and BOS and searches them through the same ranked picker. Feed IDs remain unchanged.
+
+## Codex session — local MCP connector
+
+- Added `scripts/atlas_mcp.py`, a dependency-free newline-delimited JSON-RPC MCP server that exposes Atlas metadata, stop search, coverage, departures, supported fares and scheduled trip planning.
+- Chose stdio plus the existing loopback HTTP API so local Ollama hosts and other MCP-capable clankers can use the same routing and fare behavior as the browser without duplicating the engine or requiring credentials.
+- The connector deliberately does not launch the web server, fetch live arrivals or imply complete regional coverage. The Atlas API must be running locally, and the README includes a generic MCP client configuration example.
+
+## Codex session — Ollama MCP bridge
+
+- Added `scripts/ollama_mcp_chat.py` for local setups where Ollama is installed without a separate MCP-capable desktop host. It launches the Atlas MCP server, translates its schemas into Ollama `/api/chat` tools, executes returned tool calls, and feeds results back into the conversation.
+- Kept the bridge standard-library-only and local-only. Ollama remains on `127.0.0.1:11434`; Atlas remains on its loopback HTTP port. This is an adapter for local experimentation, not a remote service or production agent runtime.
+- The bridge defaults Qwen3's `think` API option to false for responsive transit lookups, with `--think` available for complex requests. This follows Ollama's documented Qwen3 thinking toggle rather than hiding model output after generation.
+
+## Codex session — local HTTP MCP adapter
+
+- Added `scripts/atlas_mcp_http.py` as a loopback-only Streamable HTTP adapter over the canonical MCP dispatcher. This makes the same Atlas tools usable by Open WebUI while preserving stdio for LibreChat and the Ollama bridge.
+- The adapter is deliberately single-user and local: it does not add authentication, remote exposure, live data or a second routing implementation. Docker clients need an explicit host-gateway configuration.
+
+## Codex session — Chromebook TUI AI controls
+
+- Extended `scripts/atlas_tui.py` with Atlas/Ollama health checks, model listing, guarded Ollama start/stop, and a foreground launch path for `ollama_mcp_chat.py`. This keeps the Chromebook workflow in one terminal without making Ollama or the MCP bridge a recurring background task.
+- Reworked the TUI into a simple default menu (`Start Atlas + Ollama`, chat, status, Advanced) while retaining the full feed/import/test controls under Advanced. The implementation stays Python/subprocess based and is portable to Windows PowerShell as well as Chromebook/Linux shells.
+
+## Codex session — Percival identity and personality
+
+- Named the local Ollama/MCP assistant **Percival** and mirrored the canonical `PERSONALITY.md` from `softnessasastrength/percival` into root-level `personality.md`. The transit bridge adds its domain-specific tool rules at runtime rather than forking the canonical character file.
+- The bridge loads that file at startup; the MCP server identifies as `percival-transit-atlas`; the TUI presents the simplified Percival stack/chat labels.
+- Personality is deliberately grounded: tool-first route/stop resolution, no invented transit facts, and clear separation between scheduled data and live or guaranteed service.
+- Added protocol and argument-mapping tests in `tests/test_mcp.py`.
+
+## Codex session — Percival evidence and visit workflow
+
+- Added `atlas_route_report` for source-aware route identity, feed status, optional service-date coverage and explicit limitations.
+- Added `atlas_come_to_me` for protected outbound/return visit planning. It is draft-only: no messages, bookings or purchases are sent.
+- Refined the TUI into a compact dashboard with one-key start/chat/status/advanced controls while preserving the complete engineering menu.
+
+## Codex session — Open WebUI transport validation
+
+- Added protocol-level HTTP adapter tests for MCP initialize, tool discovery and notifications, including Percival’s evidence and visit tools.
+- Documented the two-process Open WebUI validation flow and kept the adapter loopback-only. Actual Open WebUI UI acceptance remains a manual external check because no Open WebUI instance is attached to this environment.
+
+## Codex session — Chromebook LAN launcher
+
+- Added `scripts/percival_lan.py` to start Atlas and the MCP HTTP adapter together. Loopback remains the default; `--lan` is an explicit, loudly warned opt-in for a trusted private network.
+- This supports a lightweight phone client while keeping the database and Ollama model on the Chromebook. No authentication or public exposure is implied.

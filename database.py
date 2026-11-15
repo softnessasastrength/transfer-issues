@@ -2,6 +2,7 @@
 import sqlite3, pathlib, os, datetime, functools, json
 ROOT=pathlib.Path(__file__).resolve().parent
 DATA=pathlib.Path(os.environ.get('ATLAS_DATA_DIR',ROOT/'data'))
+STATION_CODES=json.loads((ROOT/'config'/'station_codes.json').read_text())
 def connect():
  d=sqlite3.connect(f'file:{DATA / "atlas.sqlite"}?mode=ro',uri=True);d.row_factory=sqlite3.Row;return d
 
@@ -33,6 +34,13 @@ def connections(day):
 
 def sources():return json.loads((DATA/'sources.json').read_text())
 
+def annotate_stop(stop):
+ code=STATION_CODES.get(stop.get('id'))
+ if code:return {**stop,'station_code':code['code'],'station_state':code['state'],'station_label':code['label']}
+ return stop
+
+def stops():return [annotate_stop(s) for s in query('SELECT * FROM stops')]
+
 def coverage(day):
  key=day.replace('-','');return [{'feed':s['id'],'status':s['status'],'in_service_period':s.get('service_start','99999999')<=key<=s.get('service_end','00000000'),'start':s.get('service_start'),'end':s.get('service_end')} for s in sources()]
 
@@ -51,7 +59,21 @@ def search_stops(text,feed='',limit=50):
  if feed:where+=' AND feed=?';args.append(feed)
  total=query('SELECT COUNT(*) n FROM stops WHERE '+where,tuple(args))[0]['n']
  rows=query('SELECT id,feed,name,lat,lon FROM stops WHERE '+where+" ORDER BY CASE WHEN LOWER(name) LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END,name,id LIMIT ?",tuple(args+[esc+'%',limit]))
- return dict(query=text,feed=feed or None,match_count=total,limit=limit,truncated=total>len(rows),stops=rows)
+ return dict(query=text,feed=feed or None,match_count=total,limit=limit,truncated=total>len(rows),stops=[annotate_stop(s) for s in rows])
+
+def pdf_schedules(document=''):
+ """Return reviewed-PDF rows separately from GTFS; absent tables mean none loaded."""
+ try:
+  args=();where=''
+  if document:where=' WHERE d.document_id=?';args=(document,)
+  docs=query('SELECT d.*, COUNT(s.schedule_id) AS schedule_count FROM pdf_documents d LEFT JOIN pdf_schedules s ON s.document_id=d.document_id'+where+' GROUP BY d.document_id ORDER BY d.feed,d.effective_start',args)
+  schedules=query('SELECT s.*, d.source_url, d.pdf_sha256, d.effective_start, d.effective_end, d.review_status, d.extraction_method, d.extractor FROM pdf_schedules s JOIN pdf_documents d ON d.document_id=s.document_id'+(' WHERE d.document_id=?' if document else '')+' ORDER BY s.route,s.direction,s.schedule_id',args)
+  for schedule in schedules:
+   schedule['stops']=query('SELECT seq,stop_id,stop_name,arrival,departure,timepoint,note FROM pdf_schedule_stops WHERE schedule_id=? ORDER BY seq',(schedule['schedule_id'],))
+  return {'documents':docs,'schedules':schedules,'routing_note':'PDF schedules are not consumed by routing; only reviewed, unambiguous, high-confidence rows are marked eligible.'}
+ except sqlite3.OperationalError as exc:
+  if 'no such table' in str(exc):return {'documents':[],'schedules':[],'routing_note':'No reviewed PDF schedules loaded.'}
+  raise
 
 def departures(stop,day,route=''):
  seen=set();out=[]

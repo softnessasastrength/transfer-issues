@@ -70,6 +70,8 @@ Acceptance: browse real loaded routes on a geographic map; open date-specific ti
 
 ## M0.R — Regional/intercity rail and New Hampshire (QUEUED; after current core work)
 
+MBTA full-mode coverage was authorized and implemented as a core regional-feed improvement on 2026-11-15: the importer now uses a checked-in coverage policy and loads selected MBTA bus, subway/light-rail and commuter-rail routes. M0.R remains queued; this does not implement its intercity ticketing, New Hampshire, station-constraint or reservation requirements.
+
 Core states remain CT, MA and RI. Extended scope adds New Hampshire passenger rail and practical connections for destinations without rail. Preserve GTFS-first / official structured data / reviewed official PDF priority. Do not implement this expansion ahead of M0.D and ingestion reliability.
 
 Relevant services to investigate and verify: Northeast Regional, Acela, Hartford Line / Amtrak Valley Flyer, Vermonter, Lake Shore Limited, Downeaster, and other Amtrak connections within or into the region. Prioritize Downeaster stations in NH, Boston/northern Massachusetts rail connections, relevant intercity buses, then necessary local last-mile transit. Target Exeter, Durham, Dover, Manchester NH, Nashua, Concord and relevant connecting destinations. Clearly distinguish Manchester CT and Manchester NH and direct-rail cities from bus-connected cities using verified sources. Do not infer station service or interchange opportunities from proximity alone.
@@ -93,6 +95,10 @@ Desktop controller and loopback launcher are implemented. 17 Python regressions/
 Status update (2026-11-14, Ember session; see DECISIONS.md): 29 Python tests pass, including 12 Mobility Bubble fixture tests for the new `/api/v1/bubble` endpoint. The browser smoke test PASSED in the Ember environment (Playwright + Chromium; the earlier socket blocker does not occur there), and a fresh five-feed import was completed with PVTA still unavailable (HTTP 403). macOS/Safari acceptance remains unperformed, so M0.D is still not marked complete.
 
 Status update (2026-11-14, Ember PVTA fix session; see DECISIONS.md): the PVTA 403 was a User-Agent artifact — pvta.com rejects the default urllib UA. The downloader now sends an explicit descriptive User-Agent and PVTA imports fully: 62 routes / 13,381 trips / 1,973 stops, service 20261102–20261219. Springfield local journeys and Hartford -> Springfield journeys continuing onto PVTA legs verify against the API, and the Mobility Bubble's unknown classification for the Springfield area is resolved (PVTA stops now classify on evidence). 30 Python tests pass, including a stubbed regression test for the download header. macOS/Safari acceptance remains unperformed, so M0.D is still not marked complete.
+
+Status update (2026-11-15, local MCP connector): `scripts/atlas_mcp.py` exposes the versioned Atlas API over dependency-free MCP stdio for MCP-capable local agents, including Ollama hosts. It is intentionally local-only and requires the Atlas HTTP server to be running; no live-arrival or remote-service guarantee is added. Protocol and argument-mapping tests are included.
+
+Status update (2026-11-15, Percival continuation): evidence-first route reports and protected draft-only visit planning are implemented in the MCP layer. The Open WebUI path has a loopback Streamable HTTP adapter with initialize/tool-discovery/notification tests and a manual validation checklist; actual Open WebUI execution remains unverified in this environment.
 
 ## M0.T — Same-phone Termux launch (AUTHORIZED; device validation pending)
 
