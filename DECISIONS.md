@@ -542,3 +542,17 @@ rather than blanket ours/theirs. Notable outcomes:
   one step. One stop (cttransit:597) misses bubble reachability by that
   single second (arrival 30370 vs latest_back 30369). Separate parity
   decision; not part of this change.
+
+## 2026-11-15 — Chat bridge loads only the character prompt (branch fix/mcp-chat-personality-extraction_muse)
+
+scripts/ollama_mcp_chat.py loaded the ENTIRE personality.md as the system
+prompt, so the §1 how-to, §3 rehearsal guide and §4 knobs leaked in and the
+model paraphrased its own instructions ("my personality is set based on
+the rules…", "I'm a fictional character") instead of inhabiting the
+character. personality.md's §1 already specified the correct behaviour:
+the model receives only §2, between the BEGIN/END CHARACTER PROMPT
+markers. The loader now extracts exactly that span
+(extract_character_prompt), falling back to the whole file when the markers
+are absent rather than failing. The appended operational rule is unchanged,
+and personality.md itself is untouched — voice edits remain the owner's
+rehearsal calls.
