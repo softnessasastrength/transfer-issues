@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">Transit Atlas provisional icon</title>
+<desc id="desc">White bus and train symbols above multicolored transit lines and station dots on a dark navy rounded square.</desc>
+<rect width="512" height="512" rx="104" fill="#09294B"/>
+<path d="M45 125 113 125 131 82 217 82 230 102 304 68 393 83 451 139" fill="none" stroke="#58BFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+<path d="M-20 424 C115 440 130 307 260 331 S390 385 530 302" fill="none" stroke="#42D4F4" stroke-width="19"/>
+<path d="M-20 490 C145 473 144 370 263 401 S380 480 530 397" fill="none" stroke="#43D44B" stroke-width="19"/>
+<path d="M190 540 C247 438 319 479 379 428 S460 401 530 441" fill="none" stroke="#F58231" stroke-width="17"/>
+<g stroke="#FFFFFF" stroke-width="9" fill="#FFFFFF">
+<circle cx="105" cy="404" r="17" fill="#4363D8"/><circle cx="260" cy="330" r="17" fill="#43D44B"/><circle cx="391" cy="385" r="17" fill="#911EB4"/>
+</g>
+<g fill="#FFFFFF">
+<rect x="70" y="204" width="145" height="113" rx="25"/>
+<rect x="93" y="180" width="99" height="34" rx="13"/>
+<rect x="91" y="221" width="103" height="49" rx="10" fill="#09294B"/>
+<circle cx="100" cy="293" r="10" fill="#09294B"/><circle cx="186" cy="293" r="10" fill="#09294B"/>
+<rect x="86" y="313" width="19" height="19" rx="4"/><rect x="178" y="313" width="19" height="19" rx="4"/>
+<rect x="264" y="173" width="167" height="151" rx="48"/>
+<rect x="285" y="201" width="125" height="72" rx="16" fill="#09294B"/>
+<rect x="322" y="184" width="52" height="9" rx="5" fill="#09294B"/>
+<circle cx="304" cy="295" r="11" fill="#09294B"/><circle cx="390" cy="295" r="11" fill="#09294B"/>
+</g>
+<path d="M285 331 265 359 M410 331 432 359" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+</svg>

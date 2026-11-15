@@ -27,6 +27,11 @@ class BubbleFixture(unittest.TestCase):
             patch.object(routing, 'connections', return_value=self.conns),
             patch.object(routing, 'neighbors',
                          side_effect=lambda s, r, m: walks.get(s, [])),
+            patch.object(routing, 'transfer_graph',
+                         return_value={s: [dict(to=t, seconds=sec, meters=m,
+                                                 source='synthetic')
+                                            for t, sec, m in edges]
+                                       for s, edges in walks.items()}),
             patch.object(routing, 'coverage', return_value=[]),
         ]
         for p in patches:
@@ -121,7 +126,7 @@ class BubbleHttpTests(unittest.TestCase):
     def test_bubble_endpoint_contract(self):
         fx = BubbleFixture('test_round_trip_stops_reachable')
         fx.setUp()
-        self.addCleanup(fx.tearDown)
+        self.addCleanup(fx.doCleanups)
         with patch.object(server.db, 'coverage', return_value=fx.coverage), \
                 patch.object(server.db, 'sources', return_value=fx.sources):
             r = server.handle('/api/v1/bubble',

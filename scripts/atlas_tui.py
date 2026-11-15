@@ -3,6 +3,7 @@
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import time
@@ -123,6 +124,58 @@ def chat_with_atlas():
  print(f'Launching Percival with {model}. Type quit to return to the TUI.')
  run('Ollama MCP chat',[sys.executable,str(ROOT/'scripts/ollama_mcp_chat.py'),'--model',model])
 
+def android_environment():
+ print('\n--- Android development environment ---')
+ tools=[('Java', 'java'), ('Gradle', 'gradle'), ('ADB', 'adb'), ('SDK manager', 'sdkmanager')]
+ for label,command in tools:
+  found=shutil.which(command)
+  print(f'{label:<14} {found or "missing"}')
+ sdk=os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT')
+ if sdk:
+  sdk_path=pathlib.Path(sdk).expanduser()
+  print(f'{"Android SDK":<14} {sdk_path} ({"present" if sdk_path.exists() else "missing directory"})')
+ else:
+  print('Android SDK    ANDROID_HOME/ANDROID_SDK_ROOT is not set')
+ project=ROOT/'android'
+ print(f'{"Percival app":<14} {"present" if (project/"app").is_dir() else "missing"}')
+ print('\nChromeOS setup path:')
+ print('  1. Enable Linux development environment in ChromeOS Settings.')
+ print('  2. Install Android Studio, or the Android command-line tools, on the Linux side.')
+ print('  3. Install Java 17, SDK platform 35 and build-tools through SDK Manager.')
+ print('  4. Set ANDROID_HOME to the SDK directory and add its platform-tools to PATH.')
+ print('  5. Connect a device with USB debugging, or create an emulator in Android Studio.')
+ print('\nNo package or system changes are made by this menu.')
+ pause()
+
+def android_build():
+ print('\n--- Android debug build ---')
+ gradle=shutil.which('gradle') or shutil.which('./gradlew')
+ if not gradle:
+  print('Gradle is not on PATH. Install Android Studio/Gradle, then retry.')
+  pause();return
+ try:
+  result=subprocess.run([gradle,':app:assembleDebug'],cwd=ROOT/'android',check=False)
+  print(f'Android debug build: exit {result.returncode}')
+  if result.returncode==0:
+   print(f'APK: {ROOT/"android/app/build/outputs/apk/debug/app-debug.apk"}')
+ except KeyboardInterrupt:
+  print('\nInterrupted.')
+ pause()
+
+def android_menu():
+ while True:
+  print('''\n--- Android development ---
+[1] Check Android toolchain
+[2] Build debug APK
+[3] Print ChromeOS setup path
+[b] Back''')
+  choice=input('Android: ').strip().lower()
+  if choice=='1':android_environment()
+  elif choice=='2':android_build()
+  elif choice=='3':android_environment()
+  elif choice=='b':return
+  else:print('Choose a listed option.')
+
 def start_stack():
  print('\nStarting Atlas and Ollama...')
  start_server(pause_after=False)
@@ -144,6 +197,7 @@ def advanced_menu():
 [10] Start Ollama
 [11] Chat with Atlas via Ollama
 [12] Stop TUI-started Ollama
+[13] Android development
 [b] Back''')
   choice=input('Advanced: ').strip().lower()
   if choice=='1':start_server()
@@ -158,6 +212,7 @@ def advanced_menu():
   elif choice=='10':start_ollama()
   elif choice=='11':chat_with_atlas()
   elif choice=='12':stop_ollama()
+  elif choice=='13':android_menu()
   elif choice=='b':return
   else:print('Choose a listed option.')
 
@@ -181,7 +236,8 @@ def main():
   print(compact_status())
   print('')
   print('  [s] Start stack     [c] Chat')
-  print('  [r] Refresh status   [a] Advanced')
+  print('  [r] Refresh status   [d] Android dev')
+  print('  [a] Advanced')
   print('  [q] Quit')
   try:choice=input('\n  percival> ').strip().lower()
   except (EOFError,KeyboardInterrupt):choice='q'
@@ -192,6 +248,7 @@ def main():
    chat_with_atlas()
   elif choice in ('r','refresh','3'):
    print('\n'+compact_status());time.sleep(1)
+  elif choice in ('d','android','5'):android_menu()
   elif choice in ('a','advanced','4'):advanced_menu()
   elif choice in ('q','quit','0'):
    if server and server.poll() is None:stop_server(pause_after=False)

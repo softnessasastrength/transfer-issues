@@ -46,10 +46,17 @@ bounded and verification explicit, as this list already does.
    fallback, Metro map UI, API v1 contract, M0.R), skipping item 2, which
    task 2 above already covers.
 
-COORDINATION: Ember is concurrently building Vercel deployability for the
-`percival` repo, then for THIS repo, on `*_muse` branches. Do not build
-deployment scaffolding here; Ember's work lands it, and this file will be
-updated when it does.
+COORDINATION — UPDATED 2026-11-14: Ember's Vercel deployability work has
+LANDED for both repos (percival earlier tonight; this repo via the
+`vercel-deployable_muse` PR — see the Vercel section in DECISIONS.md,
+2026-11-14). Deployment scaffolding exists: `vercel.json`, `api/index.py`
+(a thin adapter over `server.handle`), `.vercelignore`. Do not rebuild
+it. The LIVE deploy is the owner's tap and has not happened. One
+interaction with task 2 worth knowing: on Vercel, every cold function
+instance pays the ~11 s of cache builds the Latency profile measures, so
+the L2.x chunks matter there too — but the local server's startup
+pre-warm (L2.1) does not transfer literally; the serverless cold path is
+the profile's cold path, per new date per instance.
 
 ### Task 2, pre-cut into Luna-sized chunks (owner instruction, 2026-11-14)
 

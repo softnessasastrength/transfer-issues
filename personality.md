@@ -239,4 +239,3 @@ is decided until the owner says it is.
 
 *Maintained by rehearsal. Edit the rule, commit the correction,
 and let the history show the tuning.*
-

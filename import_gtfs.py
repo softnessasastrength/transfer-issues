@@ -1,5 +1,6 @@
 """Build the atlas database from official GTFS archives. Python 3.11+, stdlib only."""
 import csv, io, zipfile, sqlite3, json, hashlib, datetime, pathlib, collections, argparse, urllib.request
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pdf_ingest import SCHEMA as PDF_SCHEMA
 ROOT=pathlib.Path(__file__).resolve().parent
 DATA=ROOT/'data'
@@ -44,8 +45,8 @@ def build(include_optional=False):
  PRAGMA journal_mode=OFF;
  CREATE TABLE stops(id TEXT PRIMARY KEY,feed TEXT,name TEXT,lat REAL,lon REAL,parent TEXT,wheelchair TEXT);
  CREATE TABLE routes(id TEXT PRIMARY KEY,feed TEXT,short TEXT,name TEXT,type TEXT,color TEXT,agency TEXT);
- CREATE TABLE trips(id TEXT PRIMARY KEY,route TEXT,service TEXT,headsign TEXT,direction TEXT,shape TEXT);
- CREATE TABLE times(trip TEXT,seq INTEGER,stop TEXT,arr INTEGER,dep INTEGER,pickup INTEGER,dropoff INTEGER);
+ CREATE TABLE trips(id TEXT PRIMARY KEY,route TEXT,service TEXT,headsign TEXT,direction TEXT,shape TEXT,timezone TEXT);
+ CREATE TABLE times(trip TEXT,seq INTEGER,stop TEXT,arr INTEGER,dep INTEGER,pickup INTEGER,dropoff INTEGER,ordinal INTEGER);
  CREATE TABLE calendar(service TEXT PRIMARY KEY,start TEXT,end TEXT,days TEXT);
  CREATE TABLE exceptions(service TEXT,date TEXT,type INTEGER);
  CREATE TABLE shapes(id TEXT,seq INTEGER,lat REAL,lon REAL);
@@ -60,7 +61,10 @@ def build(include_optional=False):
   required={'agency.txt','stops.txt','routes.txt','trips.txt','stop_times.txt'}
   if required-set(n.rsplit('/',1)[-1] for n in z.namelist()):raise ValueError(feed+' missing required files')
   agents={a['agency_id']:a for a in rows(z,'agency')}; source['agencies']=list(agents.values());source['feed_info']=list(rows(z,'feed_info'))
-  if any(a['agency_timezone']!='America/New_York' for a in agents.values()):r['warnings']['non_eastern_agencies']=1
+  for agency in agents.values():
+   try:ZoneInfo(agency['agency_timezone'])
+   except (KeyError,ZoneInfoNotFoundError) as exc:raise ValueError(feed+' has an invalid agency timezone') from exc
+  if any(a['agency_timezone']!='America/New_York' for a in agents.values()):r['warnings']['non_eastern_agencies_normalized']=1
   stops={s['stop_id']:s for s in rows(z,'stops')}; valid={}
   for k,s in stops.items():
    try:
@@ -89,9 +93,16 @@ def build(include_optional=False):
    if len({s[0] for s in ts})!=len(ts) or any(b[2]<a[3] for a,b in zip(ts,ts[1:])):r['errors']['non_monotonic_trip']=r['errors'].get('non_monotonic_trip',0)+1;continue
    if sum(s[1] in valid for s in ts)<2:continue
    used_routes.add(t['route_id']);shape=t.get('shape_id','');used_shapes.add(shape)
-   db.execute('INSERT INTO trips VALUES(?,?,?,?,?,?)',(prefix(k),prefix(t['route_id']),prefix(t['service_id']),t.get('trip_headsign',''),t.get('direction_id',''),prefix(shape)))
-   # Keep sequence gaps so the router never invents a connection over an omitted stop.
-   db.executemany('INSERT INTO times VALUES(?,?,?,?,?,?,?)',[(prefix(k),seq,prefix(s),arr,dep,pu,do) for seq,s,arr,dep,pu,do in ts if s in valid]);used_stops.update(s[1] for s in ts if s[1] in valid);n+=1
+   agency=agents.get(routes[t['route_id']].get('agency_id',''))
+   if agency is None and len(agents)==1:agency=next(iter(agents.values()))
+   if agency is None:raise ValueError(feed+' route has no resolvable agency timezone')
+   db.execute('INSERT INTO trips VALUES(?,?,?,?,?,?,?)',(prefix(k),prefix(t['route_id']),prefix(t['service_id']),t.get('trip_headsign',''),t.get('direction_id',''),prefix(shape),agency['agency_timezone']))
+   # Preserve the publisher's sequence and the position in the full trip.
+   # Ordinal 0 -> 1 connects even if the published sequence is 10 -> 20;
+   # retaining 0 and 2 after clipping stop 1 cannot fabricate a segment.
+   db.executemany('INSERT INTO times VALUES(?,?,?,?,?,?,?,?)',
+    [(prefix(k),seq,prefix(s),arr,dep,pu,do,i)
+     for i,(seq,s,arr,dep,pu,do) in enumerate(ts) if s in valid]);used_stops.update(s[1] for s in ts if s[1] in valid);n+=1
   for k in used_routes:
    t=routes[k];db.execute('INSERT INTO routes VALUES(?,?,?,?,?,?,?)',(prefix(k),feed,t.get('route_short_name',''),t.get('route_long_name',''),t['route_type'],t.get('route_color',''),agents.get(t.get('agency_id',''),{}).get('agency_name',feed)))
   for s in rows(z,'shapes'):
@@ -109,10 +120,41 @@ def build(include_optional=False):
   dates=[c['start_date'] for c in cal]+[c['end_date'] for c in cal]+[e['date'] for e in exc]
   source.update(status='imported',service_start=min(dates),service_end=max(dates),scope=coverage_policy(feed).get('description','All valid trips in geographic scope'))
   r['counts']={'stops':len(used_stops),'routes':len(used_routes),'trips':n};db.commit()
- db.executescript('''CREATE INDEX times_trip ON times(trip,seq);CREATE INDEX times_stop ON times(stop,dep);CREATE INDEX trips_service ON trips(service);CREATE INDEX shapes_id ON shapes(id,seq);CREATE INDEX exceptions_date ON exceptions(date);DELETE FROM stops WHERE id NOT IN (SELECT stop FROM times);''');db.commit()
+ db.executescript('''CREATE INDEX times_trip ON times(trip,seq);CREATE INDEX times_ordinal ON times(trip,ordinal);CREATE INDEX times_stop ON times(stop,dep);CREATE INDEX trips_service ON trips(service);CREATE INDEX shapes_id ON shapes(id,seq);CREATE INDEX exceptions_date ON exceptions(date);
+ DELETE FROM stops WHERE id NOT IN (SELECT stop FROM times) AND id NOT IN (SELECT parent FROM stops WHERE id IN (SELECT stop FROM times));
+ DELETE FROM transfers WHERE a NOT IN (SELECT id FROM stops) OR b NOT IN (SELECT id FROM stops);''');db.commit()
  for source in sources:
   r=next(x for x in reports if x['feed']==source['id']);source['validation']=r
  db.close();tmp.replace(DATA/'atlas.sqlite');(DATA/'sources.json').write_text(json.dumps(sources,indent=2));(DATA/'validation.json').write_text(json.dumps(reports,indent=2));print(json.dumps(reports,indent=2))
+
+def download_gtfs(source):
+ """Try the publisher's known static GTFS URLs; never substitute unverified schedules."""
+ urls=[source['url']]
+ if source['id']=='pvta':
+  # PVTA publishes the same feed on HTTP and HTTPS; some hosts reject one scheme.
+  urls=['https://www.pvta.com/g_trans/google_transit.zip',
+        'http://www.pvta.com/g_trans/google_transit.zip']
+ errors=[]
+ for url in dict.fromkeys(urls):
+  try:
+   req=urllib.request.Request(url,headers={
+    'User-Agent':USER_AGENT,
+    'Accept':'application/zip, application/octet-stream, */*'})
+   with urllib.request.urlopen(req,timeout=90) as response:
+    content=response.read()
+    last_modified=response.headers.get('Last-Modified')
+    final_url=response.geturl() if hasattr(response,'geturl') else url
+   if len(content)>60*1024*1024:raise ValueError('GTFS archive exceeds 60 MiB safety limit')
+   with zipfile.ZipFile(io.BytesIO(content)) as archive:
+    bad=archive.testzip()
+    if bad:raise ValueError('Corrupt GTFS member: '+bad)
+    names={name.rsplit('/',1)[-1] for name in archive.namelist()}
+    required={'agency.txt','stops.txt','routes.txt','trips.txt','stop_times.txt'}
+    if not required.issubset(names):raise ValueError('GTFS missing required files: '+str(sorted(required-names)))
+   return content,last_modified,final_url
+  except (OSError,ValueError,zipfile.BadZipFile) as exc:
+   errors.append(url+': '+str(exc))
+ raise RuntimeError('All official GTFS download attempts failed: '+'; '.join(errors))
 
 def refresh(include_optional=False):
  sources=json.loads((DATA/'sources.json').read_text())
@@ -120,11 +162,19 @@ def refresh(include_optional=False):
   if s.get('optional') and not include_optional:
    s['status']='optional_disabled';continue
   try:
-   req=urllib.request.Request(s['url'],headers={'User-Agent':USER_AGENT})
-   with urllib.request.urlopen(req,timeout=90) as r:content=r.read();lm=r.headers.get('Last-Modified')
-   with zipfile.ZipFile(io.BytesIO(content)) as z:z.testzip()
-   (DATA/(s['id']+'.zip')).write_bytes(content);s.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),last_modified=lm,bytes=len(content));s.pop('error',None);s.pop('refresh_error',None)
-  except Exception as e:s['refresh_error']=str(e);print(s['id'],e)
+   content,last_modified,final_url=download_gtfs(s)
+   # Write only after successful archive validation. Keep the prior ZIP on failure.
+   target=DATA/(s['id']+'.zip')
+   temporary=target.with_suffix('.download')
+   temporary.write_bytes(content)
+   temporary.replace(target)
+   s.update(status='downloaded',retrieved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            last_modified=last_modified,bytes=len(content),download_url=final_url)
+   s.pop('refresh_error',None)
+   s.pop('error',None)
+  except Exception as exc:
+   s['refresh_error']=str(exc)
+   print(s['id'],exc)
  (DATA/'sources.json').write_text(json.dumps(sources,indent=2))
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--refresh',action='store_true');p.add_argument('--include-optional',action='store_true');a=p.parse_args()

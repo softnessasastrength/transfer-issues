@@ -24,7 +24,7 @@ class CalendarTests(unittest.TestCase):
 class RoutingTests(unittest.TestCase):
  def setUp(self):
   self.stops={k:dict(id=k,lat=42.,lon=-72.,parent='') for k in ['a','b','c']}
-  for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
+  for p in [patch.object(routing,'network',return_value=(self.stops,{},{})),patch.object(routing,'neighbors',return_value=[]),patch.object(routing,'transfer_graph',return_value={}),patch.object(routing,'coverage',return_value=[])]:p.start();self.addCleanup(p.stop)
  def c(self,dep,arr,a,b,trip,seq=0,pu=0,do=0,route='test:route'):return (dep,arr,a,b,trip,route,'Test',pu,do,seq)
  def test_route_chain_requires_ordered_routes(self):
   journey=[self.c(100,200,'a','b','t',route='cttransit:905'),self.c(600,700,'b','c','u',route='cttransit:82')]
@@ -46,7 +46,7 @@ class RoutingTests(unittest.TestCase):
  def test_latest(self):
   with patch.object(routing,'connections',return_value=[self.c(600,700,'a','b','t'),self.c(1200,1300,'a','b','u')]):self.assertEqual(routing.latest('2026-11-12','a','b',0,1400)['latest_start_minute'],1200)
  def test_ground_estimate(self):
-  with patch.object(routing,'connections',return_value=[]),patch.object(routing,'neighbors',side_effect=lambda s,r,m:[('b',120,150)] if s=='a' else []):
+  with patch.object(routing,'connections',return_value=[]),patch.object(routing,'transfer_graph',return_value={'a':[{'to':'b','seconds':120,'meters':150,'estimated':True,'source':'synthetic'}]}):
    r=routing.plan('2026-11-12','a','b',0,400);self.assertTrue(r['legs'][0]['estimated']);self.assertEqual(r['estimated_ground_meters'],150)
  def test_destination_exit_preserves_local_and_intercity_itineraries(self):
   class Counted(list):
@@ -82,6 +82,17 @@ class ApiTests(unittest.TestCase):
   with self.assertRaises(LookupError):server.handle('/api/v1/unknown',{})
  def test_invalid_range(self):
   with self.assertRaises(ValueError):server.number({'time':['999999']},'time',0,0,86399)
+ def test_boolean_and_enum_options_are_strict(self):
+  with self.assertRaises(ValueError):server.flag({'return':['2']},'return')
+  with self.assertRaises(ValueError):server.handle('/api/v1/plan',{'kind':['soon']})
+ def test_pagination_is_opt_in_and_has_totals(self):
+  rows=list(range(5))
+  self.assertEqual(server.page_options({}),None)
+  self.assertEqual(server.page_slice(rows,2,2),([2,3],{'page':2,'page_size':2,'total':5,'has_next':True}))
+ def test_compact_meta_omits_large_arrays(self):
+  with patch.object(server.db,'sources',return_value=[]), patch.object(server.db,'query',return_value=[]), patch.object(server,'CITIES',[('Hartford',0,0)]):
+   result=server.handle('/api/v1/meta',{'compact':['1']})
+  self.assertNotIn('routes',result);self.assertNotIn('stops',result);self.assertEqual(result['api_version'],'1.0')
  def test_warm_caches_builds_selected_date(self):
   with patch.object(server.routing,'network') as network,patch.object(server.db,'connections') as connections:
    self.assertEqual(server.warm_caches('2026-11-17'),'2026-11-17')
@@ -94,7 +105,8 @@ class DownloadTests(unittest.TestCase):
  def test_refresh_sends_user_agent(self):
   import io,json,pathlib,tempfile,urllib.request,zipfile
   buf=io.BytesIO()
-  with zipfile.ZipFile(buf,'w') as z:z.writestr('agency.txt','x')
+  with zipfile.ZipFile(buf,'w') as z:
+   for name in ['agency.txt','stops.txt','routes.txt','trips.txt','stop_times.txt']:z.writestr(name,'x')
   seen={}
   class Resp:
    headers={'Last-Modified':'Mon, 02 Nov 2026 19:12:54 GMT'}
