@@ -110,13 +110,15 @@ TOOLS = [
     },
     {
         "name": "atlas_fare",
-        "description": "Calculate a supported scheduled fare, currently CTrail Hartford Line direct fares and CTtransit regular local fares.",
+        "description": "Calculate a source-backed rough fare estimate: CTrail Hartford Line and Shore Line East station pairs, CTtransit local fares, CTtransit express zone fares (requires from_zone/to_zone, published zones A-F), and PVTA (currently fare-free; B79 by station pair).",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "from_stop": {"type": "string", "description": "Origin stop ID."},
                 "to_stop": {"type": "string", "description": "Destination stop ID."},
                 "route": {"type": "string", "description": "Optional route ID, for example hartford:HART."},
+                "from_zone": {"type": "string", "description": "CTtransit express boarding fare zone (A-F) from the route's published fare-zone map."},
+                "to_zone": {"type": "string", "description": "CTtransit express exit fare zone (A-F) from the route's published fare-zone map."},
             },
             "required": ["from_stop", "to_stop"],
             "additionalProperties": False,
@@ -259,6 +261,10 @@ def call_tool(name, args):
         params = {"from": args["from_stop"], "to": args["to_stop"]}
         if args.get("route"):
             params["route"] = args["route"]
+        if args.get("from_zone"):
+            params["from_zone"] = args["from_zone"]
+        if args.get("to_zone"):
+            params["to_zone"] = args["to_zone"]
         return _api("/api/v1/fares", params)
     if name == "atlas_plan_trip":
         params = {
