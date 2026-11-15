@@ -436,3 +436,69 @@ rather than blanket ours/theirs. Notable outcomes:
   and 755 for the launcher, the maintainer scripts, shell scripts and
   every file git records as executable, with root ownership forced via
   `dpkg-deb --root-owner-group` — the same package from any checkout.
+
+## Fare zones, transfer window and PVTA fare-free — 2026-11-15 (Muse)
+
+- **Hartford Line verified, not just carried over.** All 28 adult one-way
+  pairs in `fares.py` were checked cell-by-cell against the official
+  CTrail fare table PDF effective 2026-07-01 (hartfordline.com) on
+  2026-11-15; the existing table was exact, so it is unchanged.
+- **Shore Line East added as a station-pair matrix.** CTDOT publishes
+  SLE fares as a station matrix (portal.ct.gov CTrail fares PDF,
+  effective 2026-07-01), not zones; modelled like the Hartford Line
+  table. Both New Haven stations (Union Station, State Street) map to
+  the published "New Haven" fare point.
+- **CTtransit express zone system modelled as data.** Official fare
+  panels (route 921 map; timetable panels for 901/903/905/907/918/921)
+  state zones are labelled A–F per route, zones traveled =
+  min(5, max(2, |boarding − exit| + 1)), one-way $3.20/$4.10/$5.00/$6.00
+  for 2/3/4/5 zones. The priced route set is the 19 express routes
+  verified route-by-route in CTtransit's current GTFS (901, 903, 904,
+  905, 906, 910, 912, 913, 914, 918, 919, 921, 923, 926, 927, 928, 940,
+  950, 971); a 9xx short name outside that set is an explicit unknown,
+  never assumed express and never priced as local.
+- **Documented gap — stop→zone.** A stop's zone is published only as
+  geography on printed route maps. CTtransit's GTFS ships `zone_id`
+  empty for all 9,611 stops and has no fare_attributes/fare_rules, so
+  express legs inside itinerary plans remain explicit unknowns
+  ("needs a zone count"); `/api/v1/fares` prices express trips when the
+  caller supplies `from_zone`/`to_zone`, and `fares.for_plan` accepts
+  an `express_zones` mapping for callers that know them.
+- **2-Hour Pass (transfer) policy wired in.** Official text
+  (cttransit.com/fares/transfers): passes are issued with fare payment;
+  local passes give unlimited free local transfers and express travel
+  needs additional payment (the difference, per CTtransit's Token
+  Transit guidance); "Express 2-Hour passes retain the full value of
+  the original zone fare paid, providing unlimited local and express
+  rides for the number of zones paid", with additional payment for a
+  higher zone fare. Timed itineraries now price leg-by-leg: covered
+  legs are itemized at $0 with `covered: true`, top-ups are charged as
+  differences, and the window is anchored at the first purchase (the
+  official text does not restart it on a top-up — recorded assumption).
+  Rail legs neither use nor extend the bus pass. An unpriced express
+  leg breaks the chain: later bus legs are priced as new purchases with
+  a note rather than silently assumed covered. Untimed itineraries keep
+  the previous behaviour exactly (local legs collapse to one $1.75
+  entry). The owner's lead — "a two-hour transfer policy with the
+  purchase of an express ticket" — is confirmed and is broader than
+  stated: the express pass also covers further express rides up to the
+  zones paid, and a local purchase carries value toward express.
+- **PVTA is $0, dated, with one exception.** MassDOT's FY27 RTA
+  assistance (mass.gov, 2026-06-10) funds systemwide year-round
+  fare-free RTA service; PVTA's contract runs to 2027-06-30 and its
+  FY2025 statements record fares collected only on the B79
+  Amherst–Worcester route. PVTA legs price at $0 labelled
+  "currently fare-free" with the as-of date; the B79 is priced from its
+  published town-pair table on pvta.com (pairs the table marks "X"
+  stay explicit unknowns). The legacy $1.50 table still shown on
+  PVTA's fares page is historical context and was NOT modelled.
+- **MBTA deferred.** Commuter-rail zone fares (1A–10 plus interzone)
+  are the bulk of MBTA fare geography; adding only the bus/subway flat
+  fares would misrepresent mixed itineraries. Recorded as a gap, not
+  priced.
+- **Labelling.** New fare results carry `estimate: "rough"`, a `basis`
+  (flat / zone count / station pair) and an `as_of` retrieval date.
+  Hartford Line results are byte-identical to before. One deliberate
+  label correction: a bus-only itinerary's top-level `product` now
+  names the CTtransit local fare instead of the Hartford Line product
+  (amounts and statuses unchanged).
