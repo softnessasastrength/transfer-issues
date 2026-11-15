@@ -298,3 +298,23 @@ scope-limited MCP access and rate limits exist.
 - No offline transit-pack format exists in this repository; only the versioned
   browser discoveries backup exists. Offline/PWA packs remain deferred and no
   format was invented for this feature.
+# 2026-11-15 — published stop order is not numeric adjacency
+
+- Reproduced a missing scheduled connection when a GTFS trip used published
+  stop sequences 10 → 20. A query that merely selects the next retained row
+  would fabricate a connection when the intervening published stop was
+  geographically clipped.
+- Store the full trip ordinal alongside the untouched published sequence.
+  Join connections on consecutive ordinals and pass those ordinals to the
+  scanner and Mobility Bubble for through-ride continuity. Old databases
+  fail with an explicit rebuild message instead of silently using the flawed
+  numeric join. No downloaded feed was modified in this worktree.
+- Five deterministic adjacency/import tests and the full suite provide
+  regression evidence. See `ARCHITECTURE_CORRECTNESS.md` for invariants,
+  migration and the larger unresolved temporal questions.
+- A disposable CTtransit import from the locally downloaded archive produced
+  736,288 stop times and 406,627 connections on 2026-11-15; the archive had
+  no published sequence gaps. This validates real-feed compatibility, while
+  the synthetic fixture proves the gap behavior. The active database was
+  untouched. The full suite passed 100 tests; a Bubble HTTP test patch leak
+  was fixed after it caused a false failure in the combined run.

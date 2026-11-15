@@ -121,7 +121,7 @@ class BubbleHttpTests(unittest.TestCase):
     def test_bubble_endpoint_contract(self):
         fx = BubbleFixture('test_round_trip_stops_reachable')
         fx.setUp()
-        self.addCleanup(fx.tearDown)
+        self.addCleanup(fx.doCleanups)
         with patch.object(server.db, 'coverage', return_value=fx.coverage), \
                 patch.object(server.db, 'sources', return_value=fx.sources):
             r = server.handle('/api/v1/bubble',

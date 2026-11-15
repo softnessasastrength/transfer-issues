@@ -1,5 +1,6 @@
 """Read-only database boundary and date-aware schedule queries."""
 import sqlite3, pathlib, os, datetime, functools, json
+from contextlib import closing
 ROOT=pathlib.Path(__file__).resolve().parent
 DATA=pathlib.Path(os.environ.get('ATLAS_DATA_DIR',ROOT/'data'))
 STATION_CODES=json.loads((ROOT/'config'/'station_codes.json').read_text())
@@ -7,7 +8,7 @@ def connect():
  d=sqlite3.connect(f'file:{DATA / "atlas.sqlite"}?mode=ro',uri=True);d.row_factory=sqlite3.Row;return d
 
 def query(sql,args=()):
- with connect() as d:return [dict(r) for r in d.execute(sql,args)]
+ with closing(connect()) as d:return [dict(r) for r in d.execute(sql,args)]
 
 def active_services(day):
  date=datetime.date.fromisoformat(day);key=date.strftime('%Y%m%d')
@@ -21,12 +22,14 @@ def active_services(day):
 def connections(day):
  """Service-day seconds, including previous-day 24+ hours and next-day departures."""
  result=[];date=datetime.date.fromisoformat(day)
- with connect() as d:
+ with closing(connect()) as d:
+  if 'ordinal' not in {row['name'] for row in d.execute('PRAGMA table_info(times)')}:
+   raise RuntimeError('Atlas database uses the old stop adjacency format; rebuild from downloaded GTFS archives before routing.')
   for offset in [-1,0,1]:
    sd=(date+datetime.timedelta(days=offset)).isoformat();services=active_services(sd)
    for service in services:
-    for r in d.execute('''SELECT a.stop,b.stop,a.dep,b.arr,t.id,t.route,t.headsign,a.pickup,b.dropoff,a.seq
-      FROM trips t JOIN times a ON a.trip=t.id JOIN times b ON b.trip=t.id AND b.seq=a.seq+1
+    for r in d.execute('''SELECT a.stop,b.stop,a.dep,b.arr,t.id,t.route,t.headsign,a.pickup,b.dropoff,a.ordinal
+      FROM trips t JOIN times a ON a.trip=t.id JOIN times b ON b.trip=t.id AND b.ordinal=a.ordinal+1
       WHERE t.service=?''',(service,)):
      a,b,dep,arr,trip,route,head,pu,do,seq=r;dep+=offset*86400;arr+=offset*86400
      if arr>=0 and dep<=172800:result.append((dep,arr,a,b,sd+'|'+trip,route,head,pu,do,seq))
