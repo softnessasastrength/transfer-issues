@@ -109,6 +109,7 @@ function renderPersonal() {
 function updateDate(){ const d=$('date').value; $('dayLabel').textContent=d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Choose a travel date'; }
 async function init() {
  installLiveView();
+ $('liveProvider').options[1].textContent='CTtransit JSON';$('liveProvider').options[2].textContent='PVTA · schedule only';
  updatePreferences();
  configureTimeField('time','8:00 AM');configureTimeField('deadline','11:59 PM');
  $('theme').onchange=()=>{preferences.theme=$('theme').value;savePreferences();};
