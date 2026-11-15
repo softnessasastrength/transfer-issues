@@ -649,56 +649,47 @@ stays prominent, while result stops keep the ring style. A "Stops" toggle in
 the map controls hides the ambient layer entirely (aria-pressed, default on).
 Popups are unchanged, so click-a-stop planning (Start here / Go here / Meet
 here / Departures) works exactly as before wherever stops are shown.
-## F-009 saved commute profiles — 2026-11-15
 
-- Owner-requested (Percival feature queue F-009): a commute is a standing
-  profile, not a retyped plan query. Profiles live in the existing
-  device-local Percival preferences file under a `commutes` key, validated
-  by `percival_memory` like every other preference; nothing is stored in
-  git and nothing is inferred from conversation.
-- Profile shape: home/work as Atlas stop IDs, a preferred route chain per
-  direction (outbound and return stored separately — asymmetry is the
-  normal case), and declared rideshare legs `{from_stop, to}` where
-  transit ends before the endpoint.
-- Evaluation (`commute.py`; MCP tools `percival_get_commute`,
-  `percival_set_commute`, `percival_clear_commute`, `atlas_commute_evaluate`)
-  reuses `/api/v1/plan` only; it never reimplements routing. The declared
-  chain is planned first; where it cannot run on the evaluated date, the
-  unpinned answer is shown and the note says the preference could not be
-  honoured; where it runs, an unpinned comparison states any time cost.
-- Rideshare legs are estimates only (F-004 doctrine): haversine distance
-  x 1.3 road circuity, drive time at 35-60 km/h, labelled "rideshare —
-  estimated drive, not a quote, not booked"; no price, no booking path,
-  no rideshare API. Stop coordinates resolve through the route endpoint's
-  published stop lists (the stops endpoint searches names, not IDs); a
-  stop no hinted route serves yields an explicit unknown, never a guess.
-- The return evaluation always includes the last viable return, with the
-  search bounded to the service day (deadline 28:00 GTFS extended time).
-  An unbounded window demonstrably surfaces the next evening's service
-  (a 42:53 "departure") and calls it tonight's last return.
-- Verified against the packaged ten-feed data for Tuesday 2026-11-17 with
-  representative stops (Enfield St @ Elm St -> Shoppes at Buckland Hills):
-  outbound chain 905 -> 82 applied, 07:00 -> 08:41; return chain 82 ->
-  Hartford Line applied, transit ends Windsor Locks 19:19, rideshare
-  estimate 10-18 minutes (estimated final arrival 19:29-19:37); last
-  viable return departs work 18:53, Windsor Locks 20:11. Known
-  limitation: the first plan for an unwarmed date can exceed the MCP
-  layer's 30-second call timeout (a pre-existing Atlas property, shared
-  with `atlas_plan_trip`); warm dates answer in well under a second
-  per plan.
-## 2026-11-15 — Live vehicles on the map (branch feat/live-vehicles-map_muse)
+## setup-ollama extraction — tarball layout defect (2026-11-15)
 
-The live overlay (/api/v1/live, live.py) now plots vehicle positions.
-live.py: the MBTA adapter also reads the V3 /vehicles endpoint (normalized
-to the same vehicle row shape CTtransit already returned; a vehicles-endpoint
-failure degrades to an empty list and never flips the board to unknown), and
-_unknown() results carry an empty vehicles list so clients can rely on the
-key. Web: a "Vehicles" toggle in the map controls polls both verified
-providers every 30 s and draws circle markers (orange; grey and translucent
-when the vehicle's timestamp is over 5 minutes old or missing), with a
-tooltip (route, vehicle, age, STALE flag) built as a DOM node, and a status
-line reporting per-provider counts, stale counts, or "unknown". A provider
-that cannot be verified contributes no markers — positions are never
-invented. Live board prediction times now render as countdowns for both
-providers. Invariant preserved: live data is informational only and never
-alters scheduled routing or feasibility.
+- **Defect (shipped in the v0.0.1 and v0.0.2 packages):**
+  `scripts/setup_ollama.sh` extracted the pinned Ollama tarball with
+  `--strip-components=1`. The v0.40.16 tarball's top level is `bin/` +
+  `lib/` — `bin/ollama`, with `lib/ollama/` carrying `llama-server`,
+  the `libggml*` libraries, licenses, and the `cuda_v12/`, `cuda_v13/`
+  and `vulkan/` directories (verified against the real archive: the
+  amd64 asset's SHA-256 matches the pinned digest `87bfafb2…`, and
+  its member listing shows exactly this layout). Stripping one
+  component mapped `bin/ollama` to a regular file named `ollama` in
+  the target root; every `lib/ollama/*` member then mapped beneath
+  that file and failed, and `set -e` aborted the setup. The script's
+  own symlink already expected the unstripped layout
+  (`/usr/local/lib/ollama/bin/ollama`).
+- **Live evidence:** the owner's first real `transit-atlas
+  setup-ollama` run (Ubuntu WSL, 2026-11-15): the download completed
+  and the pinned digest verified OK, then tar failed on every lib
+  member with "Cannot open: Not a directory" / "Cannot mkdir: Not a
+  directory" and no Ollama was installed.
+- **Fix:** the extraction no longer strips components. It lives in an
+  `extract_ollama` function that also asserts the layout afterwards —
+  `bin/ollama` executable and `lib/ollama/llama-server` present — and
+  exits nonzero with a clear message if upstream's layout ever
+  changes, so the failure is loud at setup time instead of silent at
+  inference time. Everything else about the script is unchanged
+  (pinned version and per-arch digests, root check, zstd bootstrap,
+  `ollama` user, systemd unit with background fallback, model pull
+  from `/etc/transit-atlas/percival.conf`). A repo-wide grep confirms
+  no other `--strip-components` use exists to twin the defect
+  (`packaging/build_deb.sh` and the release workflow never reference
+  the extraction).
+- **The verification gap that shipped it, and the new rule:** the
+  script was digest-verified but never executed end-to-end, so a
+  wrong flag survived review — a checksum proves the archive is the
+  right one, not that the install works. Rule: an install/setup path
+  is not verified until its real operations have run against a
+  real-shaped input. `tests/test_setup_ollama.py` embodies it: it
+  builds a synthetic `.tar.zst` with the real layout shape and runs
+  the script's own `extract_ollama` against it, plus a flat-layout
+  fixture that must fail the assertion loudly. The test requires a
+  `zstd` binary on PATH (the script installs it via apt on target
+  machines) and skips where none exists.
