@@ -12,6 +12,34 @@ REQUESTED_ACTION: Pick up the scoped big items below in ROADMAP priority
 order. Do not treat any of them as started. M1/M2/M3 remain deferred and are
 NOT part of this handoff.
 
+## COOK LIST — start here (added 2026-11-14 evening, for the Codex TUI session)
+
+The owner is opening this repo in the Codex TUI and starting immediately.
+Begin at task 1 and work in order. A task is done when its tests pass and
+DECISIONS.md records it. Owner's model note (2026-11-14): he is running the
+Luna-tier model at medium reasoning for most of this work — keep tasks
+bounded and verification explicit, as this list already does.
+
+1. **Stop lookup endpoint (NEW — unblocks Percival).** Percival's F-001
+   "come to me" slice is merged in the `percival` repo and must currently
+   hard-code raw stop IDs (`pvta:5101`, `hartford:6`): the Atlas API has no
+   way to resolve a place name to stops. Add `GET /api/v1/stops?q=<text>`
+   (and/or by-feed listing) returning matching stops with id, name, feed,
+   and coordinates from loaded data only. Document it in API.md; add tests.
+   Percival's friend registry (Codex work in that repo) consumes this next.
+2. **Plan/bubble latency.** Measured from Percival's live integration:
+   ~15–25 s per `/api/v1/plan` call on the full six-feed network; bubble
+   ~15 s. This is scoped item 2 below — it moves up because Percival now
+   depends on plan calls at interactive timescales.
+3. **Then the scoped items below in their numbered order** (M0.1 PDF
+   fallback, Metro map UI, API v1 contract, M0.R), skipping item 2, which
+   task 2 above already covers.
+
+COORDINATION: Ember is concurrently building Vercel deployability for the
+`percival` repo, then for THIS repo, on `*_muse` branches. Do not build
+deployment scaffolding here; Ember's work lands it, and this file will be
+updated when it does.
+
 ## State of the repo after the 2026-11-14 Ember session
 
 - Branch `mobility-bubble_muse` (from `feature/browser-proof-of-concept`)
