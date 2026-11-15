@@ -1,53 +1,204 @@
 import SwiftUI
 import WebKit
 
+private enum MetroPalette {
+    static let background = Color(red: 0.055, green: 0.063, blue: 0.09)
+    static let cyan = Color(red: 0.0, green: 0.64, blue: 0.84)
+    static let blue = Color(red: 0.16, green: 0.36, blue: 0.75)
+    static let orange = Color(red: 0.91, green: 0.38, blue: 0.16)
+    static let violet = Color(red: 0.43, green: 0.29, blue: 0.69)
+}
+
+private enum MetroPage: String, CaseIterable {
+    case start = "start"
+    case atlas = "atlas"
+    case settings = "settings"
+}
+
 struct ContentView: View {
     @AppStorage("atlasServerURL") private var serverURL = ""
     @State private var draftURL = ""
     @State private var activeURL: URL?
     @State private var errorMessage: String?
+    @State private var page: MetroPage = .start
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let url = activeURL {
-                    AtlasWebView(url: url)
-                        .ignoresSafeArea(edges: .bottom)
-                } else {
-                    Form {
-                        Section("Atlas server") {
-                            TextField("https://atlas.example.com", text: $draftURL)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .keyboardType(.URL)
-                            Button("Connect") { connect() }
-                            if let errorMessage {
-                                Text(errorMessage).foregroundStyle(.red)
-                            }
+        ZStack {
+            MetroPalette.background.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("PERCIVAL").font(.caption.weight(.semibold)).tracking(3)
+                    Spacer()
+                    Text("TRANSIT ATLAS").font(.caption2).tracking(1.5)
+                }
+                .foregroundStyle(.white.opacity(0.7))
+                .padding(.horizontal, 22)
+                .padding(.top, 16)
+
+                HStack(spacing: 24) {
+                    ForEach(MetroPage.allCases, id: \.self) { item in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) { page = item }
+                        } label: {
+                            Text(item.rawValue)
+                                .font(.title3.weight(page == item ? .bold : .regular))
+                                .foregroundStyle(page == item ? .white : .white.opacity(0.48))
                         }
-                        Section("Getting started") {
-                            Text("Start the Python Atlas server on your Mac, then enter its reachable HTTPS address. For local development, use your Mac's LAN address only after enabling a development-only HTTP exception.")
-                            Text("127.0.0.1 on an iPhone means the iPhone, not your Mac.")
-                            Text("This shell needs the existing Python backend. It does not provide offline routing or native background GPS.")
-                        }
+                        .accessibilityAddTraits(page == item ? .isSelected : [])
                     }
                 }
-            }
-            .navigationTitle("Transit Atlas")
-            .toolbar {
-                if activeURL != nil {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Server") {
-                            activeURL = nil
-                            draftURL = serverURL
-                        }
+                .padding(.horizontal, 22)
+                .padding(.top, 28)
+                .padding(.bottom, 16)
+
+                Group {
+                    switch page {
+                    case .start: startPage
+                    case .atlas: atlasPage
+                    case .settings: settingsPage
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
+        .preferredColorScheme(.dark)
         .onAppear {
             draftURL = serverURL
-            if let url = validated(serverURL) { activeURL = url }
+            activeURL = validated(serverURL)
+        }
+    }
+
+    private var startPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("your city.\nyour way.")
+                    .font(.system(size: 46, weight: .light, design: .default))
+                    .tracking(-1.5)
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.75)
+                    .padding(.bottom, 8)
+
+                GeometryReader { geometry in
+                    let tile = (geometry.size.width - 10) / 2
+                    VStack(spacing: 10) {
+                        HStack(spacing: 10) {
+                            metroTile("explore", subtitle: "regional atlas", icon: "map.fill",
+                                      color: MetroPalette.cyan, width: tile, height: tile) {
+                                page = .atlas
+                            }
+                            VStack(spacing: 10) {
+                                metroTile("connect", subtitle: "atlas server", icon: "network",
+                                          color: MetroPalette.blue, width: tile, height: (tile - 10) / 2) {
+                                    page = .settings
+                                }
+                                metroTile("coverage", subtitle: "verify sources", icon: "checkmark.shield",
+                                          color: MetroPalette.violet, width: tile, height: (tile - 10) / 2) {
+                                    page = .atlas
+                                }
+                            }
+                        }
+                        metroTile("plan a journey", subtitle: "outbound + return feasibility",
+                                  icon: "arrow.left.arrow.right", color: MetroPalette.orange,
+                                  width: geometry.size.width, height: 110) {
+                            page = .atlas
+                        }
+                    }
+                }
+                .frame(height: ((UIScreen.main.bounds.width - 54 - 10) / 2) + 120)
+
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(activeURL == nil ? Color.orange : Color.green)
+                        .frame(width: 8, height: 8)
+                    Text(activeURL == nil ? "No atlas server configured" : "Atlas server configured; connectivity unverified")
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.75))
+                }
+                Text("Experimental iOS client · no verified offline routing")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+            .padding(.horizontal, 22)
+            .padding(.bottom, 30)
+        }
+    }
+
+    private func metroTile(_ title: String, subtitle: String, icon: String,
+                           color: Color, width: CGFloat, height: CGFloat,
+                           action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 30, weight: .light))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                Text(title).font(.headline).lineLimit(1)
+                Text(subtitle).font(.caption2).lineLimit(2)
+            }
+            .foregroundStyle(.white)
+            .padding(14)
+            .frame(width: width, height: height, alignment: .leading)
+            .background(color)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(subtitle)")
+    }
+
+    private var atlasPage: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("explore")
+                .font(.system(size: 42, weight: .light))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 22)
+            if let url = activeURL {
+                AtlasWebView(url: url)
+                    .background(.white)
+            } else {
+                ContentUnavailableView {
+                    Label("Atlas unavailable", systemImage: "wifi.slash")
+                } description: {
+                    Text("Configure a reachable server to open the existing atlas. No timetable or journey is fabricated.")
+                } actions: {
+                    Button("Configure server") { page = .settings }
+                        .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private var settingsPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("settings")
+                    .font(.system(size: 42, weight: .light))
+                Text("atlas server").font(.title2.weight(.light))
+                TextField("https://atlas.example.com", text: $draftURL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .textContentType(.URL)
+                    .padding(14)
+                    .background(.white.opacity(0.12))
+                    .accessibilityLabel("Atlas server URL")
+                Button("connect") { connect() }
+                    .font(.title3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(MetroPalette.cyan)
+                    .foregroundStyle(.white)
+                if let errorMessage {
+                    Text(errorMessage).foregroundStyle(.orange)
+                }
+                Text("Use a reachable HTTPS endpoint. In Debug builds only, HTTP may be accepted, subject to iOS App Transport Security. 127.0.0.1 on an iPhone is the phone itself, not your Mac.")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.7))
+                Text("The current shell needs the Python backend. Native offline routing, live arrivals and device GPS are not yet verified.")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            .foregroundStyle(.white)
+            .padding(22)
         }
     }
 
@@ -58,7 +209,6 @@ struct ContentView: View {
               let host = components.host, !host.isEmpty,
               components.user == nil, components.password == nil,
               let url = components.url else { return nil }
-        // The release app refuses unencrypted transport.
         #if !DEBUG
         guard scheme == "https" else { return nil }
         #endif
@@ -71,8 +221,9 @@ struct ContentView: View {
             return
         }
         serverURL = url.absoluteString
-        errorMessage = nil
         activeURL = url
+        errorMessage = nil
+        page = .atlas
     }
 }
 
