@@ -542,3 +542,17 @@ rather than blanket ours/theirs. Notable outcomes:
   one step. One stop (cttransit:597) misses bubble reachability by that
   single second (arrival 30370 vs latest_back 30369). Separate parity
   decision; not part of this change.
+
+## 2026-11-15 — WP10/EdgeHTML build shipped in-repo (branch feat/wp10-shim_muse)
+
+The verified Windows Phone 10 shim (built during the PR #71 integration
+from the audit in WP10_EDGEHTML_AUDIT) now lives in the repo: web/wp10.html
+(index.html pointed at the transpiled bundle), web/app-wp10.js (app.js via
+esbuild --target=es2017 --format=iife, byte-identical to the verified
+2026-11-15 build), web/polyfills-wp10.js (prepended to the bundle;
+replaceChildren / Object.fromEntries / Element.remove), and
+scripts/build_wp10.sh as the regeneration recipe. docs/WP10.md explains
+what it is, why EdgeHTML needs it, and the verification status: Chromium-
+verified, with the actual Windows 10 Mobile emulator run still the owner's
+step — no EdgeHTML claim is made until then. The bundle is a snapshot, not
+a live mirror: re-run the build script whenever app.js changes.
