@@ -196,4 +196,10 @@
 ## Codex session — explicit local preferences
 
 - Added `percival_memory.py` and three MCP tools for reading, setting and clearing user-supplied trip preferences. Storage defaults to ignored `data/percival_preferences.json` and uses an atomic replacement write.
+
+## Codex session — separated live-data overlay
+
+- Added `live.py` and `GET /api/v1/live` as an isolated provider layer. The first adapter targets the official MBTA V3 JSON API's predictions and alerts resources; it accepts namespaced Atlas route/stop IDs and normalizes JSON:API resources.
+- Chose explicit `live`/`unknown` states instead of silently falling back to schedule data. Provider errors are data and do not make the main HTTP API fail; `/plan`, `/route`, `/bubble` and `/reachability` do not import or invoke live status.
+- CTtransit and PVTA were left as `unknown` rather than guessing undocumented endpoints. This is the foundation for a bus-focused trains.fyi-like view, but live coverage still requires one verified adapter per agency and freshness/accessibility UX work.
 - Preference memory is deliberately not conversational inference: only explicit values are saved, validated, and used. It does not change feed provenance or turn unknown service into a fact.
