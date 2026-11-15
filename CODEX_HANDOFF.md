@@ -20,11 +20,13 @@ DECISIONS.md records it. Owner's model note (2026-11-14): he is running the
 Luna-tier model at medium reasoning for most of this work — keep tasks
 bounded and verification explicit, as this list already does.
 
-1. **Stop lookup endpoint — EMBER'S TASK, SKIP THIS ONE.** (Front-loaded by
-   owner instruction 2026-11-14: Ember builds the bounded slices so the
-   Codex window is spent on judgment work.) Ember is implementing
-   `GET /api/v1/stops?q=<text>` + API.md docs + tests on a `*_muse` branch.
-   Do not build it. For the record, the requirement: Percival's F-001
+1. **Stop lookup endpoint — DONE 2026-11-14 (Ember, PR #66, merged into
+   `feature/browser-proof-of-concept`).** `GET /api/v1/stops?q=<text>`
+   (optional `feed`, `limit` default 50 / range 1–500) is implemented in
+   `database.search_stops` with API.md docs and 10 fixture tests (suite
+   40/40); live-verified: "Union Station" resolves `pvta:5101`, "Court
+   Square" resolves `pvta:1495`, nonsense returns zero. Do not rebuild it.
+   For the record, the requirement it met: Percival's F-001
    "come to me" slice (merged in the `percival` repo) currently hard-codes
    raw stop IDs (`pvta:5101`, `hartford:6`) because the Atlas API has no
    name→stop resolution; the endpoint returns matching stops with id, name,
@@ -33,12 +35,13 @@ bounded and verification explicit, as this list already does.
 2. **Plan/bubble latency — START HERE.** Measured from Percival's live
    integration: ~15–25 s per `/api/v1/plan` call on the full six-feed
    network; bubble ~15 s. This is scoped item 2 below — it moves up because
-   Percival now depends on plan calls at interactive timescales. Ember is
-   ALSO front-loading the profiling: a measured latency baseline (where
-   the time goes, per phase) will appear in this file under a
-   "Latency profile (Ember)" heading — read it before profiling anything
-   yourself; if it is not there yet, begin with the fixpoint reverse scan
-   and per-request connection loading, the two known suspects.
+   Percival now depends on plan calls at interactive timescales. Ember's
+   front-loaded profiling HAS LANDED: see "Latency profile (Ember,
+   2026-11-14)" at the end of this file for the measured baseline, the
+   hotspot ranking, and fix hypotheses — read it before profiling anything
+   yourself. Short version: the 15–25 s is the COLD path (connection-list
+   build ~6.2 s + network build ~5.0 s + cold scan); warm plans are ~2.1 s
+   and the warm return=1 composite ~7.8 s.
 3. **Then the scoped items below in their numbered order** (M0.1 PDF
    fallback, Metro map UI, API v1 contract, M0.R), skipping item 2, which
    task 2 above already covers.
@@ -188,3 +191,86 @@ the Mac mini is needed."
   transfer rules not supported (in data/validation.json); both pre-date
   this session and are unaddressed.
 - macOS/Safari and Android/Termux acceptance remain unperformed.
+
+## Latency profile (Ember, 2026-11-14)
+
+Measured by Ember on 2026-11-14 for cook list task 2, so the Codex window
+starts from evidence instead of re-profiling. Reproduce with
+`python3 scripts/profile_latency.py` (repo root, after prepare_data).
+
+**Environment and data.** Ember's Linux sandbox: AMD EPYC 9D25, ~1.5 shared
+vCPU (throttled — treat absolute seconds as sandbox numbers; the M4 Mac
+mini will differ), Python 3.12.3. Dataset: all six feeds loaded; Tuesday
+2026-11-17; 13,075 stops; 1,445,795 stop-time rows; the service-day
+connection list holds 832,735 connections. Queries: Hartford station
+(`hartford:6`) -> Springfield Union Station (`pvta:5101`) departing 08:00,
+and the local Springfield Union Station -> Court Square (`pvta:1495`)
+pair. Medians of repeated runs; ranges where they matter.
+
+**Phase baseline (in-process, seconds).**
+
+| Phase | Median | Notes |
+|---|---|---|
+| `database.connections(day)` build, cold | 6.21 | runs 6.05–6.85; builds 832,735 tuples via a 3-day × per-service SQL self-join over the times table, in Python; `lru_cache(maxsize=12)`, so paid once per (process, date) |
+| `routing.network()` build, cold | 4.96 | runs 4.87–5.06; `lru_cache(maxsize=1)`, once per process |
+| `routing.scan` full day, neighbors cold | ~4–6 | noisy under the shared CPU (runs 2.04–6.37); first scan computes 12,669 neighbor lists |
+| `routing.scan` full day, warm | 2.07 | runs 2.06–2.15; reaches 12,937 of 13,075 stops |
+| `routing.plan` Hartford->Springfield, warm | 2.10 | one scan |
+| `routing.plan` local (Union Sta->Court Sq), warm | 1.98 | ≈ the intercity plan: cost is destination-independent |
+| `routing.latest` alone, warm | 3.85 | ~12 full scans (minute-resolution binary search + bracketing plans) |
+| return=1 composite (plan + return plan + latest), warm | 7.84 | runs 7.48–8.35; this is what the server does for `plan&return=1&visit=3600` |
+| `bubble.latest_return_departures`, warm | 3.03 | deadline = start + 3600 |
+| `bubble.classify` full, warm | 3.32 | 1,034 reachable stops from Hartford |
+
+**HTTP end-to-end (fresh server process, same queries).** First plan
+request (cold everything): **19.54 s**. Warm plan: 2.04–2.10 s. Warm
+return=1 plan: 7.69–7.81 s. Warm bubble: 2.93–3.10 s. The ~15–25 s
+Percival measured is the cold path, not the warm path — any client that
+restarts the server, or asks about a new date first, pays ~11 s of cache
+builds before the first scan starts.
+
+**Hotspot ranking (cProfile evidence).**
+
+1. **Cold builds dominate the cold request (~57%).** connections 6.2 s +
+   network 5.0 s of the 19.5 s cold plan. Inside network(), the transfer
+   parent-station expansion is O(rules × stops): for each of 2,508
+   transfer rows it scans all 13,075 stops twice to collect child
+   platforms (~65M comparisons).
+2. **The forward scan's inner loop.** Of a 4.28 s profiled warm scan:
+   `routing.scan` body 1.13 s tottime (the loop over all 832,735
+   connections), `relax()` 290,869 calls / 2.67 s cumulative, and 6.0M
+   `dict.get` calls / 1.44 s. Every plan — even a two-minute local hop —
+   iterates the entire service-day connection list; there is no early
+   exit when the destination is reached.
+3. **`latest()`'s binary search.** ~12 scans per call. Each is cheaper
+   than an 08:00 scan (late starts reach few stops, so relax calls
+   collapse), but the total is 3.85 s — about half the warm return=1
+   composite.
+4. **Bubble walk propagation.** Of a 5.19 s profiled
+   `latest_return_departures`: `propagate_walk` 2.00 s tottime / 3.06 s
+   cumulative, the reverse-scan loop body 1.91 s tottime, 6.7M `dict.get`
+   calls / 1.28 s. propagate_walk makes up to 12 full passes over the
+   ~11k-entry best-departure dict and is re-run after every fixpoint
+   round (up to 6 rounds).
+5. **Not a hotspot: serialization.** The bubble response is 808 KiB of
+   JSON (legs for every reachable stop) but `json.dumps` takes ~7 ms.
+   Do not spend the window here.
+
+**Fix directions (hypotheses for Codex to evaluate, not prescriptions).**
+
+- Pay the cold builds at server startup (warm the caches for today +
+  tomorrow at launch) or persist the derived connection list; index stops
+  by parent once so transfer expansion stops being O(rules × stops).
+- Give `plan` an early exit: connections are departure-sorted, so once
+  `dep` exceeds the best known arrival at the destination the scan may be
+  able to stop — the in-flight-trip and walk-relaxation cases need care
+  to preserve exact earliest-arrival semantics.
+- Replace `latest()`'s binary search with a single reverse computation —
+  the bubble's `latest_return_departures` already computes latest
+  feasible departures in one pass — or memoize scans by (day, start)
+  within one request.
+- In the bubble, propagate walks from a queue of changed stops instead of
+  full-dict passes; index connections by trip for the reverse pass (also
+  suggested in scoped item 2 above).
+- Concurrency note: ThreadingHTTPServer + the GIL means concurrent plan
+  requests serialize on CPU anyway; all numbers here are single-request.

@@ -7,6 +7,7 @@ Base: `/api/v1/`. JSON, read-only GET endpoints. This is an early contract; stab
 | `meta` | none | API version, feeds/provenance, cities, routes, stops, limitations |
 | `coverage` | `date=YYYY-MM-DD` | Per-feed imported status and service-range bounds |
 | `departures` | `stop`, `date`, optional `route` | Boardable departures on that calendar day; coverage |
+| `stops` | `q`, optional `feed`, `limit` (default 50, range 1–500) | Stop name lookup: case-insensitive substring matches over loaded stops only, returning id, name, feed and coordinates, plus total `match_count` and a `truncated` flag; prefix matches sort first; an empty query or a query with no matches returns an empty list — stops are never invented |
 | `route` | `id`, `date` | Active trips, published stops/shapes, dated weekday/Saturday/Sunday counts |
 | `trip` | `id` | Ordered stop times (original service-day seconds) |
 | `plan` | `from`, `to`, `date`, `time`, `deadline` | Earliest itinerary or explicit no-result with coverage |

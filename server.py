@@ -21,6 +21,7 @@ def handle(path,q):
  if path=='/api/v1/meta':return dict(api_version='1.0',sources=db.sources(),cities=CITIES,routes=db.query('SELECT * FROM routes ORDER BY feed,short'),stops=db.query('SELECT * FROM stops'),limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','Incomplete three-state agency coverage; not every agency is loaded','MBTA commuter rail only; Amtrak regional clip','Scoped GTFS transfer rules not modeled; verify station transfers'])
  if path=='/api/v1/coverage':return db.coverage(dated(q))
  if path=='/api/v1/departures':return dict(date=dated(q),departures=db.departures(arg(q,'stop'),dated(q),arg(q,'route')),coverage=db.coverage(dated(q)))
+ if path=='/api/v1/stops':return db.search_stops(arg(q,'q'),arg(q,'feed'),number(q,'limit',50,1,500))
  if path=='/api/v1/route':
   route=arg(q,'id');trips=db.query('SELECT * FROM trips WHERE route=?',(route,));active=db.active_services(dated(q));trips=[t for t in trips if t['service'] in active]
   shapes={};
