@@ -36,7 +36,58 @@ def neighbors(sid,radius,mode):
   out.append((t,seconds,round(d*1.3)))
  return out
 
-def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=(),destination=None):
+def _scan_route_chain(day,origin,start,deadline,mode,radius,buffer,feeds,destination,route_chain):
+ """Keep partial chains separate until every requested route has been used."""
+ stops,grid,rules=network()
+ if origin not in stops:raise ValueError('Unknown origin stop')
+ # A label is (stop, index of the last route used); -1 means no transit yet.
+ arrivals={(origin,-1):start};paths={(origin,-1):()};ready={(origin,-1):start}
+ onboard={}
+ complete=len(route_chain)-1
+
+ def relax(sid,stage,time,path,initial=False):
+  key=(sid,stage)
+  if time<arrivals.get(key,INF):
+   arrivals[key]=time;paths[key]=path;ready[key]=time+(0 if initial else buffer)
+  for dest,seconds,meters in neighbors(sid,radius,mode):
+   t=time+seconds;key=(dest,stage)
+   if t>deadline or t>=arrivals.get(key,INF):continue
+   leg=dict(kind=mode,from_stop=sid,to_stop=dest,departure=time,arrival=t,meters=meters,estimated=True)
+   arrivals[key]=t;paths[key]=path+(leg,);ready[key]=t+(0 if initial else buffer)
+
+ relax(origin,-1,start,(),True)
+ for dep,arr,a,b,trip,route,head,pu,do,seq in connections(day):
+  if dep<start:continue
+  if dep>deadline:break
+  if destination is not None and dep>arrivals.get((destination,complete),INF):break
+  if arr>deadline or (feeds and route.split(':')[0] not in feeds):continue
+  for stage in range(-1,len(route_chain)):
+   if stage==-1:
+    if route!=route_chain[0]:continue
+    next_stage=0
+   elif route==route_chain[stage]:next_stage=stage
+   elif stage<complete and route==route_chain[stage+1]:next_stage=stage+1
+   else:continue
+
+   prev=onboard.get((trip,stage));path=None
+   if prev and prev[0]==seq-1:path=prev[1]
+   key=(a,stage);rule=rules.get((a,a));minready=ready.get(key,INF)
+   if rule and rule[0]==2 and paths.get(key):minready=max(minready,arrivals[key]+rule[1])
+   canboard=pu==0 and minready<=dep and not (rule and rule[0]==3 and paths.get(key))
+   if path is None and canboard:path=paths[key]
+   if path is None:continue
+   leg=dict(kind='transit',from_stop=a,to_stop=b,departure=dep,arrival=arr,trip=trip,route=route,headsign=head,source=route.split(':')[0],estimated=False)
+   if path and path[-1].get('trip')==trip:
+    leg={**path[-1],'to_stop':b,'arrival':arr};newpath=path[:-1]+(leg,)
+   else:newpath=path+(leg,)
+   onboard[(trip,next_stage)]=(seq,newpath)
+   if do==0:relax(b,next_stage,arr,newpath)
+ return ({sid:time for (sid,stage),time in arrivals.items() if stage==complete},
+         {sid:path for (sid,stage),path in paths.items() if stage==complete})
+
+def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=(),destination=None,route_chain=()):
+ if route_chain:
+  return _scan_route_chain(day,origin,start,deadline,mode,radius,buffer,feeds,destination,route_chain)
  stops,grid,rules=network()
  if origin not in stops:raise ValueError('Unknown origin stop')
  arrivals={origin:start};paths={origin:()};onboard={};ready={origin:start}
