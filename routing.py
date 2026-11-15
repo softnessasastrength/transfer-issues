@@ -36,7 +36,7 @@ def neighbors(sid,radius,mode):
   out.append((t,seconds,round(d*1.3)))
  return out
 
-def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=(),destination=None):
+def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=(),destination=None,route_chain=()):
  stops,grid,rules=network()
  if origin not in stops:raise ValueError('Unknown origin stop')
  arrivals={origin:start};paths={origin:()};onboard={};ready={origin:start}
@@ -63,6 +63,12 @@ def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=(),de
   canboard=pu==0 and minready<=dep and not (rule and rule[0]==3 and paths.get(a))
   if path is None and canboard:path=paths[a]
   if path is None:continue
+  if route_chain:
+   used=[]
+   for existing in path:
+    if existing.get('kind')=='transit' and (not used or used[-1]!=existing.get('route')):used.append(existing.get('route'))
+   if not used and route!=route_chain[0]:continue
+   if used and route!=used[-1] and (len(used)>=len(route_chain) or route!=route_chain[len(used)]):continue
   leg=dict(kind='transit',from_stop=a,to_stop=b,departure=dep,arrival=arr,trip=trip,route=route,headsign=head,source=route.split(':')[0],estimated=False)
   # Preserve one leg per vehicle, not one leg per stop.
   if path and path[-1].get('trip')==trip:
