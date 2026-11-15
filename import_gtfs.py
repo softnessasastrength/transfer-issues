@@ -15,7 +15,9 @@ def coverage_policy(feed):
  p=dict(POLICY.get('default',{}));p.update(POLICY.get('feeds',{}).get(feed,{}));return p
 
 def in_scope(feed,lat,lon):
- south,north,west,east=coverage_policy(feed).get('bounds',POLICY['default']['bounds'])
+ policy=coverage_policy(feed)
+ if policy.get('whole_network'):return True
+ south,north,west,east=policy.get('bounds',POLICY['default']['bounds'])
  return south<=lat<=north and west<=lon<=east
 
 def route_is_selected(feed,route):
@@ -50,7 +52,7 @@ def build(include_optional=False):
  CREATE TABLE transfers(a TEXT,b TEXT,type INTEGER,seconds INTEGER);
  ''');db.executescript(PDF_SCHEMA);reports=[]
  for source in sources:
-  feed=source['id'];source['official_page']=PAGES[feed];path=DATA/(feed+'.zip');r={'feed':feed,'errors':{},'warnings':{},'counts':{}}; reports.append(r)
+  feed=source['id'];source['official_page']=source.get('official_page') or PAGES.get(feed,source.get('url',''));path=DATA/(feed+'.zip');r={'feed':feed,'errors':{},'warnings':{},'counts':{}}; reports.append(r)
   if source.get('optional') and not include_optional:
    source['status']='optional_disabled';source['scope']='Optional feed; enable explicitly to import';continue
   if not path.exists():continue
