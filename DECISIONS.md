@@ -919,3 +919,21 @@ narrow widths (found by the 400px browser pass, fixed, re-verified).
   fixture that must fail the assertion loudly. The test requires a
   `zstd` binary on PATH (the script installs it via apt on target
   machines) and skips where none exists.
+## 2026-11-15 — UI/UX playground (branch feat/ui-playground_muse)
+
+web/playground.html (+ playground.js / playground.css) is a standalone
+variant-testing page served like any other web asset at /playground.html.
+It does not touch index.html/app.js. It mounts real components against the
+real local API: (1) the city/network selector in both forms — the Job 5
+sidebar and the previous floating strip + Network select — switchable;
+(2) the plan form running /api/v1/plan; (3) bubble controls running
+/api/v1/bubble; (4) the scope-filtered route list with the all-routes draw
+(bounded concurrency, the Job 1 pattern). Switches: selector form; theme
+via the app's own data-theme knob (light/dark/system — no invented design
+system); viewport presets (desktop / tablet 768 / phone 400) via a
+width-constrained stage, plus a 67% density preset (CSS zoom) — the owner
+reports the app "looks fucking amazing" at 67% browser zoom, so that
+density is now deliberately testable. Reuse honesty: app.js is a monolith
+that binds to the app page's DOM on load, so the playground re-implements
+the component wiring against the same endpoints and the app's own
+stylesheets rather than importing app.js; that is stated on the page.
