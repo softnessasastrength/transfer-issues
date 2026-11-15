@@ -143,7 +143,7 @@ async function init() {
  meta.cities.forEach(([name,lat,lon])=>{ $('cities').append(button(name,()=>{map.setView([lat,lon],13);$('mapStatus').textContent=`${name} · zoomed stops from loaded feeds`; })); L.circleMarker([lat,lon],{radius:4,color:'#173d39',weight:2,fillColor:'#d7e98c',fillOpacity:1}).bindTooltip(name,{permanent:true,direction:'right',className:'cityMarker'}).addTo(map); });
  [...new Set(meta.routes.map(r=>r.feed))].forEach(f=>{$('agency').append(new Option(f,f));$('allRoutesAgency').append(new Option(f,f));});
  $('allRoutes').onclick=()=>run(showAllRoutes);
- $('allRoutesAgency').onchange=()=>{if(allRoutesVisible)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
+ $('allRoutesAgency').onchange=()=>{if(allRoutesVisible||allRoutesDrawing)run(async()=>{clearAllRoutes();await showAllRoutes();});};renderRoutes();renderSources();renderPersonal();$('counts').textContent=`${meta.routes.length} routes · ${meta.stops.length.toLocaleString()} published stops · incomplete coverage`;
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>view(b.dataset.tab));$('planTab').onclick=()=>{$('planner').hidden=false;$('outingPlanner').hidden=true;$('browser').hidden=true;$('planTab').classList.add('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.remove('selected');};$('outingTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=false;$('browser').hidden=true;$('planTab').classList.remove('selected');$('outingTab').classList.add('selected');$('browseTab').classList.remove('selected');};$('browseTab').onclick=()=>{$('planner').hidden=true;$('outingPlanner').hidden=true;$('browser').hidden=false;$('planTab').classList.remove('selected');$('outingTab').classList.remove('selected');$('browseTab').classList.add('selected');};
  $('routeSearch').oninput=renderRoutes;$('agency').onchange=renderRoutes;$('date').onchange=()=>{updateDate();if(selectedRoute)run(()=>showRoute(selectedRoute));};$('swap').onclick=()=>{const a=$('from').value,aid=$('from').dataset.stopId,b=$('to').value,bid=$('to').dataset.stopId;$('from').value=b;$('to').value=a;if(bid)$('from').dataset.stopId=bid;else delete $('from').dataset.stopId;if(aid)$('to').dataset.stopId=aid;else delete $('to').dataset.stopId;};$('resetMap').onclick=()=>{following=false;$('followLocation').textContent='Follow: off';$('followLocation').setAttribute('aria-pressed','false');map.setView([42,-72.4],8);};
  $('plan').onclick=()=>run(()=>plan());$('latest').onclick=()=>run(()=>plan('latest'));$('reach').onclick=()=>run(reach);$('bubble').onclick=()=>run(bubble);
@@ -159,7 +159,7 @@ async function init() {
 // These connect that existing UI to the existing /api/v1 contracts. Location is
 // opt-in only and never leaves the device; overlay and outing results describe
 // published schedules and label missing data as unknown, never as no service.
-let following=false, locationWatch=null, locationLayer=null, allRoutesVisible=false, routeOverlay=null;
+let following=false, locationWatch=null, locationLayer=null, allRoutesVisible=false, allRoutesDrawing=false, allRoutesDrawToken=0, routeOverlay=null;
 function setLocationStatus(text){const n=$('locationStatus');if(n){n.textContent=text;n.hidden=!text;}}
 function showLocation(lat,lon){if(!locationLayer)locationLayer=L.layerGroup().addTo(map);locationLayer.clearLayers();L.circleMarker([lat,lon],{radius:6,color:'#143e39',weight:2,fillColor:'#2f78c4',fillOpacity:.9}).addTo(locationLayer);}
 function toggleLocation(){
@@ -175,19 +175,37 @@ function toggleFollow(){
  following=true;btn.textContent='Follow: on';btn.setAttribute('aria-pressed','true');
  locationWatch=navigator.geolocation.watchPosition(pos=>{showLocation(pos.coords.latitude,pos.coords.longitude);if(following)map.setView([pos.coords.latitude,pos.coords.longitude],Math.max(map.getZoom(),13));},err=>{setLocationStatus('Location unavailable: '+err.message);},{timeout:10000});
 }
-function clearAllRoutes(){if(routeOverlay)routeOverlay.clearLayers();allRoutesVisible=false;$('allRoutes').setAttribute('aria-pressed','false');const s=$('allRoutesStatus');if(s)s.textContent='';}
+function clearAllRoutes(){allRoutesDrawToken++;allRoutesDrawing=false;if(routeOverlay)routeOverlay.clearLayers();allRoutesVisible=false;$('allRoutes').setAttribute('aria-pressed','false');const s=$('allRoutesStatus');if(s)s.textContent='';}
 async function showAllRoutes(){
+ if(allRoutesDrawing){ // A re-click while a draw is running cancels it.
+  clearAllRoutes();
+  const s=$('allRoutesStatus');if(s)s.textContent='Route drawing cancelled.';
+  return;
+ }
  if(allRoutesVisible){clearAllRoutes();return;}
  if(!routeOverlay)routeOverlay=L.layerGroup().addTo(map);
  routeOverlay.clearLayers();
  const feed=$('allRoutesAgency').value,status=$('allRoutesStatus');
- const list=meta.routes.filter(r=>!feed||r.feed===feed);let drawn=0;
- for(const r of list){
+ const list=meta.routes.filter(r=>!feed||r.feed===feed);let drawn=0,next=0;
+ const token=++allRoutesDrawToken;allRoutesDrawing=true;$('allRoutes').setAttribute('aria-pressed','true');
+ const drawOne=async r=>{
   const data=await api('route',{id:r.id,date:$('date').value});
+  if(token!==allRoutesDrawToken)return; // Cancelled while this request was in flight; drop its geometry.
   for(const shape of data.shapes)if(shape.length)L.polyline(shape,{color:routeColor(r),weight:3,opacity:.75}).addTo(routeOverlay);
   if(data.shapes.length)drawn++;
   if(status)status.textContent=`Drawing routes… ${drawn} with published geometry`;
+ };
+ try{ // Bounded concurrency: a fixed worker pool shares the route list.
+  const workers=Array.from({length:Math.min(8,list.length)},async()=>{
+   while(token===allRoutesDrawToken&&next<list.length)await drawOne(list[next++]);
+  });
+  await Promise.all(workers);
+ }catch(e){
+  if(token===allRoutesDrawToken){allRoutesDrawToken++;allRoutesDrawing=false;$('allRoutes').setAttribute('aria-pressed','false');}
+  throw e;
  }
+ if(token!==allRoutesDrawToken)return; // Cancelled; clearAllRoutes already reset state and overlay.
+ allRoutesDrawing=false;
  allRoutesVisible=true;$('allRoutes').setAttribute('aria-pressed','true');
  if(status)status.textContent=drawn?`${drawn} routes drawn from published geometry. A route without drawn geometry has none published for this date; that is a data gap, not proof of no service.`:'No published route geometry for this selection.';
  if(routeOverlay.getLayers().length)map.fitBounds(routeOverlay.getBounds(),{padding:[40,40],maxZoom:13});

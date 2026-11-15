@@ -1,10 +1,15 @@
 name: Release Debian package
 
 # Tag-driven releases: push a tag like v0.0.2 and this workflow runs the
-# full test suite, builds transit-atlas_<version>_all.deb from that tag,
-# and attaches it to the GitHub release for the tag. A failing test
-# suite fails the workflow before anything is built or published.
-# See docs/RELEASING.md.
+# full test suites of BOTH bundled projects, builds
+# transit-atlas_<version>_all.deb from that tag, and attaches it to the
+# GitHub release for the tag. A failing test suite fails the workflow
+# before anything is built or published. See docs/RELEASING.md.
+#
+# The package bundles Percival Core (softnessasastrength/percival) next
+# to the Atlas: the second checkout below takes the ref pinned in
+# packaging/PERCIVAL_PIN, and build_deb.sh stages it under
+# /usr/lib/percival-core. Bump the pin deliberately, never implicitly.
 
 on:
   push:
@@ -20,6 +25,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read the pinned Percival ref
+        id: percival-pin
+        run: echo "ref=$(grep -v '^#' packaging/PERCIVAL_PIN | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Check out Percival Core at the pinned ref
+        uses: actions/checkout@v4
+        with:
+          repository: softnessasastrength/percival
+          ref: ${{ steps.percival-pin.outputs.ref }}
+          path: percival-input
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -30,7 +46,15 @@ jobs:
       - name: Run test suite (release gate)
         run: python -m unittest discover -s tests -p 'test_*.py'
 
+      - name: Run Percival Core test suite (release gate)
+        working-directory: percival-input
+        run: |
+          python -m compileall -q src api scripts tests
+          python -m unittest discover -s tests -p 'test_*.py'
+
       - name: Build the Debian package
+        env:
+          PERCIVAL_DIR: ${{ github.workspace }}/percival-input
         run: packaging/build_deb.sh "${GITHUB_REF_NAME#v}"
 
       - name: Attach the package to the GitHub release
