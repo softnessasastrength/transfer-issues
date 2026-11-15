@@ -222,4 +222,10 @@
 
 - Added an optional `routes` constraint to the connection-scan router rather than creating a second routing engine. The constraint permits repeated continuation on the current route, then requires the next requested route ID after a transfer.
 - Added a browser chain builder with add/reorder/remove controls and an MCP `route_chain` argument. Empty chains preserve the original automatic planner behavior; unusual chains are allowed when loaded timetable data supports them, while results remain scheduled feasibility rather than guaranteed timed transfers.
+
+## Codex session — whole-network Amtrak policy
+
+- Replaced Amtrak's implicit regional default bounds with an explicit `whole_network` coverage policy. The existing downloaded official archive rebuilt to 64 routes, 645 stops and 2,461 trips with no importer errors.
+- Kept geographic clipping as the default for other agencies. Future feeds can be added through `config/feeds.json` and `config/coverage.json`; importer page provenance now prefers feed metadata and falls back to the URL rather than requiring a hard-coded Python map entry.
+- This expands scheduled topology only. Reservation requirements, ticketing, seat availability, live status, and guaranteed Amtrak connections remain unknown unless separately sourced.
 - Preference memory is deliberately not conversational inference: only explicit values are saved, validated, and used. It does not change feed provenance or turn unknown service into a fact.
