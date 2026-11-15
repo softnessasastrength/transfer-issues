@@ -15,7 +15,7 @@ class Response:
 
 class LiveTests(unittest.TestCase):
     def test_unknown_provider_is_explicit_and_does_not_fallback(self):
-        result = live.status("cttransit")
+        result = live.status("pvta")
         self.assertEqual(result["status"], "unknown")
         self.assertEqual(result["predictions"], [])
         self.assertIn("No verified live provider", result["limitations"][0])
