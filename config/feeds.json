@@ -67,5 +67,11 @@
     "url": "https://gtfs.remix.com/seat_preston_ct_us.zip",
     "official_page": "https://www.southeastareatransitdistrict.com/gtfs-feed/",
     "status": "not_downloaded"
+  },
+  {
+    "id": "ripta",
+    "url": "https://ripta.com/RIPTA-GTFS.zip",
+    "official_page": "https://www.ripta.com/mobile-applications/",
+    "status": "not_downloaded"
   }
 ]

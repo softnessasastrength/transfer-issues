@@ -815,3 +815,38 @@ a live mirror: re-run the build script whenever app.js changes.
   Hartford → Springfield Union Station plans 08:35 → 09:17.
 - **Limits:** fixed-route GTFS only. SEAT demand-response service is
   not in the feed and is not represented; nothing about it is implied.
+## RIPTA GTFS imported — Rhode Island coverage (2026-11-15)
+
+- **Source (official):** RIPTA's developer page
+  (https://www.ripta.com/mobile-applications/) links the GTFS schedule
+  dataset; the archive is served from https://ripta.com/RIPTA-GTFS.zip
+  (redirecting to https://ripta.com/system/files/gtfs_file/RIPTA-GTFS.zip).
+  Retrieved 2026-11-15; 2,235,955 bytes; SHA-256
+  2aa2cd24209215c6a2b5d2d170527a555529af5fd58d5041713f35dbc2795f97.
+- **Freshness:** feed_info.txt declares 2026-11-01 → 2027-01-15 for the
+  Rhode Island Public Transit Authority — current at retrieval, so the
+  GTFS tier applies and no PDF fallback was needed.
+- **Registered** as feed `ripta` in config/feeds.json. No coverage.json
+  override: every RIPTA stop falls inside the default regional clip
+  (40.9–43.1, −73.8–−70.5), so the scope recorded at import is the
+  default description, like CTtransit, PVTA and WRTA.
+- **Service model:** the archive ships no calendar.txt. All service is
+  enumerated as type-1 calendar_dates rows (203 rows, 7 service ids,
+  dated 2026-10-13 → 2027-01-15; every weekday, Saturday and Sunday in
+  the window is listed). The importer's existing calendar/exception
+  model honours exactly those dates; tests/test_ripta_feed.py pins the
+  behaviour with a synthetic archive of the same shape (service on a
+  listed date, none on an unlisted one).
+- **Import counts (2026-11-15 local build):** 3,553 stops / 59 routes /
+  4,969 trips, zero import errors. The published file carries 5,009
+  trips; the 40 not imported are single-stop stub records (one
+  stop_time each) that cannot form a rideable segment.
+- **Verification (local 7-feed build, Tue 2026-11-17):** Providence
+  resolves at Kennedy Plaza (12 stops match; ripta:16400 carries 151
+  departures that day). Plans from Kennedy Plaza at 08:00 —
+  Providence → Hartford (RIPTA 51 to Providence Station, walk to
+  Amtrak, Amtrak via New Haven, arrive 11:36), Providence → Boston
+  South Station (Amtrak from Providence, arrive 09:33),
+  Providence → Newport (RIPTA 24 to Newport Transit Center, arrive
+  09:27). Standing reference checks unchanged: Court Square →
+  pvta:1495; hartford:6 → pvta:5101 departs 30900, arrives 33428.
