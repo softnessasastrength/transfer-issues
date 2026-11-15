@@ -9,7 +9,7 @@ through-no-pickup|a|c|0|600|300|a,b,100,200,t1,test:r,1,0,0;b,c,220,320,t1,test:
 through-no-dropoff|a|c|0|600|300|a,b,100,200,t1,test:r,1,0,1;b,c,220,320,t1,test:r,2,0,0|-|320|test:r
 missed-transfer|a|c|0|600|100|a,b,100,200,t1,test:r,1,0,0;b,c,250,300,t2,test:s,1,0,0|-|NONE|-
 walk-board|a|c|0|1200|180|b,c,600,900,t1,test:r,1,0,0|a,b,60|900|walk,test:r
-walk-buffer-block|a|c|0|1200|600|b,c,600,900,t1,test:r,1,0,0|a,b,60|NONE|-
+walk-buffer-block|a|c|0|1200|600|b,c,600,900,t1,test:r,1,0,0|a,b,60|900|walk,test:r
 walk-chain|a|c|0|600|180|-|a,b,60;b,c,90|150|walk,walk
 overnight|a|b|86000|90000|180|a,b,87000,88000,t1,test:r,1,0,0|-|88000|test:r
 same-stop|a|a|42|600|180|-|-|42|-
