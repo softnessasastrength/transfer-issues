@@ -217,4 +217,9 @@
 
 - Chose IBM Plex Mono as the primary interface font with Ubuntu Mono as the technical/status fallback. The CSS uses local/system font stacks, preserving usability when the fonts are not installed.
 - Started the UI pass with a departure-board visual for live rows, countdown-style labels, clearer route/stop empty states, and compact responsive controls. No backend semantics changed.
+
+## Codex session — ordered route chains
+
+- Added an optional `routes` constraint to the connection-scan router rather than creating a second routing engine. The constraint permits repeated continuation on the current route, then requires the next requested route ID after a transfer.
+- Added a browser chain builder with add/reorder/remove controls and an MCP `route_chain` argument. Empty chains preserve the original automatic planner behavior; unusual chains are allowed when loaded timetable data supports them, while results remain scheduled feasibility rather than guaranteed timed transfers.
 - Preference memory is deliberately not conversational inference: only explicit values are saved, validated, and used. It does not change feed provenance or turn unknown service into a fact.
