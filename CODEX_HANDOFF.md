@@ -51,6 +51,37 @@ COORDINATION: Ember is concurrently building Vercel deployability for the
 deployment scaffolding here; Ember's work lands it, and this file will be
 updated when it does.
 
+### Task 2, pre-cut into Luna-sized chunks (owner instruction, 2026-11-14)
+
+Each chunk is one sitting: one objective, bounded files, an acceptance
+test, no hidden dependencies on later chunks. Work them in order; record
+each in DECISIONS.md as it lands. Numbers below are from the Latency
+profile section of this file — verify against it, not from memory.
+
+- **L2.1 — Startup pre-warm.** Make the server pay the `connections(day)`
+  and `network()` builds at startup (or lazily-once per service date,
+  cached) instead of inside the first request that needs them. Acceptance:
+  cold-server first `/api/v1/plan` request drops from ~19.5 s toward the
+  warm ~2.1 s; full test suite green; no change to any response body.
+- **L2.2 — Plan early exit.** The forward scan currently iterates all
+  832,735 connections with no early exit, so a 2-minute local hop costs
+  the same ~2 s as Hartford→Springfield. Add a destination-reached early
+  termination that provably cannot change results. Acceptance: the
+  existing plan/bubble agreement tests plus a new fixture asserting
+  identical itineraries before/after on local and intercity pairs;
+  local-plan latency measurably down.
+- **L2.3 — `latest()` one-pass replacement.** `latest()` runs ~12
+  binary-search scans (~3.85 s warm) and is half the return=1 composite.
+  Prototype a one-pass reverse computation (the bubble's reverse scan is
+  the in-repo reference), behind the existing interface. Acceptance:
+  identical `latest_return` outputs on the fixture set and on sampled
+  real-data pairs; warm return=1 composite measurably below ~7.8 s.
+- **L2.4 — Bubble walk-propagation passes.** `propagate_walk` runs up to
+  12 full passes over ~11k stops after every fixpoint round. Reduce pass
+  count (frontier-based propagation) without changing classification.
+  Acceptance: bubble counts on the Hartford 2026-11-17 reference case
+  unchanged (1,034 reachable); latency down; suite green.
+
 ## State of the repo after the 2026-11-14 Ember session
 
 - Branch `mobility-bubble_muse` (from `feature/browser-proof-of-concept`)
