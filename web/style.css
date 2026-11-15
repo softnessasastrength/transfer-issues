@@ -63,13 +63,10 @@ th{background:var(--button)}.badge{background:var(--button)}
  :root:not([data-theme="light"]) .cityMarker{color:#e6f1e9}
 }
 
-/* Opt-in browser geolocation. Keep controls above the map without blocking it. */
-.locationControls{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.locationControls button{font-size:11px;padding:8px 10px}
-.locationStatus{position:absolute;right:22px;top:70px;max-width:280px;background:var(--surface,#fffef9);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:8px 11px;font-size:11px;z-index:500;pointer-events:none}
-@media(max-width:650px){.locationControls{max-width:250px}.locationControls button{font-size:10px;padding:6px}.locationStatus{right:12px;top:104px;max-width:220px}}
-
-.allRoutesControl{position:absolute;top:165px;right:22px;z-index:450;width:min(240px,45%);background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:9px;box-shadow:0 2px 12px #0002}
-.allRoutesControl button,.allRoutesControl select{width:100%;font-size:11px;margin:0 0 5px;padding:7px}
-#allRoutesStatus{font-size:10px;line-height:1.4;overflow-wrap:anywhere}
-@media(max-width:650px){.allRoutesControl{top:185px;right:10px;width:165px;padding:6px}.allRoutesControl button,.allRoutesControl select{font-size:10px;padding:5px}}
+/* City shortcuts stay on the map and remain reachable by keyboard. */
+.cities{display:block;max-height:138px;overflow:auto;padding:7px 9px;background:var(--surface,#fffef8);border:1px solid var(--line);border-radius:8px;box-shadow:0 5px 18px #143e3926}
+.cityGroup{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:3px 0}
+.cityGroup+.cityGroup{border-top:1px solid var(--line);margin-top:5px;padding-top:8px}
+.cityGroupLabel{font-size:10px;font-weight:800;letter-spacing:1.2px;min-width:90px;color:var(--muted)}
+.cities .cityGroup button{padding:7px 10px;min-height:34px}
+@media(max-width:700px){.cities{max-height:98px}.cityGroupLabel{width:100%}}

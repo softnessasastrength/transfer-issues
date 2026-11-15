@@ -34,5 +34,24 @@
     "url": "https://cdn.mbta.com/MBTA_GTFS.zip",
     "official_page": "https://www.mbta.com/developers/gtfs",
     "status": "not_downloaded"
+  },
+  {
+    "id": "lirr",
+    "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfslirr.zip",
+    "official_page": "https://api.mta.info/",
+    "status": "not_downloaded",
+    "optional": false
+  },
+  {
+    "id": "mnr",
+    "url": "https://web.mta.info/developers/data/mnr/google_transit.zip",
+    "official_page": "https://api.mta.info/",
+    "status": "not_downloaded"
+  },
+  {
+    "id": "greyhound",
+    "url": "https://gtfs.gis.flix.tech/gtfs_generic_us.zip",
+    "official_page": "https://gtfs.gis.flix.tech/gtfs_generic_us.zip",
+    "status": "not_downloaded"
   }
 ]

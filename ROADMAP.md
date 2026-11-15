@@ -2,13 +2,86 @@
 
 Read this file and relevant project instructions at the start of every work session. Record new requests here, identify dependencies, preserve priority, and verify acceptance criteria before marking complete. Explain conflicts rather than silently changing priorities. No recurring monitoring or scheduled tasks are authorized.
 
+## Running feature backlog
+
+This is the active list of requested product work. Status means engineering
+priority, not a promise that the feature is complete.
+
+### Next — mobile and reliability
+
+- **Android app shell** — IN PROGRESS. Build and install the WebView shell,
+  validate Termux loopback and Chromebook LAN flows, add a visible connection
+  error/retry state, and document debug/release APK builds. Connection
+  profiles for phone-local, Chromebook/Mac LAN and custom hosts are now added;
+  device validation remains pending.
+- **Android native polish** — QUEUED. Deep links, Android back/share behavior,
+  accessible touch targets, dark theme parity, connection profiles and a
+  deliberate offline/cache policy.
+- **Safe device discovery / remote access** — PLANNING. Prefer same-LAN
+  discovery (mDNS/NSD or a QR connection handoff) and an authenticated private
+  overlay such as Tailscale for access away from home. Do not implement router
+  UPnP port mapping while Atlas/MCP are unauthenticated HTTP services.
+- **Percival red-team fixes** — QUEUED. Validate MCP argument types, cap HTTP
+  request/response sizes, protect LAN mode, require confirmation for destructive
+  preference operations, and delimit untrusted feed text before model context.
+- **API client foundation** — IN PROGRESS. Compact/paginated metadata and
+  endpoint-level option validation are landed; add explicit provenance/expiry
+  fields, broader contract fixtures and authenticated persistence before native
+  clients depend on the API.
+- **GTFS trip-order migration** — IN PROGRESS. The importer now records each
+  stop's position in the full published trip so schedule scans handle sequence
+  gaps without joining across clipped stops. Rebuild from existing downloaded
+  archives, validate integrity, and exercise representative real-feed queries
+  before activating the new database; see `ARCHITECTURE_CORRECTNESS.md`.
+- **Connecticut and Massachusetts coverage** — IN PROGRESS. Add current
+  source-backed Greyhound and Metro-North schedules, enable LIRR for trips to
+  friends near its stations, and expose major Connecticut city map shortcuts.
+  Hartford DASH and Shore Line East appear in existing feeds. Peter Pan's
+  public GTFS is historical (2024); GHTD Link and ADA paratransit require
+  booking, and a CTtransit service named Flex remains unverified. Continue
+  local-agency inventory, provenance and transfer-rule work before claiming
+  complete CT/MA coverage. See `REGIONAL_COVERAGE.md`.
+
+### Later — product capability
+
+- **Installable mobile web/PWA** — DEFERRED. Add manifest, service worker only
+  after offline map/data licensing and expiry behavior are designed.
+- **SwiftUI iOS client** — INVESTIGATION AUTHORIZED. Build on a Mac after the
+  API/security prerequisites; do not port Python routing into the phone app.
+- **Departure board refinement** — QUEUED. Countdown normalization, route
+  colors, freshness, alerts, stop boards and explicit unknown/stale states.
+- **Route-chain exploration** — PARTIAL. Support unusual chains such as
+  `905 → 30 → 24X`, show transfer legs and explain when no published timed
+  connection exists.
+- **Fare coverage** — PARTIAL. Expand source-backed CTtransit, CTrail, MBTA,
+  PVTA and mixed-agency estimates without guessing unsupported fares.
+- **Network expansion** — QUEUED. Add verified regional feeds and optional
+  networks through configuration, with source provenance and coverage labels.
+- **User data portability** — QUEUED. Move beyond browser-local records with
+  authenticated, exportable preferences/bookmarks while preserving local-first
+  operation.
+- **Last-mile links** — PLANNING ONLY. User-initiated Uber/Lyft deep links;
+  never invent price, ETA, availability or booking capability.
+
+- **Percival Outings** — IN PROGRESS. Map-first scheduled round-trip planning
+  now verifies an outbound, minimum meeting time, latest return, final walk and
+  hard home-by deadline. Bounded candidate searches expose unevaluated overflow
+  as unknown. Real-data and browser acceptance remain part of the current M0.D
+  delivery work; no offline pack or background task is implied.
+
+### Explicitly not promised
+
+- Live-arrival guarantees, ticketing, reservations, payments, autonomous
+  messages/bookings, guaranteed connections, accessibility/slope guarantees,
+  or recurring background tasks.
+
 ## M0 — Core atlas (IN PROGRESS; current priority)
 
 Deliver a maintainable working application derived from `prototype.html`, official GTFS import and validation, geographic routes/stops, date-specific calendars and exceptions, timetables, transfers, last-trip and return feasibility, multi-agency reachability, explicitly estimated walking/scooter connections, bookmarks, discovery journal, source dates, missing-feed documentation, tests and run instructions.
 
 Priority geography: Hartford, Springfield, Enfield, Windsor Locks, Manchester, Holyoke, Chicopee, Westfield, New Haven, Worcester.
 
-Acceptance: import available official archives and report failures honestly; exercise planner calendar, overnight, transfer and return behavior; test API and browser interactions; document limitations and reproducible setup; deliver source and data. Missing PVTA data is a substantive coverage gap, not proof that service does not exist. Do not mark full requested coverage complete until it is obtained.
+Acceptance: import available official archives and report failures honestly; exercise planner calendar, overnight, transfer and return behavior; test API and browser interactions; document limitations and reproducible setup; deliver source and data. Missing PVTA data is a substantive coverage gap, not proof that service does not exist. Do not mark full requested coverage complete until it is obtained. (Update 2026-11-14: PVTA GTFS has been obtained and imported — the block proved to be a User-Agent artifact in the downloader, not feed unavailability; see DECISIONS.md. Other agency gaps, e.g. RIPTA, remain open.)
 
 ## M1 — macOS / Apache self-hosting (DEFERRED; explicit authorization required)
 
@@ -22,11 +95,13 @@ Depends on successful M1 local deployment. Baseline responsive core UI is in M0;
 
 Acceptance: iPhone Safari/browser tests, install/offline behavior, selected data expiry visibility and persistence tests. Device-browser storage export must remain recoverable.
 
-## M3 — Native iPhone client investigation (DEFERRED; explicit authorization required)
+## M3 — Native iPhone client investigation (AUTHORIZED; implementation gated)
 
 Depends on stable versioned API and secure M1 deployment. Evaluate SwiftUI or justify alternatives. Reuse backend routing and GTFS engine. Maps/routes/stops/schedules, opt-in location, saved trips/favorites, feasible offline data, secure Mac mini connection and minimal third-party cloud dependence. Do not add iOS dependencies to the backend.
 
 Acceptance for investigation: architecture proposal, API gap analysis, offline/security plan and justified implementation estimate. Implementation requires separate authorization.
+
+Status update (2026-11-15, iOS build-path request): investigation is authorized. No Xcode project or iOS binary exists yet. The current practical first target is a SwiftUI client consuming `/api/v1/` over a Mac mini or other explicitly secured host; the Python/SQLite backend remains platform-neutral. This Linux/Chromebook environment cannot run Xcode, the iOS Simulator, code signing, or App Store/TestFlight packaging. Before native implementation, close the API gaps listed in `API.md` (pagination/compact payloads, complete validation, provenance/expiry semantics, and authenticated persistence) and define secure LAN/TLS access. A PWA remains the fastest installable phone experience while M3 is implemented.
 
 ## Architecture decisions and future friction
 
@@ -70,6 +145,8 @@ Acceptance: browse real loaded routes on a geographic map; open date-specific ti
 
 ## M0.R — Regional/intercity rail and New Hampshire (QUEUED; after current core work)
 
+MBTA full-mode coverage was authorized and implemented as a core regional-feed improvement on 2026-11-15: the importer now uses a checked-in coverage policy and loads selected MBTA bus, subway/light-rail and commuter-rail routes. M0.R remains queued; this does not implement its intercity ticketing, New Hampshire, station-constraint or reservation requirements.
+
 Core states remain CT, MA and RI. Extended scope adds New Hampshire passenger rail and practical connections for destinations without rail. Preserve GTFS-first / official structured data / reviewed official PDF priority. Do not implement this expansion ahead of M0.D and ingestion reliability.
 
 Relevant services to investigate and verify: Northeast Regional, Acela, Hartford Line / Amtrak Valley Flyer, Vermonter, Lake Shore Limited, Downeaster, and other Amtrak connections within or into the region. Prioritize Downeaster stations in NH, Boston/northern Massachusetts rail connections, relevant intercity buses, then necessary local last-mile transit. Target Exeter, Durham, Dover, Manchester NH, Nashua, Concord and relevant connecting destinations. Clearly distinguish Manchester CT and Manchester NH and direct-rail cities from bus-connected cities using verified sources. Do not infer station service or interchange opportunities from proximity alone.
@@ -89,6 +166,44 @@ Acceptance: representative verified interstate/local-bus/commuter-rail/Amtrak/in
 ### M0.D status — implemented, acceptance blocked
 
 Desktop controller and loopback launcher are implemented. 17 Python regressions/HTTP tests pass; JS syntax and compilation pass. Real-data Hartford–Springfield outbound/return queries pass. Browser acceptance is blocked by Chromium's denied Unix-domain socket in this executor; the repeatable browser smoke test is supplied but unverified. No macOS execution claim. Do not mark this milestone complete until browser interactions are exercised successfully. No source feeds or existing database were modified during this work.
+
+Status update (2026-11-14, Ember session; see DECISIONS.md): 29 Python tests pass, including 12 Mobility Bubble fixture tests for the new `/api/v1/bubble` endpoint. The browser smoke test PASSED in the Ember environment (Playwright + Chromium; the earlier socket blocker does not occur there), and a fresh five-feed import was completed with PVTA still unavailable (HTTP 403). macOS/Safari acceptance remains unperformed, so M0.D is still not marked complete.
+
+Status update (2026-11-14, Ember PVTA fix session; see DECISIONS.md): the PVTA 403 was a User-Agent artifact — pvta.com rejects the default urllib UA. The downloader now sends an explicit descriptive User-Agent and PVTA imports fully: 62 routes / 13,381 trips / 1,973 stops, service 20261102–20261219. Springfield local journeys and Hartford -> Springfield journeys continuing onto PVTA legs verify against the API, and the Mobility Bubble's unknown classification for the Springfield area is resolved (PVTA stops now classify on evidence). 30 Python tests pass, including a stubbed regression test for the download header. macOS/Safari acceptance remains unperformed, so M0.D is still not marked complete.
+
+Status update (2026-11-15, local MCP connector): `scripts/atlas_mcp.py` exposes the versioned Atlas API over dependency-free MCP stdio for MCP-capable local agents, including Ollama hosts. It is intentionally local-only and requires the Atlas HTTP server to be running; no live-arrival or remote-service guarantee is added. Protocol and argument-mapping tests are included.
+
+Status update (2026-11-15, Percival continuation): evidence-first route reports and protected draft-only visit planning are implemented in the MCP layer. The Open WebUI path has a loopback Streamable HTTP adapter with initialize/tool-discovery/notification tests and a manual validation checklist; actual Open WebUI execution remains unverified in this environment.
+
+Status update (2026-11-15, Percival local memory): explicit device-local preference tools are implemented for home/origin/host stops, time windows, ground mode and radius. Preferences are never inferred, synced or treated as transit evidence.
+
+Status update (2026-11-15, separated live overlay): added an opt-in provider-neutral `/api/v1/live` contract and an official MBTA V3 JSON adapter for predictions/alerts. Live failures produce `unknown`; scheduled routing does not call the adapter. CTtransit/PVTA live support remains unimplemented pending verified official realtime contracts.
+
+Status update (2026-11-15, live board slice): added a browser Live board view backed by `/api/v1/live`, with provider/route/stop filters and explicit live/unknown messaging. This is a read-only status surface; a compact departure-board presentation with countdowns, route colors and freshness is the next UI refinement. CTtransit/PVTA remain unverified.
+
+Status update (2026-11-15, API contract slice): added opt-in compact metadata
+and pagination for large route/stop, reachability and Mobility Bubble arrays,
+with total/has-next metadata and no default response-shape change. Added strict
+validation for boolean flags, plan kind, and namespaced route chains. Remaining
+API prerequisites are unified PDF confidence/validation statuses, per-trip
+provenance/expiry gates and authenticated persistence; this does not authorize
+remote exposure or native-client implementation.
+
+Status update (2026-11-15, CTtransit verification): the official CTtransit developer page exposes statewide JSON realtime trip updates, vehicle positions and alerts. Added a dependency-free JSON adapter and fixtures for route/stop filtering. PVTA remains schedule-only: its official realtime page confirms beta GPS/departure data and a usage agreement but does not expose a stable feed URL/schema in the accessible developer material.
+
+Status update (2026-11-15, Percival UI/UX pass): began the ordered visual pass with a departure-board treatment for live rows, explicit empty states for route/stop search, mono typography stacks (IBM Plex Mono primary, Ubuntu Mono technical), and responsive live controls. Backend semantics are unchanged; browser-device visual acceptance remains pending.
+
+Status update (2026-11-15, route chaining): added optional ordered route constraints to scheduled planning and the UI chain builder. Users can express sequences such as 905 → 30 or 905 → 24X; the planner still requires actual loaded stops, calendars, transfer buffers and published timetable feasibility. Automatic planning remains unchanged when no chain is selected.
+
+Status update (2026-11-15, Amtrak expansion): enabled `whole_network` coverage policy for the official Amtrak GTFS archive and rebuilt locally with 64 routes, 645 stops and 2,461 trips, with no importer errors. Added a generic feed-page fallback so future configured networks do not require a Python hard-coded page-map edit. This is full coverage of the current downloaded Amtrak archive, not a live-service, ticketing, reservation or guaranteed-connection claim.
+
+## M0.L — Optional rideshare last-mile links (QUEUED; planning only)
+
+A future last-mile layer may offer Uber/Lyft deep links from a selected stop or itinerary endpoint. The first version must be link-only and user-initiated: no booking, payment, account-token storage, or autonomous ride requests. It may show a provider's own app handoff, but must not invent price, ETA, availability, accessibility, or coverage.
+
+Uber's official rider documentation says deep links pass parameters to the app but do not fetch time or price estimates; price estimates require API access and current policy approval. Lyft's current developer access is not sufficiently verified in this environment for an implementation claim. If pursued, use a provider-neutral `last_mile_options` contract with explicit `available`, `unknown`, and `deep_link_only` states, coordinate privacy controls, and tests that prove no booking path exists.
+
+Dependencies: stable stop coordinates, user confirmation UX, credential/terms review, and a clear distinction between transit schedule feasibility and rideshare availability. This does not authorize production credentials or paid API usage.
 
 ## M0.T — Same-phone Termux launch (AUTHORIZED; device validation pending)
 

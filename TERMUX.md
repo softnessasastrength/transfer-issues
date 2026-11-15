@@ -2,7 +2,7 @@
 
 The phone runs the existing Python/SQLite backend inside Termux. Chrome on the same phone opens its loopback URL. This reuses the desktop proof of concept and its existing responsive layout; it is not a native Android app or PWA. No root, Docker, Apache, Node or pip dependencies are required by the application.
 
-Status: setup instructions prepared from official Termux/GitHub CLI documentation and inspected project code. Actual Android/Termux execution and phone browser acceptance remain unverified. Existing transit coverage and routing limitations still apply.
+Status: setup instructions prepared from official Termux/GitHub CLI documentation and inspected project code. Actual Android/Termux execution and phone browser acceptance remain unverified. The repository now also contains an early native Android WebView shell under `android/`; its APK build/device validation is still pending. Existing transit coverage and routing limitations still apply.
 
 ## 1. Prepare Termux
 
@@ -49,7 +49,7 @@ On a new checkout without `data/atlas.sqlite`:
 python scripts/prepare_data.py
 ```
 
-Initial downloads and imports can take time, use substantial mobile data, and need space for archives plus SQLite. Use Wi-Fi for this first run if available. Agency download failures may leave incomplete coverage; PVTA has been unavailable in the development environment. The current importer rebuilds data and does not retain rollback versions, so skip this command if you already have a database you want to preserve.
+Initial downloads and imports can take time, use substantial mobile data, and need space for archives plus SQLite. Use Wi-Fi for this first run if available. Agency download failures may leave incomplete coverage. (PVTA downloads successfully as of 2026-11-14; it previously returned HTTP 403 until the downloader sent an explicit User-Agent.) The current importer rebuilds data and does not retain rollback versions, so skip this command if you already have a database you want to preserve.
 
 Check the backend and launch:
 
@@ -65,6 +65,21 @@ Leave that Termux session running. Switch to Chrome and enter exactly:
 Use HTTP, not HTTPS. This address refers to the same phone; it does not require your Mac mini to be running. The server stays on loopback rather than exposing itself to other devices.
 
 For the first exploration, tap **Browse routes**, search **905**, and open a trip timetable. Or zoom into Hartford, tap published stop markers and choose start/destination stops. For a rail query, use `HARTFORD [hartford:6]` to `SPRINGFIELD [hartford:9]`. Choose a date inside the imported schedule period shown under **Data & sources**. If needed, turn the phone sideways for more room; dedicated mobile polish is still deferred.
+
+### Use the Chromebook as Percival's LAN host
+
+If the database and Ollama stay on the Chromebook, launch from the checkout:
+
+```bash
+python3 scripts/percival_lan.py --lan
+```
+
+Find the Chromebook's private LAN address, then open
+`http://<chromebook-lan-address>:8000` on the phone. A local Open WebUI can
+use `http://<chromebook-lan-address>:8765/mcp`. This is unauthenticated
+single-user development infrastructure: keep both devices on a trusted
+network and stop it after use. The phone does not need to run the Atlas
+database or Ollama model in this arrangement.
 
 ## Later launches and stopping
 
