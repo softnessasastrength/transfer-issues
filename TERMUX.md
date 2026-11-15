@@ -49,7 +49,7 @@ On a new checkout without `data/atlas.sqlite`:
 python scripts/prepare_data.py
 ```
 
-Initial downloads and imports can take time, use substantial mobile data, and need space for archives plus SQLite. Use Wi-Fi for this first run if available. Agency download failures may leave incomplete coverage; PVTA has been unavailable in the development environment. The current importer rebuilds data and does not retain rollback versions, so skip this command if you already have a database you want to preserve.
+Initial downloads and imports can take time, use substantial mobile data, and need space for archives plus SQLite. Use Wi-Fi for this first run if available. Agency download failures may leave incomplete coverage. (PVTA downloads successfully as of 2026-11-14; it previously returned HTTP 403 until the downloader sent an explicit User-Agent.) The current importer rebuilds data and does not retain rollback versions, so skip this command if you already have a database you want to preserve.
 
 Check the backend and launch:
 

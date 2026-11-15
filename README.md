@@ -34,7 +34,7 @@ Start with **Browse routes → 905**, select a trip for its timetable, or click 
 
 Bookmarks and journal entries are device/browser/origin-local; use **My discoveries → Export my data** before clearing browser storage or moving machines. Import appends entries to preserve existing records. No personal records are committed to Git.
 
-A failed agency download can leave coverage incomplete. PVTA is currently missing. An empty result is not proof that no real journey exists. Reservation/seat availability and fares are not checked.
+A failed agency download can leave coverage incomplete. An empty result is not proof that no real journey exists. Reservation/seat availability and fares are not checked.
 
 ## Feed coverage at the checkpoint
 
@@ -45,7 +45,7 @@ A failed agency download can leave coverage incomplete. PVTA is currently missin
 | WRTA | Successful | 24 routes; exception-date calendars |
 | Amtrak | Successful | 13 routes intersecting regional geographic scope |
 | MBTA | Successful | 14 commuter-rail routes only; bus/subway excluded |
-| PVTA | **Unavailable** | Official GTFS endpoints returned HTTP 403; published nested download link returned 404 |
+| PVTA | Successful | 62 routes; service period 2026-11-02 to 2026-12-19 in the 2026-11-14 import. Earlier HTTP 403s were a User-Agent artifact in the downloader, fixed 2026-11-14 |
 | RIPTA / other CT, MA, RI agencies | **Not imported** | Required expanded coverage remains pending |
 
 These are initial import counts, not proof of full correctness or current service. Downloaded GTFS, generated SQLite and validation reports are **not committed**. Re-run ingestion to produce local data. No schedules from unofficial or historical sources have been substituted for missing current feeds.
