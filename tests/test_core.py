@@ -46,7 +46,7 @@ class RoutingTests(unittest.TestCase):
  def test_latest(self):
   with patch.object(routing,'connections',return_value=[self.c(600,700,'a','b','t'),self.c(1200,1300,'a','b','u')]):self.assertEqual(routing.latest('2026-11-12','a','b',0,1400)['latest_start_minute'],1200)
  def test_ground_estimate(self):
-  with patch.object(routing,'connections',return_value=[]),patch.object(routing,'neighbors',side_effect=lambda s,r,m:[('b',120,150)] if s=='a' else []):
+  with patch.object(routing,'connections',return_value=[]),patch.object(routing,'transfer_graph',return_value={'a':[{'to':'b','seconds':120,'meters':150,'estimated':True,'source':'synthetic'}]}):
    r=routing.plan('2026-11-12','a','b',0,400);self.assertTrue(r['legs'][0]['estimated']);self.assertEqual(r['estimated_ground_meters'],150)
  def test_destination_exit_preserves_local_and_intercity_itineraries(self):
   class Counted(list):

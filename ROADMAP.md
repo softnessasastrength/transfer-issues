@@ -210,3 +210,139 @@ Dependencies: stable stop coordinates, user confirmation UX, credential/terms re
 User requested Android/Termux execution of the current proof of concept. Scope: reuse Python/SQLite in Termux with Chrome on the same phone through loopback; document package setup, private repository authentication, first import, subsequent launches, stopping and browser-local data. `TERMUX.md` supplies the runbook. This does not authorize the deferred PWA/native-app/Apache milestones or mobile design overhaul. No backend restructuring is necessary for this launch path.
 
 Acceptance pending: successful first import on Android, HTTP page and map interaction on that phone, timetable and return-trip query, journal persistence across restart. No Android device is attached here, so instructions are not a claim of successful phone execution. Preserve the current M0.D/core work and queued M0.R expansion.
+
+## Authorized iOS offline proof of concept: Connecticut + PVTA (IN PROGRESS)
+
+User selected regional offline architecture B, with the first proof of concept scoped to Connecticut transit and PVTA. Preserve M0 source-validation priorities and existing Termux/web functionality. Initial deliverable: non-destructive SQLite subset exporter with manifest, provenance, and missing-feed reporting. Next: verified PVTA acquisition, complete Connecticut operator inventory, native SQLite/routing and offline vector maps/paths, native GPS, airplane-mode acceptance. **Do not describe the iOS app as fully offline until all tests pass.** See `ios/OFFLINE_POC.md`.
+
+
+## Authorized Android offline client proof of concept (IN PROGRESS)
+
+Build a Kotlin Android Studio project that starts without a network connection, reads the shared CT/PVTA SQLite pack, and supports an exploration-first roadmap. Initial shell reads route inventory from local SQLite and needs Android Studio/device acceptance testing. Subsequent milestones: secure pack import and hash verification, native timetable/routing, offline vector map and paths, native GPS, optional live feeds, airplane-mode route-planning tests. Preserve web/Termux and iOS work; no claim of completed offline journey planning.
+
+## M0.P — User-controlled offline package manager POC (IMPLEMENTATION IN PROGRESS)
+
+Authorized on 2026-11-12: a Python standard-library backend proof of concept for the Choose Your Transit Network flow. `offline_packages.py` and synthetic tests cover explicit consent, agency/dependency planning, local payload checksums, staged content-addressed installation and update eligibility. Initial owner-selected agencies are CTtransit, CTrail Hartford Line, PVTA and Amtrak; actual data availability must be verified separately. Auto-update policy never authorizes new agencies. See `docs/architecture/offline-pack-manager-poc.md`. No native Android UI, downloader, catalog authentication, verified offline maps/graphs, or device tests yet. Preserve M0 core atlas priorities; this is a parallel scoped proof of concept, not a claim of finished offline support.
+
+## M0.L — Mac mini ↔ Android LAN backend and offline preview (DRAFT POC)
+
+Explicitly authorized: one-command local Python server, per-agency local GTFS SQLite exports and HTTP catalog/download, native Android agency picker with approval and SHA-256 verification, LAN WebView for the existing server planner, and native offline GTFS route-shape preview. See `docs/architecture/lan-android-poc.md`. No live source availability or device testing is claimed. Full native offline routing, licensed street basemap, and pedestrian graph remain missing; this work must not displace M0 core validation.
+
+## M0.U — Unified offline transit network (STEP 1, DRAFT)
+
+Architecture B selected: Python Mac mini backend and native Kotlin Android routing in later steps. Implemented `scripts/assemble_offline_network.py` to combine explicitly selected agency SQLite packs into one validated, atomically replaced offline routing dataset, plus six synthetic tests. See `docs/architecture/unified-offline-network.md`. No fabricated interagency transfers, native Android journey planner, or real-device validation. Step 2 requires explicit transfer policy and then connection-scan routing against the combined network.
+
+## M0.T — Step 2 interagency transfer routing (DRAFT)
+
+Owner selected official GTFS transfers plus explicitly estimated proximity transfers, respecting forbidden links and the existing boarding buffer. Added `transfer_edges.py`, integrated priority-queue walking relaxation into the Python connection scan, and synthetic tests. See `docs/architecture/interagency-transfer-routing.md`. No pedestrian street verification, real-feed validation, or native Android Kotlin journey planner yet. Step 3 requires a street-network data source/format decision.
+
+## M0.S — Step 3 offline street graph (DRAFT)
+
+Owner selected OpenStreetMap + SQLite routing graph (architecture B). Added local OSM XML to SQLite graph builder, Python walk/cycle Dijkstra pathfinder, optional Mac mini transit-transfer graph integration, and six synthetic tests. See `docs/architecture/offline-street-routing.md`. No automatic data downloads, full OSM/PBF import, street basemap, Kotlin Android pathfinder, or device validation. Real graph paths remain estimates and do not establish safe/legal/accessibility-compliant passage.
+
+## M0.A — Step 4 Android offline routing (DRAFT)
+
+Owner selected A: Kotlin native offline journey computation. Added a Kotlin SQLite GTFS timetable reader, service calendar and exception logic, interagency walking transfer estimates, connection scan, standalone Android planner screen, and seven synthetic JUnit tests. See `docs/architecture/android-native-offline-routing.md`. Not yet compiled/tested on device; no Kotlin OSM street graph routing or unified pack installer. Must validate correctness, scale, and airplane-mode operation before completion.
+
+## M0.AS — Native Android street routing (DRAFT)
+
+Owner selected B from the next-stage choices: Kotlin native street graph integration. Added `OfflineStreetGraph.kt` for Step 3's SQLite format, directed walk/cycle shortest paths, graph-derived interagency transfer times, and seven synthetic Kotlin JUnit tests. Planner optionally loads app-private `streets.sqlite`; without it, proximity estimates remain. See `docs/architecture/android-native-street-routing.md`. No build/device tests executed, in-app street pack installation, or regional performance validation yet.
+
+## M0.V — Step 6 visual Android journey planner (DRAFT)
+
+User selected D: searchable stop names/IDs, touch-selectable offline geographic stop map, and named leg-by-leg itinerary presentation. Added `JourneyUiModel.kt`, `StopPickerMap.kt`, updated `OfflinePlannerActivity.kt`, and nine synthetic JUnit tests. See `docs/architecture/android-visual-journey-planner.md`. No offline street basemap, zoom/pan, Gradle compilation, device testing or routing correctness verification yet.
+
+## M0.Q — Step 7 routing verification (DRAFT)
+
+Owner selected A. Fixed LAN Python pack builder syntax, debug Android manifest override, and Kotlin GTFS pickup/dropoff restrictions; added six synthetic Kotlin regression tests and GitHub Actions Python + Android debug build/JUnit verification. See `docs/architecture/routing-verification-step7.md`. CI configured but not observed running; no Gradle compilation, device test, real-feed validation or Python/Kotlin parity claim yet. Preserve previous features and stacked draft PRs.
+
+## M0.P — Step 8 Python/Kotlin routing parity (DRAFT)
+
+User selected B. Inspected failed Step 7 CI: seven Python test fixture errors due to unmocked transfer_graph; Android SDK action attempted obsolete tools package before compilation. Fixed both CI blockers and added 13 language-neutral synthetic golden routing scenarios consumed by Python and Kotlin tests, comparing arrivals and leg sequences. See `docs/architecture/python-kotlin-routing-parity.md`. CI results still required before claiming parity/build success.
+
+## M0.R — Step 9 Android build and parity CI verification (DRAFT)
+
+User selected A. Step 8 CI successfully built the Android debug APK and passed Python tests, but Kotlin unit-test compilation failed on ten-element list destructuring. Replaced with explicit indices in shared golden fixture reader. Step 9 acceptance requires both Python and Android Gradle JUnit jobs green; device, real-feed and airplane-mode tests remain outstanding. See `docs/architecture/android-parity-ci-verification-step9.md`.
+
+## M0.T — Phone-only Termux bridge (AUTHORIZED; staged drafts)
+
+Stage 1: explicit loopback-only Termux Python pack server using existing validated GTFS exporter and Android debug pack installer. Stage 2: source-aware official GTFS import and deterministic catalog integration tests. Stage 3: optional Termux development and wireless ADB debugging. All stages use separate draft PRs; no merges. Device acceptance requires verified stop installation and airplane-mode planner operation. See `docs/architecture/termux-phone-only-stages.md`.
+
+## Crostini Developer Command Center (AUTHORIZED; first increment)
+
+Owner mandate 2026-11-13: inspect repository/toolchain, verify existing Chromebook
+build, then implement a modular developer dashboard and safe command adapters.
+First increment: curses + headless JSON, Git/tool/disk telemetry, fixed Python and
+Android validation commands, local logs/history and APK SHA-256. Acceptance:
+adapter tests, full Python suite, Android task evidence, APK metadata inspection,
+and terminal launch/quit smoke. See `docs/development/developer-command-center.md`
+and `docs/development/baseline-20261113.md` for evidence and limitations.
+
+Future authorised stages remain queued: pack provenance/integrity UI; explicitly
+confirmed clean builds and APK installation; ADB diagnostics; on-demand PR/CI
+inspection; optional artifact transfer. Preserve existing core/ingestion priorities
+and consent rules. No geographic expansion or architectural replacement included.
+
+### Command Center result evidence and feature blitz — 2026-11-13
+
+Owner requested the next task, then a Command Center feature blitz. First focused
+slice: read-only Python/unittest summaries, Android JUnit XML counters and adjacent
+APK metadata, with explicit historical provenance and source timestamps. Acceptance:
+malformed/missing/failed/empty evidence cannot appear as current-tree success;
+synthetic regressions, full Python suite, headless and terminal reports-view smoke.
+Depends on draft #44; use a separate stacked draft, no merge.
+
+Next focused slice: read-only Git branch/history view, saved-log browsing, keyboard
+help and richer environment information. Downloads, pack mutations, device installs,
+clean builds and transit-engine changes retain their existing approval/consent gates.
+
+### Inspection-panel acceptance — first blitz slice
+
+Read-only Git and environment panels, help, safe saved-log tail browsing and JSON
+inspection modes are implemented on `feature/crostini-inspection-panels`, stacked
+on result-summary draft #45 (which depends on #44). Acceptance: deterministic
+traversal/symlink/FIFO/terminal-control/size-bound and environment-presence tests;
+full Python regressions; headless inspection and manual terminal navigation.
+No build/source/device mutation is available from inspection pages. No geographic
+or transit-runtime expansion is part of this slice.
+
+### CI coverage and engineering audit — feature blitz continuation
+
+Add verification triggers for Python modules, launchers, scripts and the Command
+Center; compile Python, validate Bash syntax and retain failure diagnostics without
+weakening exit status. Acceptance: path/security/failure-propagation contracts,
+full Python suite and exact-head hosted CI; successful-build-only APK upload remains.
+No release automation or permission expansion. See
+`docs/development/engineering-audit-20261113.md` for observed offline-pack gaps and
+prioritised installer recovery, pack-contract parity, accessibility and offline
+acceptance follow-ups. These preserve existing M0/core and consent priorities.
+
+## Agency-pack relational validation (AUTHORIZED; synthetic acceptance verified)
+
+Continuation of the standing engineering directive: strengthen the existing local
+Termux/Crostini catalogue gate with normalized schema/key/reference/calendar/time
+checks and expose the same read-only result in Command Center P/--inspect packs.
+Acceptance: reject malformed/NULL/dangling/duplicate/checksum-correct invalid packs;
+preserve exception-only overnight service and sequence gaps without changing bytes;
+verify actual exporter compatibility, CLI failure diagnostics and 100-test regression
+suite. See `docs/development/agency-pack-validation.md` for exact rules/evidence.
+Real-feed/device/scale acceptance remains pending. No new downloads, agency installs,
+pack repair, geometry synthesis, storage cap or activation architecture change.
+
+Next: compatible Android validation and interrupted-activation recovery; retain
+current source integrity and consent priorities. Unified assembler/Android parity
+must not be inferred from this Python export-gate implementation.
+
+## Android per-agency activation recovery (AUTHORIZED; local JVM/build acceptance)
+
+Next reliability slice after #48: replace the active-name gap with a synced backup
+copy and atomic replacement, serialize existing download staging across Activity
+instances, and recover a legacy previous pack when active is absent. Recovery checks
+a copy using SQLite integrity, preserves previous bytes and never promotes partial
+downloads or fetches data. Existing consent and per-agency filenames are unchanged.
+
+Acceptance observed locally: 14 new failure/recovery/concurrency JVM tests; 44 total
+Android tests without failures/errors/skips; successful debug assembly; 100 Python
+regressions. See `docs/architecture/android-pack-activation-recovery.md`. Exact-head
+CI and physical Android/process-death/power-loss tests remain separate gates. No
+multi-agency transaction, trusted manifest or complete-offline guarantee is claimed.

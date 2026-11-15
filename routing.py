@@ -1,5 +1,7 @@
 """Connection scan routing. No live data; geographic transfers are estimates."""
-import math, functools, collections
+import math, functools, collections, heapq, itertools, os
+from street_routing import StreetGraph
+from transfer_edges import edges, transfer_rules
 from database import query,connections,coverage
 INF=10**15
 
@@ -9,32 +11,23 @@ def distance(a,b):
 
 @functools.lru_cache(maxsize=1)
 def network():
- stops={s['id']:s for s in query('SELECT * FROM stops')};grid=collections.defaultdict(list)
- for sid,s in stops.items():grid[(int(s['lat']*100),int(s['lon']*100))].append(sid)
- rules={}
- for r in query('SELECT * FROM transfers'):
-  # Parent-station rules apply to child platforms too.
-  aa=[r['a']]+[k for k,s in stops.items() if s['parent']==r['a']];bb=[r['b']]+[k for k,s in stops.items() if s['parent']==r['b']]
-  for a in aa:
-   for b in bb:rules[(a,b)]=(r['type'],r['seconds'])
- return stops,grid,rules
+ stops={s['id']:s for s in query('SELECT * FROM stops')}
+ rules=transfer_rules(stops,query('SELECT * FROM transfers'))
+ return stops,None,rules
+
+@functools.lru_cache(maxsize=2)
+def configured_street_graph(path):
+ return StreetGraph(path) if path else None
+
+@functools.lru_cache(maxsize=24)
+def transfer_graph(radius,mode):
+ stops,_,_=network()
+ return edges(stops,query('SELECT * FROM transfers'),radius=radius,mode=mode,
+              street_graph=configured_street_graph(os.environ.get('ATLAS_STREET_GRAPH','')))
 
 @functools.lru_cache(maxsize=50000)
 def neighbors(sid,radius,mode):
- stops,grid,rules=network();s=stops[sid];y,x=int(s['lat']*100),int(s['lon']*100);n=math.ceil(radius/750)+1;out=[]
- candidates=set()
- for yy in range(y-n,y+n+1):
-  for xx in range(x-n,x+n+1):candidates.update(grid.get((yy,xx),[]))
- for t in candidates:
-  if t==sid:continue
-  d=distance(s,stops[t]);rule=rules.get((sid,t))
-  if rule and rule[0]==3:continue
-  if d>radius:continue
-  # Straight-line × 1.3 is a planning estimate, not a traversable path.
-  seconds=max(60,math.ceil(d*1.3/(4.5/3.6 if mode=='walk' else 12/3.6)))
-  if rule and rule[0]==2:seconds=max(seconds,rule[1])
-  out.append((t,seconds,round(d*1.3)))
- return out
+ return [(e['to'],e['seconds'],e['meters']) for e in transfer_graph(radius,mode).get(sid,())]
 
 def _scan_route_chain(day,origin,start,deadline,mode,radius,buffer,feeds,destination,route_chain):
  """Keep partial chains separate until every requested route has been used."""
@@ -92,12 +85,24 @@ def scan(day,origin,start,deadline,mode='walk',radius=500,buffer=300,feeds=(),de
  if origin not in stops:raise ValueError('Unknown origin stop')
  arrivals={origin:start};paths={origin:()};onboard={};ready={origin:start}
  def relax(sid,time,path,initial=False):
-  if time<arrivals.get(sid,INF):arrivals[sid]=time;paths[sid]=path;ready[sid]=time+(0 if initial else buffer)
-  for dest,seconds,meters in neighbors(sid,radius,mode):
-   t=time+seconds
-   if t>deadline or t>=arrivals.get(dest,INF):continue
-   leg=dict(kind=mode,from_stop=sid,to_stop=dest,departure=time,arrival=t,meters=meters,estimated=True)
-   arrivals[dest]=t;paths[dest]=path+(leg,);ready[dest]=t+(0 if initial else buffer)
+  # Dijkstra closure: allow consecutive walking transfers; only improve arrival.
+  order=itertools.count()
+  heap=[(time,next(order),sid,path,initial)]
+  while heap:
+   at,_,node,current,first=heapq.heappop(heap)
+   if at>deadline or at>arrivals.get(node,INF):continue
+   if at<arrivals.get(node,INF):
+    arrivals[node]=at;paths[node]=current
+   elif node not in paths:
+    paths[node]=current
+   ready[node]=min(ready.get(node,INF),at+(0 if first else buffer))
+   for edge in transfer_graph(radius,mode).get(node,()):
+    dest=edge['to'];t=at+edge['seconds']
+    if t>deadline or t>=arrivals.get(dest,INF):continue
+    leg=dict(kind=mode,from_stop=node,to_stop=dest,departure=at,arrival=t,
+             meters=edge['meters'],estimated=True,transfer_source=edge['source'])
+    arrivals[dest]=t;paths[dest]=current+(leg,)
+    heapq.heappush(heap,(t,next(order),dest,paths[dest],False))
  relax(origin,start,(),True)
  for dep,arr,a,b,trip,route,head,pu,do,seq in connections(day):
   if dep<start:continue

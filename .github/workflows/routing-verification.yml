@@ -1,0 +1,74 @@
+name: Transit Atlas routing verification
+on:
+  pull_request:
+    paths:
+      - 'android/**'
+      - '*.py'
+      - '*.sh'
+      - 'scripts/**'
+      - 'developer_center/**'
+      - 'tests/**'
+      - '.github/workflows/routing-verification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-routing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Python application and developer tools
+        run: python -m compileall -q ./*.py scripts developer_center tests
+      - name: Validate launcher shell syntax
+        run: |
+          for script in ./*.sh; do bash -n "$script"; done
+      - name: Run synthetic regression tests
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build/ci
+          python -m unittest discover -s tests -p 'test_*.py' -v 2>&1 | tee build/ci/python-tests.log
+      - name: Upload Python test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transit-atlas-python-test-log
+          path: build/ci/python-tests.log
+          retention-days: 7
+
+  android-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compile debug APK and run JVM unit tests
+        working-directory: android
+        run: gradle --no-daemon :app:assembleDebug :app:testDebugUnitTest
+      - name: Upload debug APK for review
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transit-atlas-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+      - name: Upload Android JVM test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transit-atlas-android-junit
+          path: android/app/build/test-results/testDebugUnitTest/*.xml
+          retention-days: 7
