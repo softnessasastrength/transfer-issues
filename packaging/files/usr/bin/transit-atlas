@@ -1,0 +1,27 @@
+#!/bin/sh
+# transit-atlas — launcher for the Southern New England Transit Atlas.
+set -e
+ATLAS_HOME=/usr/lib/transit-atlas
+CONF=/etc/transit-atlas/percival.conf
+[ -f "$CONF" ] && . "$CONF"
+if [ -z "${ATLAS_DATA_DIR:-}" ]; then
+  if [ -w /var/lib/transit-atlas/data ] || [ "$(id -u)" = "0" ]; then
+    ATLAS_DATA_DIR=/var/lib/transit-atlas/data
+  else
+    ATLAS_DATA_DIR="$HOME/.local/share/transit-atlas/data"
+  fi
+fi
+export ATLAS_DATA_DIR
+mkdir -p "$ATLAS_DATA_DIR"
+export PORT="${ATLAS_PORT:-8000}"
+cmd="${1:-serve}"; [ $# -gt 0 ] && shift
+case "$cmd" in
+  serve)        exec python3 "$ATLAS_HOME/scripts/run_local.py" ;;
+  lan)          exec python3 "$ATLAS_HOME/scripts/percival_lan.py" "$@" ;;
+  prepare)      exec python3 "$ATLAS_HOME/scripts/prepare_data.py" "$@" ;;
+  mcp-http)     exec python3 "$ATLAS_HOME/scripts/atlas_mcp_http.py" "$@" ;;
+  tui)          exec python3 "$ATLAS_HOME/scripts/atlas_tui.py" "$@" ;;
+  setup-ollama) exec "$ATLAS_HOME/scripts/setup_ollama.sh" "$@" ;;
+  version)      echo "transit-atlas @VERSION@" ;;
+  *) echo "usage: transit-atlas {serve|lan|prepare|mcp-http|tui|setup-ollama|version}" >&2; exit 2 ;;
+esac

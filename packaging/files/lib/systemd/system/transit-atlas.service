@@ -1,0 +1,12 @@
+[Unit]
+Description=Southern New England Transit Atlas
+After=network.target
+[Service]
+Type=simple
+User=transit-atlas
+Environment=ATLAS_DATA_DIR=/var/lib/transit-atlas/data
+Environment=ATLAS_PORT=8000
+ExecStart=/usr/bin/transit-atlas serve
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
