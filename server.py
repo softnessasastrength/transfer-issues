@@ -6,6 +6,7 @@ import database as db
 import routing
 import bubble as bubble_mod
 import fares
+import live
 ROOT=pathlib.Path(__file__).resolve().parent
 CITIES=[('Hartford',41.7658,-72.6734),('Springfield',42.106,-72.593),('Enfield',41.998,-72.585),('Windsor Locks',41.929,-72.627),('Manchester',41.776,-72.521),('Holyoke',42.204,-72.617),('Chicopee',42.148,-72.608),('Westfield',42.125,-72.750),('New Haven',41.298,-72.925),('Worcester',42.261,-71.795),('Providence',41.824,-71.413)]
 
@@ -33,6 +34,8 @@ def warm_caches(day=None):
 
 def handle(path,q):
  if path=='/api/v1/meta':return dict(api_version='1.0',sources=db.sources(),cities=CITIES,routes=db.query('SELECT * FROM routes ORDER BY feed,short'),stops=db.stops(),station_codes='Amtrak CT/MA codes from config/station_codes.json',limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','Incomplete three-state agency coverage; not every agency is loaded','Amtrak regional clip; selected MBTA coverage follows config/coverage.json','Scoped GTFS transfer rules not modeled; verify station transfers'])
+ if path=='/api/v1/live':
+  return live.status(arg(q,'provider','mbta'),arg(q,'route'),arg(q,'stop'),arg(q,'alerts','1')=='1')
  if path=='/api/v1/coverage':return db.coverage(dated(q))
  if path=='/api/v1/departures':return dict(date=dated(q),departures=db.departures(arg(q,'stop'),dated(q),arg(q,'route')),coverage=db.coverage(dated(q)))
  if path=='/api/v1/stops':return db.search_stops(arg(q,'q'),arg(q,'feed'),number(q,'limit',50,1,500))
