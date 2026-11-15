@@ -70,3 +70,18 @@ th{background:var(--button)}.badge{background:var(--button)}
 .cityGroupLabel{font-size:10px;font-weight:800;letter-spacing:1.2px;min-width:90px;color:var(--muted)}
 .cities .cityGroup button{padding:7px 10px;min-height:34px}
 @media(max-width:700px){.cities{max-height:98px}.cityGroupLabel{width:100%}}
+
+/* City/network sidebar: the city selector and network scope live in a
+   persistent left panel beside the map instead of a floating strip.
+   At narrow widths the panel stacks above the map as a wrapping row. */
+.mapArea{display:flex}
+.mapCanvas{position:relative;flex:1;min-width:0}
+#citySidebar{order:0;display:block;width:214px;flex:none;overflow-y:auto;background:var(--surface,#fffef8);border-right:1px solid var(--line);padding:14px 12px}
+#citySidebar button{border:1px solid var(--line);background:#fffef8;color:var(--ink)}
+#citySidebar .sideHead{font-size:10px;font-weight:800;letter-spacing:1.6px;margin:8px 2px}
+#citySidebar .cities{position:static;display:flex;flex-direction:column;gap:5px;max-height:none;overflow:visible;padding:0;background:none;border:0;box-shadow:none}
+#citySidebar .cities button,#agencyList button{display:block;width:100%;text-align:left;font-size:12px;padding:8px 10px}
+#agencyList{display:flex;flex-direction:column;gap:5px}
+#citySidebar .sideNote{margin:12px 2px 0}
+@media(max-width:900px){#citySidebar{width:178px}}
+@media(max-width:650px){.mapArea{flex-direction:column}#citySidebar{width:auto;border-right:0;border-bottom:1px solid var(--line);max-height:118px;overflow-y:auto}#citySidebar .cities,#agencyList{flex-direction:row;flex-wrap:wrap}#citySidebar .cities button,#agencyList button{width:auto}}
