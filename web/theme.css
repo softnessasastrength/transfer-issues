@@ -231,6 +231,17 @@ nav button.selected { box-shadow: inset 0 -2px 0 var(--atlas-accent); }
 /* Empty states should explain the next move instead of looking broken. */
 .emptyState { border:1px dashed var(--atlas-line); border-radius:var(--atlas-radius); padding:22px 16px; color:var(--atlas-muted); background:color-mix(in srgb, var(--atlas-surface) 80%, var(--atlas-surface-2)); }
 .emptyState b { display:block; color:var(--atlas-ink); margin-bottom:5px; }
+.routePickRow { display:flex; gap:6px; align-items:stretch; }
+.routePickRow .routeButton { flex:1; }
+.chainAdd { flex:0 0 auto; padding:7px 9px; font:11px "Ubuntu Mono", monospace; color:var(--atlas-action); }
+.routeChainPanel { margin:18px 0 22px; padding:14px; border:1px solid var(--atlas-line); border-radius:var(--atlas-radius); background:color-mix(in srgb, var(--atlas-surface) 82%, var(--atlas-accent) 18%); }
+.routeChainPanel h3 { margin:4px 0; }
+.chainItem { display:grid; grid-template-columns:28px 1fr repeat(3,28px); gap:5px; align-items:center; border-left:4px solid var(--route-color, var(--atlas-action)); padding:7px 6px; margin-top:5px; background:var(--atlas-surface); border-radius:5px; font:12px "Ubuntu Mono", monospace; }
+.chainItem b { color:var(--atlas-muted); }
+.chainItem span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chainAction { padding:3px 0; border:0; background:transparent; color:var(--atlas-muted); }
+.chainAction:hover { color:var(--atlas-ink); background:var(--atlas-surface-2); }
+.chainArrow { display:block; padding:2px 0 0 34px; color:var(--atlas-warm); font:10px "Ubuntu Mono", monospace; }
 
 @media (max-width: 900px) {
   .page { padding:36px 22px; }
