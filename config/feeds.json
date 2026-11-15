@@ -79,5 +79,11 @@
     "url": "https://data.trilliumtransit.com/gtfs/gbt-ct-us/gbt-ct-us.zip",
     "official_page": "https://gogbt.com/for-transit-geeks/",
     "status": "not_downloaded"
+  },
+  {
+    "id": "norwalk",
+    "url": "https://mystop.norwalktransit.com/InfoPoint/gtfs-zip.ashx",
+    "official_page": "https://www.norwalktransit.com/",
+    "status": "not_downloaded"
   }
 ]
