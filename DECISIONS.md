@@ -850,3 +850,28 @@ a live mirror: re-run the build script whenever app.js changes.
   Providence → Newport (RIPTA 24 to Newport Transit Center, arrive
   09:27). Standing reference checks unchanged: Court Square →
   pvta:1495; hartford:6 → pvta:5101 departs 30900, arrives 33428.
+## 2026-11-15 — City selector as a sidebar; favicon + touch icon (branch feat/city-selector-sidebar_muse)
+
+The city buttons floated over the map as an absolute-positioned strip.
+They now live in a persistent left sidebar (web/index.html: nav#citySidebar
+beside a .mapCanvas wrapper that keeps the map and its overlays), stacked
+above the map at narrow widths instead of covering it. Behaviour is
+unchanged underneath: a city click still does the same setView + status
+update (now with aria-pressed/selected state, plus a Regional view entry
+mirroring the reset control, which also clears the selection), and the
+sidebar's NETWORK SCOPE buttons drive the existing #agency and
+#allRoutesAgency selects — setting their values and dispatching their
+change events — so the route browser filter and the all-routes overlay
+(including Job 1's mid-draw cancel/restart) see exactly the same state as
+before. The selects themselves remain and stay in sync via syncScope.
+Also: the app shipped no icons (the owner's Safari log showed 404s for
+/favicon.ico, /apple-touch-icon.png, /apple-touch-icon-precomposed.png) —
+web/favicon.svg (a minimal compass mark in the app palette) and a generated
+180x180 web/apple-touch-icon.png are added with link tags in index.html.
+Sidebar implementation note: two pre-existing bare-`nav` rules collided
+with the new <nav> sidebar — style.css's `nav{display:flex}` /
+`nav button{border:0}` and theme.css's `@media (max-width:900px)
+nav{order:3}` (both written for the header nav). The sidebar block in
+style.css pins `#citySidebar{order:0;display:block}` and restores button
+borders inside it; without that, the sidebar stacked *below* the map at
+narrow widths (found by the 400px browser pass, fixed, re-verified).
