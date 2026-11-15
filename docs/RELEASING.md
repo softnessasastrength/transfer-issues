@@ -78,7 +78,7 @@ is the provenance record for every shipped package.
 | `/usr/lib/transit-atlas/` | The whole repository checkout: `server.py`, routing, `scripts/`, `web/`, `config/`, `tests/`, docs. |
 | `/usr/lib/transit-atlas/data` | Symlink to `/var/lib/transit-atlas/data` (bridges the importer's `./data` lookup with `ATLAS_DATA_DIR`). |
 | `/usr/lib/percival-core/` | The whole pinned Percival Core checkout: `src/percival_core/`, `api/`, `public/`, `scripts/run_local.py`, `tests/`, plus `BUILD_INFO` (repo + pinned ref + build stamp). |
-| `/usr/bin/transit-atlas` | Launcher: `serve`, `lan`, `prepare`, `mcp-http`, `tui`, `setup-ollama`, `percival`, `version`. |
+| `/usr/bin/transit-atlas` | Launcher: `serve`, `lan`, `prepare`, `mcp-http`, `tui`, `setup-ollama`, `percival`, `setup`, `version`. |
 | `/etc/transit-atlas/percival.conf` | Percival companion config (`OLLAMA_MODEL=qwen3:1.7b`, `ATLAS_PORT=8000`). |
 | `/lib/systemd/system/transit-atlas.service` | Runs the Atlas as the `transit-atlas` system user. |
 | `/lib/systemd/system/percival.service` | Runs Percival Core's front door (127.0.0.1:8123) as the `transit-atlas` system user; `Wants` the Atlas but starts standalone. |
@@ -92,13 +92,48 @@ in the package and nothing is downloaded at install time.
 
 ## First run on a target machine
 
+Install, then one command:
+
 ```sh
 sudo apt install ./transit-atlas_0.0.2_all.deb
-transit-atlas prepare     # downloads the GTFS feeds, builds the database (~850 MB)
-transit-atlas serve       # http://127.0.0.1:8000
+sudo transit-atlas setup
+```
+
+`transit-atlas setup` is install-and-setup in one, and it is safe to
+re-run:
+
+- If the Atlas database is absent from the data directory, it runs
+  data preparation first — as the `transit-atlas` service user where
+  the system layout requires it, so the database belongs to the user
+  the services run as. An existing database is left untouched.
+- Under systemd it enables and starts both units
+  (`transit-atlas.service`, `percival.service`). Without systemd
+  (WSL, containers) it starts both servers in the background with
+  `nohup`, logging next to the data directory, and skips any service
+  that is already answering.
+- Either way it prints both URLs — Atlas
+  <http://127.0.0.1:8000>, Percival <http://127.0.0.1:8123> — and how
+  to stop the services.
+
+The pieces are still available individually:
+
+```sh
+sudo -u transit-atlas transit-atlas prepare   # downloads the GTFS feeds, builds the database (~850 MB)
+sudo systemctl start transit-atlas percival   # Atlas http://127.0.0.1:8000, Percival http://127.0.0.1:8123
+transit-atlas serve       # foreground Atlas against your own data dir
 transit-atlas percival    # Percival Core front door: http://127.0.0.1:8123
 sudo transit-atlas setup-ollama   # optional: Ollama + the Percival local model
 ```
+
+**Prepare runs as the service user.** The seed registry and the
+database live in `/var/lib/transit-atlas/data`, owned by the
+`transit-atlas` user and not readable by anyone else, so a bare
+`transit-atlas prepare` from a personal account fails with
+`Permission denied` on `data/sources.json`. Either let
+`transit-atlas setup` handle it (it prepares as the service user) or
+run prepare in the `sudo -u transit-atlas` form above. The printed
+instructions are kept honest on this point deliberately: a command
+that cannot work for the person reading it is a bug, not a shortcut.
 
 Removing the package leaves the database and user in place;
 `apt purge transit-atlas` removes `/var/lib/transit-atlas` and the
