@@ -84,6 +84,10 @@ python3 -m unittest discover -s tests -v
 python3 server.py
 ```
 
+The server warms its stop network and selected service-day connection list
+before accepting requests. Set `ATLAS_DATE=YYYY-MM-DD` to select a date;
+otherwise startup uses today's date. Both remain cached in the server process.
+
 The first command seeds `data/sources.json` only if missing, downloads feeds and rebuilds `data/atlas.sqlite`. Downloads may be blocked by agency websites. It does not create recurring jobs. **The current refresh implementation overwrites local archives and database rather than retaining audit versions. Back up `data/` before refreshing an existing installation; versioned refresh/rollback is an open core requirement.** Stop the server before rebuilding because its connection cache is process-local.
 
 Open `http://127.0.0.1:8000/api/v1/meta` to inspect the API. The page at `/` is the desktop proof of concept. Open `prototype.html` directly for the original schematic only.

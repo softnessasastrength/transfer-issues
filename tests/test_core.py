@@ -35,6 +35,29 @@ class RoutingTests(unittest.TestCase):
  def test_ground_estimate(self):
   with patch.object(routing,'connections',return_value=[]),patch.object(routing,'neighbors',side_effect=lambda s,r,m:[('b',120,150)] if s=='a' else []):
    r=routing.plan('2026-11-12','a','b',0,400);self.assertTrue(r['legs'][0]['estimated']);self.assertEqual(r['estimated_ground_meters'],150)
+ def test_destination_exit_preserves_local_and_intercity_itineraries(self):
+  class Counted(list):
+   consumed=0
+   def __iter__(self):
+    for item in super().__iter__():
+     self.consumed+=1
+     yield item
+  cases=[
+   ('a','b',[self.c(100,200,'a','b','local')]),
+   ('a','c',[self.c(100,200,'a','b','rail',0),self.c(200,300,'b','c','rail',1)]),
+  ]
+  for origin,dest,journey in cases:
+   with self.subTest(destination=dest):
+    conns=Counted(journey+[self.c(t,t+20,'b','a','noise'+str(t)) for t in range(301,1001,10)])
+    with patch.object(routing,'connections',return_value=conns):
+     full_arr,full_paths=routing.scan('2026-11-12',origin,0,2000)
+    full_consumed=conns.consumed
+    conns.consumed=0
+    with patch.object(routing,'connections',return_value=conns):
+     early_arr,early_paths=routing.scan('2026-11-12',origin,0,2000,destination=dest)
+    self.assertEqual(early_arr[dest],full_arr[dest])
+    self.assertEqual(early_paths[dest],full_paths[dest])
+    self.assertLess(conns.consumed,full_consumed)
 class ApiTests(unittest.TestCase):
  def test_invalid_date(self):
   with self.assertRaises(ValueError):server.dated({'date':['bad']})
@@ -42,6 +65,11 @@ class ApiTests(unittest.TestCase):
   with self.assertRaises(LookupError):server.handle('/api/v1/unknown',{})
  def test_invalid_range(self):
   with self.assertRaises(ValueError):server.number({'time':['999999']},'time',0,0,86399)
+ def test_warm_caches_builds_selected_date(self):
+  with patch.object(server.routing,'network') as network,patch.object(server.db,'connections') as connections:
+   self.assertEqual(server.warm_caches('2026-11-17'),'2026-11-17')
+  network.assert_called_once_with()
+  connections.assert_called_once_with('2026-11-17')
 class DownloadTests(unittest.TestCase):
  # Regression: pvta.com returns HTTP 403 to the default urllib User-Agent.
  # refresh() must send the project's explicit descriptive User-Agent on every

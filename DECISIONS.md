@@ -67,3 +67,36 @@
 - Tests: `tests/test_stops.py` adds 10 tests against a synthetic fixture SQLite (substring match, case-insensitivity, result fields, feed filter, honest empty results for no-match and empty queries, limit/total-count/truncation, literal wildcard matching, endpoint contract and limit validation). Full suite: 40 tests, all passing (30 pre-existing + 10 new).
 - Live verification on real data (Tuesday 2026-11-17 data loaded): `q=Union Station` resolves Springfield's `pvta:5101` (Union Station Bay 1) among the matches; `q=Court Square` resolves `pvta:1495`; a nonsense query returns zero results. See the session's PR for the captured responses.
 - Latency profile for cook list task 2: measured phase timings for `/api/v1/plan` and `/api/v1/bubble` on the full six-feed dataset are recorded in CODEX_HANDOFF.md under "Latency profile (Ember, 2026-11-14)", with the profiler kept at `scripts/profile_latency.py` so Codex can re-run the same baseline after changes. Headline: a cold first plan request costs ~19.5 s end-to-end, of which the per-day connection-list build (~6.2 s) and the stop-network build (~5.0 s) are the largest single pieces; warm, a single plan costs ~2.1 s regardless of distance because every plan runs a full-day scan over all 832,735 connections, and a warm `return=1` plan costs ~7.8 s (outbound plan + return plan + `routing.latest`'s binary search of ~a dozen further scans). The bubble's warm cost (~3.3 s) sits mostly in its fixpoint reverse scan, whose repeated walk-propagation passes are its single most expensive function. Numbers and ranking are in the handoff, not here, to keep one authoritative copy.
+
+## Codex Luna session — 2026-11-14, latency chunks L2.1–L2.3
+
+- **L2.1 startup pre-warm:** `server.py` now builds `routing.network()` and
+  `database.connections(day)` before listening. `ATLAS_DATE` selects the date;
+  otherwise it uses today. The first Hartford→Springfield HTTP plan after
+  startup returned HTTP 200 in 0.66 s, compared with the handoff's 19.54 s
+  cold-request baseline. Existing response keys were preserved. Focused test,
+  full suite (42 tests), compilation, and diff checks passed.
+- **L2.2 plan early exit:** `routing.scan` accepts the plan destination and
+  stops once sorted departures exceed the best destination arrival. Synthetic
+  local and intercity through-ride tests preserve the destination itinerary
+  while consuming fewer connections; reachability and bubble scans still scan
+  the full day. Same-process medians: local 0.013 s vs 1.574 s for the old
+  full-scan path (profile baseline 1.98 s); Hartford→Springfield 0.063 s vs
+  1.660 s (baseline 2.10 s). Full suite passed.
+- **L2.3 reverse latest:** `routing.latest()` proposes a minute from the
+  Mobility Bubble reverse computation and certifies it against the forward
+  planner at that minute and the next; disagreements use the exact former
+  binary search. The fixture and three sampled real-data pairs returned the
+  same complete result dictionaries as binary search. A target-origin cutoff
+  in the reverse pass avoids scanning departures earlier than the proposed
+  latest start. Warm composite median was 0.952 s vs the profile baseline
+  7.84 s; the post-L2.2 binary-only counterfactual was 0.834 s. Full suite
+  passed (42 tests).
+
+- **L2.4 bubble walk propagation:** replaced up to 12 full-dictionary passes
+  per reverse fixpoint round with a queue that revisits only stops whose
+  feasible time improved. The Hartford 2026-11-17 reference classification
+  stayed at 1,034 reachable, 12,041 unreachable, and zero unknown. Three-run
+  warm classification median fell from 2.095 s to 1.194 s (43% faster). The
+  12 focused bubble tests passed; the final full suite passed (42 tests),
+  along with Python compilation and `git diff --check`.

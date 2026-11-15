@@ -17,6 +17,14 @@ def number(q,k,default,lo,hi):
 def dated(q):
  d=arg(q,'date',datetime.date.today().isoformat());datetime.date.fromisoformat(d);return d
 
+def warm_caches(day=None):
+ """Build the network and selected service-day cache before listening."""
+ day=day or os.environ.get('ATLAS_DATE',datetime.date.today().isoformat())
+ datetime.date.fromisoformat(day)
+ routing.network()
+ db.connections(day)
+ return day
+
 def handle(path,q):
  if path=='/api/v1/meta':return dict(api_version='1.0',sources=db.sources(),cities=CITIES,routes=db.query('SELECT * FROM routes ORDER BY feed,short'),stops=db.query('SELECT * FROM stops'),limitations=['Scheduled service, not live arrivals','Estimated geographic transfers; no street, slope or scooter-carry verification','Incomplete three-state agency coverage; not every agency is loaded','MBTA commuter rail only; Amtrak regional clip','Scoped GTFS transfer rules not modeled; verify station transfers'])
  if path=='/api/v1/coverage':return db.coverage(dated(q))
@@ -77,4 +85,7 @@ class Handler(SimpleHTTPRequestHandler):
   self.send_header('X-Content-Type-Options','nosniff');super().end_headers()
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--host',default='127.0.0.1');p.add_argument('--port',type=int,default=int(os.environ.get('PORT','8000')));a=p.parse_args()
+ day=os.environ.get('ATLAS_DATE',datetime.date.today().isoformat())
+ print(f'Transit Atlas: warming caches for {day}...',flush=True)
+ warm_caches(day)
  print(f'Transit Atlas: http://{a.host}:{a.port}',flush=True);ThreadingHTTPServer((a.host,a.port),Handler).serve_forever()

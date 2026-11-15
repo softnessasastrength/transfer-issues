@@ -17,12 +17,13 @@ All times are service-day seconds in America/New_York, matching API.md.
 Ground links are the router's straight-line x1.3 estimates, not street paths.
 """
 import routing
+from collections import deque
 
 DEFAULT_BUDGET = 3600  # 60 minutes, per the Percival Mobility Bubble brief
 
 
 def latest_return_departures(day, home, deadline, mode='walk', radius=500,
-                             buffer=300, feeds=()):
+                             buffer=300, feeds=(), stop_at=None):
     """Latest feasible departure time from every stop that still gets you
     home by `deadline`, computed with one reverse connection scan.
 
@@ -35,19 +36,24 @@ def latest_return_departures(day, home, deadline, mode='walk', radius=500,
     if home not in stops:
         raise ValueError('Unknown origin stop')
 
-    def propagate_walk(best, max_passes=12):
-        # Being at a stop by time T and walking to a stop with a known
-        # feasible departure extends feasibility backwards by the estimate.
-        for _ in range(max_passes):
-            changed = False
-            for sid, latest in list(best.items()):
-                for dest, seconds, _m in routing.neighbors(sid, radius, mode):
-                    cand = latest - seconds
-                    if cand > best.get(dest, -1):
-                        best[dest] = cand
-                        changed = True
-            if not changed:
-                break
+    def propagate_walk(best):
+        # Propagate only from stops whose feasible time changed. A stop can
+        # be queued again when a better time reaches it; each relaxation uses
+        # the newest value, so propagation continues to the same walk closure
+        # without rescanning every known stop in fixed full-dictionary passes.
+        pending = deque(best)
+        queued = set(pending)
+        while pending:
+            sid = pending.popleft()
+            queued.remove(sid)
+            latest = best[sid]
+            for dest, seconds, _m in routing.neighbors(sid, radius, mode):
+                cand = latest - seconds
+                if cand > best.get(dest, -1):
+                    best[dest] = cand
+                    if dest not in queued:
+                        pending.append(dest)
+                        queued.add(dest)
         return best
 
     # Walking home needs no transfer buffer in routing.scan semantics:
@@ -64,6 +70,10 @@ def latest_return_departures(day, home, deadline, mode='walk', radius=500,
     for _round in range(6):
         before = dict(best)
         for dep, arr, a, b, trip, route, head, pu, do, seq in reversed(conns):
+            # For a single requested origin, earlier departures cannot beat
+            # its already-known latest ready-time. The list is departure-sorted.
+            if stop_at is not None and dep < best.get(stop_at, -1):
+                break
             if arr > deadline:
                 continue
             feasible = False
