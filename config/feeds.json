@@ -53,5 +53,11 @@
     "url": "https://gtfs.gis.flix.tech/gtfs_generic_us.zip",
     "official_page": "https://gtfs.gis.flix.tech/gtfs_generic_us.zip",
     "status": "not_downloaded"
+  },
+  {
+    "id": "seat",
+    "url": "https://gtfs.remix.com/seat_preston_ct_us.zip",
+    "official_page": "https://www.southeastareatransitdistrict.com/gtfs-feed/",
+    "status": "not_downloaded"
   }
 ]

@@ -33,6 +33,21 @@ class FeedConfigIntegrationTests(unittest.TestCase):
             if 'optional' in feed:
                 self.assertIsInstance(feed['optional'], bool)
 
+    def test_seat_feed_registered_from_agency_source(self):
+        # SEAT (Southeast Area Transit District) was added 2026-11-15 at
+        # the owner's direction after the CT cities sweep found Norwich
+        # and Groton with no stops in the data. The registry entry must
+        # point at the archive the agency's own GTFS page publishes (the
+        # Remix-hosted zip the FTA NTD weblink lists for SEAT), with the
+        # agency page recorded as the official page — not a mirror.
+        self.assertIn('seat', self.by_id)
+        seat = self.by_id['seat']
+        self.assertEqual(seat['url'],
+                         'https://gtfs.remix.com/seat_preston_ct_us.zip')
+        self.assertEqual(
+            seat['official_page'],
+            'https://www.southeastareatransitdistrict.com/gtfs-feed/')
+
     def test_coverage_overrides_reference_real_feeds(self):
         for feed_id in self.coverage['feeds']:
             self.assertIn(feed_id, self.by_id)
