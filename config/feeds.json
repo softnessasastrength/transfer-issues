@@ -103,5 +103,11 @@
     "url": "https://passio3.com/uconn/passioTransit/gtfs/google_transit.zip",
     "official_page": "https://transpo.uconn.edu/",
     "status": "not_downloaded"
+  },
+  {
+    "id": "milford",
+    "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/Milford/gtfs.zip",
+    "official_page": "https://www.milfordtransit.com/",
+    "status": "not_downloaded"
   }
 ]

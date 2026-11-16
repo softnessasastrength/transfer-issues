@@ -1345,3 +1345,77 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   handled the way LRTA's was — never silently trusted. UConn/WRTD
   realtime (Passio publishes GTFS-RT under the same /uconn/ path)
   was not touched.
+
+## Milford Transit District GTFS imported — Milford coastal coverage (2026-11-15)
+
+- **Source (official):** the district's GTFS is hosted at
+  https://hosted-gtfs-feeds.s3.amazonaws.com/Milford/gtfs.zip
+  — the weblink the FTA NTD GTFS Weblinks dataset lists for Milford
+  Transit District (NTD 10107; FTA-validated 2026-02-17), the
+  direct-download URL of the Mobility Database's record for this
+  service (id `ntd-10107`, marked official; its bounding box matches
+  the archive's stop extents exactly), and Transitland's
+  `static_current` for `f-milford~transit~district`. The archive
+  self-identifies: agency.txt names Milford Transit District
+  (agency_id 10107 — the NTD ID itself,
+  https://www.milfordtransit.com/, America/New_York); feed_info.txt
+  names the publisher as Arcadis. Retrieved 2026-11-15; 31,898
+  bytes; SHA-256
+  101000e07d867a93fd63966d8abff17bb5c48aa5f876cc8e7b3d86df126050d4.
+- **Duplicate-feed check:** exactly one live feed covers this
+  service. The FTA registry carries one weblink row for NTD 10107
+  and the Mobility Database one record; the Database's
+  `urls.latest` is its own NTD mirror of this same archive, not a
+  second producer feed, and is not configured.
+- **Freshness:** feed_info.txt declares 2025-12-31 → 2026-12-31 —
+  current at retrieval and covering the verification date, so the
+  GTFS tier applies and no PDF fallback was needed. The window
+  ends 2026-12-31: poll for republication before year-end.
+- **Registered** as feed `milford` in config/feeds.json. No
+  coverage.json override: every Milford stop falls inside the
+  default regional clip (40.9–43.1, −73.8–−70.5; archive extents
+  41.1804–41.2366, −73.1131–−72.9980), so the scope recorded at
+  import is the default description, like CTtransit, PVTA, WRTA,
+  SEAT, RIPTA, GBT, Norwalk, HART and River Valley.
+- **Service model:** base service lives in calendar.txt as two
+  patterns — WEEKDAY (Mon–Fri) and SATURDAY — both spanning
+  2025-12-31 → 2026-12-31, exactly feed_info's declared window
+  (declared edition and calendar span agree, unlike the Passio and
+  Trillium editions). The archive has **no calendar_dates.txt at
+  all** — this edition publishes no holiday exceptions, so
+  holidays run the ordinary patterns exactly as published; the
+  Atlas does not infer reductions the publisher did not declare.
+  There is no Sunday service. All 57 published trips are loops out
+  of Milford Center: each starts at MILFORD-CENTER and ends at its
+  southbound twin MILFORD-CENTER-S (the twin is the terminus of
+  every loop and originates none). Route 2 publishes weekday trips
+  only (11); Routes 3 and 4 run weekdays and Saturdays (23 each).
+  All 525 stop_times rows are timed and all 15 published stops are
+  referenced by stop_times, so every published stop imports — this
+  feed does not exercise the untimed-row handling. There is no
+  frequencies.txt. tests/test_milford_feed.py pins the registry
+  entry and this shape — the loop, Thanksgiving running the
+  ordinary weekday pattern, the Saturday pattern set with Route 2
+  absent, the empty Sunday, and the calendar-span window — with a
+  synthetic archive of the same shape.
+- **Import counts (2026-11-15 local seven-feed build):** 15 stops /
+  3 routes / 57 trips, zero import errors, zero warnings.
+  check_data_integrity.py PASS on the rebuilt database.
+- **Verification (local seven-feed build, Tue 2026-11-17):**
+  Milford Center resolves (milford:MILFORD-CENTER, the feed's
+  most-served stop, ~110 m from the MNR Milford station,
+  mnr:145). Plans from the anchor at 08:00 — Milford → Hartford
+  (walk to Milford station, MNR New Haven Line to New Haven,
+  Hartford Line to Hartford, arrive 09:27) and Hartford → Milford
+  (Amtrak to New Haven, MNR to Milford, walk to Milford Center,
+  arrive 09:36). 37 departures from Milford Center that day (every
+  weekday trip originates there), first 06:00. 60-minute bubble
+  from the anchor: 120 reachable. Standing reference checks
+  unchanged: Court Square → pvta:1495; hartford:6 → pvta:5101
+  departs 30900, arrives 33428.
+- **Limits:** fixed-route GTFS only. Milford Transit District
+  demand-response service is not in the feed and is not
+  represented; nothing about it is implied. The Coastal Link
+  corridor service through Milford rides in GBT's and Norwalk's
+  feeds, not this one — this feed is the district's three local
+  loop routes only.
