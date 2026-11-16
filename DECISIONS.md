@@ -1181,3 +1181,82 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   trips pass them physically, but the Atlas cannot quote a time
   there, so it does not pretend to serve them. HART realtime was not
   touched.
+## River Valley Transit GTFS imported — Middletown / lower Connecticut River valley coverage (2026-11-15)
+
+- **Source (official):** the merged agency's GTFS is published by its
+  vendor Trillium at
+  https://data.trilliumtransit.com/gtfs/ninetown-connecticut-us/ninetown-connecticut-us.zip
+  — the direct-download URL the Mobility Database registers for this
+  service (mdb-551, marked official; the record still names the
+  legacy provider "Middletown Area Transit (MAT)" but its Middletown
+  bounding box matches the archive's stop extents) and Transitland's
+  `static_current` for the Estuary Transit District feed
+  `f-drke-ninetown~connecticut~us`. The archive self-identifies:
+  feed_id `ninetown-connecticut-us`; agency.txt names River Valley
+  Transit (agency_id 4964, https://estuarytransit.org/,
+  America/New_York) — the Estuary Transit District formed 2022-07-01
+  from Middletown Area Transit and 9 Town Transit; the agency's own
+  homepage states the merger in those terms. Retrieved 2026-11-15;
+  1,052,013 bytes; SHA-256
+  2b660f9a28d3edefbd01e66317a2cef8e0291575fe44f50aa200410a36622f9c.
+- **Duplicate-feed trap, resolved:** a second Trillium URL
+  (`rivervalley-ct-us.zip`, Transitland `f-rivervalley~ct~us`) serves
+  the same service. Both archives were downloaded and extracted this
+  session: all 25 GTFS files are **byte-identical** (per-file SHA-256
+  compared; the zip containers differ in packaging only, and both
+  declare feed_id `ninetown-connecticut-us` with the same
+  feed_version). Exactly one feed is configured — the registered
+  ninetown URL above — so no trip can be doubled. A `--flex-v2`
+  GTFS-Flex variant of the archive also exists (demand-response);
+  it is not a fixed-route schedule and is not imported.
+- **Freshness:** feed_info.txt declares 2026-11-13 → 2027-11-04
+  (publisher Trillium Solutions, Inc., feed_version "UTC:
+  13-Nov-2026 16:39") — current at retrieval, so the GTFS tier
+  applies and no PDF fallback was needed.
+- **Registered** as feed `rivervalley` in config/feeds.json. No
+  coverage.json override: every RVT stop falls inside the default
+  regional clip (40.9–43.1, −73.8–−70.5; archive extents
+  41.2614–41.6084, −72.8004–−72.0935), so the scope recorded at
+  import is the default description, like CTtransit, PVTA, WRTA,
+  SEAT, RIPTA, GBT, Norwalk and HART.
+- **Service model:** base service lives in calendar.txt as six
+  patterns, all spanning 2026-11-03 → 2027-11-30: "Fall 2026
+  (Weekday)" Mon–Fri, plus "(MTuW)", "(Thurday only)" [publisher's
+  spelling], "(Friday only)", "(Saturday only)" and "(Sunday only)"
+  patterns. calendar_dates.txt carries a header and **no rows** —
+  this edition publishes no holiday exceptions at all, so holidays
+  run the ordinary patterns exactly as published; the Atlas does not
+  infer reductions the publisher did not declare. frequencies.txt is
+  present but empty — no frequency-based trips are excluded. All
+  30,424 stop_times rows are timed (this feed does not exercise the
+  untimed-row handling). Of 976 published stops, 859 are referenced
+  by stop_times and imported; the 117 unreferenced stops are pruned
+  by the importer and not carried. Of 17 published routes, 16 carry
+  trips; the seasonal Clinton Trolley publishes zero trips in this
+  edition and is not carried. The importer records the service
+  window from the calendar span (2026-11-03 → 2027-11-30), which is
+  wider than feed_info's declared edition window — service at the
+  edges is the current pattern as published, not a separate
+  publisher guarantee. tests/test_rivervalley_feed.py pins the
+  registry entry and this shape — split weekday patterns, the
+  Thursday-only pattern, the absence of any Thanksgiving exception,
+  the calendar-span window, unreferenced-stop pruning and the
+  zero-trip route — with a synthetic archive of the same shape.
+- **Import counts (2026-11-15 local seven-feed build):** 859 stops /
+  16 routes / 906 trips, zero import errors, zero warnings.
+  check_data_integrity.py PASS on the rebuilt database.
+- **Verification (local seven-feed build, Tue 2026-11-17):**
+  Middletown's Downtown Terminal resolves (rivervalley:2750874, the
+  feed's most-served stop). Plans from the terminal at 08:00 —
+  Middletown → Hartford (RVT route 585 Westlake Drive, walk,
+  CTtransit to downtown Hartford, arrive 08:56) and Hartford →
+  Middletown (CTtransit legs, walk to the terminal, arrive 09:02).
+  116 departures from the terminal that day, first 06:00.
+  60-minute bubble from the terminal: 351 reachable. Standing
+  reference checks unchanged: Court Square → pvta:1495;
+  hartford:6 → pvta:5101 departs 30900, arrives 33428.
+- **Limits:** fixed-route GTFS only. RVT demand-response service is
+  not in the feed and is not represented; nothing about it is
+  implied. The Clinton Trolley's absence is the publisher's (zero
+  trips in a fall edition of a seasonal service), not an Atlas
+  finding that the trolley does not exist.
