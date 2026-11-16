@@ -1,125 +1,167 @@
 [
-  {
-    "id": "cttransit",
-    "url": "https://www.cttransit.com/sites/default/files/gtfs/googlect_transit.zip",
-    "official_page": "https://www.cttransit.com/about/developers",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "hartford",
-    "url": "https://ctrides.com/hlgtfs.zip",
-    "official_page": "https://www.cttransit.com/about/developers",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "pvta",
-    "url": "https://www.pvta.com/g_trans/google_transit.zip",
-    "official_page": "https://pvta.com/bus_service/real_time_data.php",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "wrta",
-    "url": "https://gtfs.wrta.cadavl.com/WRTA/GTFS/GTFS_WRTA.zip",
-    "official_page": "https://therta.com/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "amtrak",
-    "url": "https://content.amtrak.com/content/gtfs/GTFS.zip",
-    "official_page": "https://www.cttransit.com/about/developers",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "mbta",
-    "url": "https://cdn.mbta.com/MBTA_GTFS.zip",
-    "official_page": "https://www.mbta.com/developers/gtfs",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "lirr",
-    "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfslirr.zip",
-    "official_page": "https://api.mta.info/",
-    "status": "not_downloaded",
-    "optional": false
-  },
-  {
-    "id": "mnr",
-    "url": "https://web.mta.info/developers/data/mnr/google_transit.zip",
-    "official_page": "https://api.mta.info/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "greyhound",
-    "url": "https://gtfs.gis.flix.tech/gtfs_generic_us.zip",
-    "official_page": "https://gtfs.gis.flix.tech/gtfs_generic_us.zip",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "peterpan",
-    "url": "https://raw.githubusercontent.com/UTEL-UIUC/intercity-bus-gtfs/main/Merged_GTFS_Feed.zip",
-    "official_page": "https://github.com/UTEL-UIUC/intercity-bus-gtfs",
-    "status": "not_downloaded",
-    "source_status": "unofficial",
-    "provenance": "UNOFFICIAL third-party compilation: UTEL-UIUC Intercity Bus GTFS (IBG). Its Peter Pan rows were compiled from Transcor Data Services (TDS) platform data, collected 2025-08-15 to 2025-08-29 (IBG Data_Source.csv). Imported under the owner's explicit doctrine exception of 2026-11-15 and labelled unofficial/stale wherever provenance surfaces. The official Peter Pan GTFS (Trillium, listed by MassDOT) is stale: its published service ended 2024-12-31. SUNSET: replace this source with the official feed as soon as a current official edition is published."
-  },
-  {
-    "id": "seat",
-    "url": "https://gtfs.remix.com/seat_preston_ct_us.zip",
-    "official_page": "https://www.southeastareatransitdistrict.com/gtfs-feed/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "ripta",
-    "url": "https://ripta.com/RIPTA-GTFS.zip",
-    "official_page": "https://www.ripta.com/mobile-applications/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "gbt",
-    "url": "https://data.trilliumtransit.com/gtfs/gbt-ct-us/gbt-ct-us.zip",
-    "official_page": "https://gogbt.com/for-transit-geeks/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "norwalk",
-    "url": "https://mystop.norwalktransit.com/InfoPoint/gtfs-zip.ashx",
-    "official_page": "https://www.norwalktransit.com/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "hart",
-    "url": "https://passio3.com/hart/passioTransit/gtfs/google_transit.zip",
-    "official_page": "https://www.hartransit.com/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "rivervalley",
-    "url": "https://data.trilliumtransit.com/gtfs/ninetown-connecticut-us/ninetown-connecticut-us.zip",
-    "official_page": "https://estuarytransit.org/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "uconn",
-    "url": "https://passio3.com/uconn/passioTransit/gtfs/google_transit.zip",
-    "official_page": "https://transpo.uconn.edu/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "milford",
-    "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/Milford/gtfs.zip",
-    "official_page": "https://www.milfordtransit.com/",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "nectd",
-    "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/NECTD/gtfs.zip",
-    "official_page": "https://www.nectd.org/index.php",
-    "status": "not_downloaded"
-  },
-  {
-    "id": "nwctd",
-    "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/NWCTD/gtfs.zip",
-    "official_page": "https://www.nwcttransit.com/about-localbusroute/",
-    "status": "not_downloaded"
-  }
+    {
+        "id": "cttransit",
+        "url": "https://www.cttransit.com/sites/default/files/gtfs/googlect_transit.zip",
+        "official_page": "https://www.cttransit.com/about/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "hartford",
+        "url": "https://ctrides.com/hlgtfs.zip",
+        "official_page": "https://www.cttransit.com/about/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "pvta",
+        "url": "https://www.pvta.com/g_trans/google_transit.zip",
+        "official_page": "https://pvta.com/bus_service/real_time_data.php",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "wrta",
+        "url": "https://gtfs.wrta.cadavl.com/WRTA/GTFS/GTFS_WRTA.zip",
+        "official_page": "https://therta.com/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "amtrak",
+        "url": "https://content.amtrak.com/content/gtfs/GTFS.zip",
+        "official_page": "https://www.cttransit.com/about/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "mbta",
+        "url": "https://cdn.mbta.com/MBTA_GTFS.zip",
+        "official_page": "https://www.mbta.com/developers/gtfs",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "lirr",
+        "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfslirr.zip",
+        "official_page": "https://api.mta.info/",
+        "status": "not_downloaded",
+        "optional": false
+    },
+    {
+        "id": "mnr",
+        "url": "https://web.mta.info/developers/data/mnr/google_transit.zip",
+        "official_page": "https://api.mta.info/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "greyhound",
+        "url": "https://gtfs.gis.flix.tech/gtfs_generic_us.zip",
+        "official_page": "https://gtfs.gis.flix.tech/gtfs_generic_us.zip",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "peterpan",
+        "url": "https://raw.githubusercontent.com/UTEL-UIUC/intercity-bus-gtfs/main/Merged_GTFS_Feed.zip",
+        "official_page": "https://github.com/UTEL-UIUC/intercity-bus-gtfs",
+        "status": "not_downloaded",
+        "source_status": "unofficial",
+        "provenance": "UNOFFICIAL third-party compilation: UTEL-UIUC Intercity Bus GTFS (IBG). Its Peter Pan rows were compiled from Transcor Data Services (TDS) platform data, collected 2025-08-15 to 2025-08-29 (IBG Data_Source.csv). Imported under the owner's explicit doctrine exception of 2026-11-15 and labelled unofficial/stale wherever provenance surfaces. The official Peter Pan GTFS (Trillium, listed by MassDOT) is stale: its published service ended 2024-12-31. SUNSET: replace this source with the official feed as soon as a current official edition is published."
+    },
+    {
+        "id": "seat",
+        "url": "https://gtfs.remix.com/seat_preston_ct_us.zip",
+        "official_page": "https://www.southeastareatransitdistrict.com/gtfs-feed/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "ripta",
+        "url": "https://ripta.com/RIPTA-GTFS.zip",
+        "official_page": "https://www.ripta.com/mobile-applications/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "gbt",
+        "url": "https://data.trilliumtransit.com/gtfs/gbt-ct-us/gbt-ct-us.zip",
+        "official_page": "https://gogbt.com/for-transit-geeks/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "norwalk",
+        "url": "https://mystop.norwalktransit.com/InfoPoint/gtfs-zip.ashx",
+        "official_page": "https://www.norwalktransit.com/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "hart",
+        "url": "https://passio3.com/hart/passioTransit/gtfs/google_transit.zip",
+        "official_page": "https://www.hartransit.com/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "rivervalley",
+        "url": "https://data.trilliumtransit.com/gtfs/ninetown-connecticut-us/ninetown-connecticut-us.zip",
+        "official_page": "https://estuarytransit.org/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "uconn",
+        "url": "https://passio3.com/uconn/passioTransit/gtfs/google_transit.zip",
+        "official_page": "https://transpo.uconn.edu/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "milford",
+        "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/Milford/gtfs.zip",
+        "official_page": "https://www.milfordtransit.com/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "nectd",
+        "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/NECTD/gtfs.zip",
+        "official_page": "https://www.nectd.org/index.php",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "nwctd",
+        "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/NWCTD/gtfs.zip",
+        "official_page": "https://www.nwcttransit.com/about-localbusroute/",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "mta_subway",
+        "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip",
+        "official_page": "https://www.mta.info/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "mta_bronx",
+        "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_bx.zip",
+        "official_page": "https://www.mta.info/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "mta_brooklyn",
+        "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_b.zip",
+        "official_page": "https://www.mta.info/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "mta_manhattan",
+        "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_m.zip",
+        "official_page": "https://www.mta.info/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "mta_queens",
+        "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_q.zip",
+        "official_page": "https://www.mta.info/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "mta_staten_island",
+        "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_si.zip",
+        "official_page": "https://www.mta.info/developers",
+        "status": "not_downloaded"
+    },
+    {
+        "id": "mta_busco",
+        "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_busco.zip",
+        "official_page": "https://www.mta.info/developers",
+        "status": "not_downloaded"
+    }
 ]

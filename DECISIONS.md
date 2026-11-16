@@ -1598,3 +1598,87 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   represented; nothing about it is implied. NWCTD operates
   deviated-route service in practice; the GTFS models it as
   fixed stops and the Atlas represents the feed as published.
+
+## MTA New York network GTFS imported — NYCT subway, five bus boroughs, MTA Bus Company (2026-11-16)
+
+- **Source (official):** the MTA developer resources page
+  (https://www.mta.info/developers) links every archive on
+  rrgtfsfeeds.s3.amazonaws.com. Registered: the **regular**
+  subway GTFS (gtfs_subway.zip), Bronx (gtfs_bx.zip), Brooklyn
+  (gtfs_b.zip), Manhattan (gtfs_m.zip), Queens (gtfs_q.zip),
+  Staten Island (gtfs_si.zip) and MTA Bus Company
+  (gtfs_busco.zip). The **supplemented** subway GTFS is
+  deliberately not registered: it is an hourly-refreshed
+  seven-day service-change overlay, and the Atlas registers the
+  stable edition. LIRR and Metro-North were already registered
+  (2026-11-15) and are unchanged by this import. Retrieved
+  2026-11-16. Sizes / SHA-256: subway 5,606,305 bytes /
+  acb122715bd90aeacf61f4559722ccf0b7de9c63317200a6dd7480246488f1e6;
+  Bronx 8,428,753 / 9f6091fe3d8e6c66a195edd6d48c4eb8a7fae7e80317e6df2a91f1c9b90def6e;
+  Brooklyn 17,046,285 / d3d1113cbb4038d89982e97956a3891c748f8611ec7fdc8e22492ed7a9e4ed32;
+  Manhattan 8,322,100 / 90ec42315b57b218cbdc8096e36b2b850db8d20d23e231585c4bf6d6fd1cc16f;
+  Queens 5,983,145 / c0e41b1c74bc71714ed7bc79abc0c2fd5e5fdc0ba7291f695658c1b7896b307f;
+  Staten Island 6,406,562 / d3cb6e36981f5a496cdd8f11333408a9ff0346e99ec81da5c6e1603b349d10f7;
+  Bus Company 8,446,523 / 79c19bca2eb715c9032713c96e16c28a7c922d5916e5c3bd720d5f42ca4d0b87.
+- **Staten Island Railway:** the developer page publishes no
+  separate SIR static feed, and none was found on the S3 host.
+  The subway archive itself carries SIR as route `SI`
+  (route_short_name SIR, route_type 2) under the MTA NYCT
+  agency — determined from the downloaded data, not assumed —
+  so SIR coverage arrives with feed `mta_subway` and no eighth
+  feed exists to register.
+- **Freshness:** subway feed_info declares 2026-11-01 →
+  2027-05-15 (edition 20261028-fall-2026-pick-with-long-term-
+  supplements; calendar span identical). The bus archives are
+  the 20261009 quarterly edition: feed_info declares 2026-10-12
+  → 2027-01-02; the importer records the calendar-plus-
+  exceptions span (Bronx/Brooklyn/Manhattan/Queens from
+  2026-10-08, Staten Island from 2026-10-12, Bus Company from
+  2026-10-09, all to 2027-01-02). All windows cover the import
+  date, so the GTFS tier applies throughout; no PDF fallback
+  was needed. Bus windows end 2027-01-02 — poll for the next
+  quarterly republication.
+- **Registered** as feeds `mta_subway`, `mta_bronx`,
+  `mta_brooklyn`, `mta_manhattan`, `mta_queens`,
+  `mta_staten_island` and `mta_busco` in config/feeds.json,
+  each with a `whole_network: true` coverage policy in
+  config/coverage.json (New York City lies outside the default
+  New England clip; each archive is a compact single-city
+  network, the Amtrak/Metro-North precedent). No importer code
+  changes: the generic importer carries all seven archives.
+- **Archive shapes, disclosed:** every bus archive's
+  routes.txt is the shared system-wide master (307 routes);
+  trips are borough-scoped, so each feed carries only the
+  routes that run trips in its file (Bronx 46, Brooklyn 68,
+  Manhattan 41, Queens 40, Staten Island 58, Bus Company 92 —
+  the Bus Company archive's routes.txt is its own). The subway
+  archive's 1,488 published stops are parent stations plus N/S
+  platforms; trips call at platforms, and the importer retains
+  the parents of served platforms. The subway archive's 613
+  transfers are stop-to-stop and import; no MTA archive
+  publishes frequencies or GTFS fares (fare_attributes /
+  fare_rules are absent from all seven), so MTA fares stay
+  explicit unknowns in fares.py rather than being invented —
+  the peak/off-peak structure of MNR/LIRR pricing is likewise
+  not represented in any published GTFS and is not modelled.
+- **Verification (disposable twelve-feed build, 2026-11-16):**
+  the seven feeds plus CTtransit, Hartford Line, PVTA, LIRR
+  and MNR, all from the archives on disk (MNR from the S3
+  archive the developer page now links — the registered
+  web.mta.info URL returned an empty body from the sandbox).
+  Zero import errors and zero warnings on all seven MTA feeds;
+  counts in README.md / REGIONAL_COVERAGE.md. Companions
+  reproduced their established counts (CTtransit
+  9,611/184/20,645; PVTA 1,973/62/13,381; MNR 113/6/36,909).
+  Spot checks on Tue 2026-11-17: Court Square still resolves
+  to exactly `pvta:1495`; Times Sq-42 St, Grand Central-42 St,
+  St George, Jamaica (LIRR) and Penn Station (LIRR) resolve;
+  plans found for MNR Grand Central → Times Sq (M42 crosstown
+  bus), Grand Central → Flushing (7 train to an MTA Bus
+  Company stop), Flatbush Av → Kings Plaza (B41 Limited),
+  St George → Tottenville (SIR) and LIRR Penn Station →
+  Jamaica. One upstream drift noted, not caused by this
+  import: the current Hartford Line archive renumbers its
+  stops (Hartford is now `hartford:62`, not `hartford:6`) and
+  its times differ from the 2026-11-15 checkpoint under the
+  2026-11-16 schedule change.
