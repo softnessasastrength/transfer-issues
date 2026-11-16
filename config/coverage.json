@@ -1,13 +1,34 @@
 {
   "default": {
-    "bounds": [40.9, 43.1, -73.8, -70.5],
+    "bounds": [
+      40.9,
+      43.1,
+      -73.8,
+      -70.5
+    ],
     "description": "Connecticut and southern/central New England regional clip"
   },
   "feeds": {
     "mbta": {
-      "bounds": [41.0, 42.9, -71.7, -70.0],
-      "agency_ids": ["1"],
-      "route_types": [0, 1, 2, 3, 4, 5, 6, 7],
+      "bounds": [
+        41.0,
+        42.9,
+        -71.7,
+        -70.0
+      ],
+      "agency_ids": [
+        "1"
+      ],
+      "route_types": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "description": "MBTA bus, subway, light rail, commuter rail and ferry routes in the regional service area"
     },
     "amtrak": {
@@ -15,26 +36,74 @@
       "description": "Whole official Amtrak GTFS network; no geographic clip"
     },
     "lirr": {
-      "bounds": [40.4, 41.35, -74.3, -71.7],
-      "route_types": [2],
+      "bounds": [
+        40.4,
+        41.35,
+        -74.3,
+        -71.7
+      ],
+      "route_types": [
+        2
+      ],
       "description": "MTA Long Island Rail Road coverage including the New York connection"
     },
     "mnr": {
       "whole_network": true,
-      "agency_ids": ["1"],
-      "route_types": [2],
+      "agency_ids": [
+        "1"
+      ],
+      "route_types": [
+        2
+      ],
       "description": "Whole official Metro-North Railroad schedule, including Connecticut branches"
     },
     "greyhound": {
       "whole_network": true,
-      "agency_ids": ["GREYHOUND-us"],
-      "route_types": [3],
+      "agency_ids": [
+        "GREYHOUND-us"
+      ],
+      "route_types": [
+        3
+      ],
       "description": "Greyhound routes only from the current FlixMobility GTFS; seats and tickets unverified"
     },
     "peterpan": {
-      "agency_ids": ["40", "71"],
-      "route_types": [3],
-      "description": "UNOFFICIAL — Peter Pan Bus Lines (agency 40) and Peter Pan (BZ) (agency 71) only, from the third-party UTEL-UIUC Intercity Bus GTFS (Peter Pan rows compiled from Transcor Data Services platform data, collected Aug 2025), imported under the owner doctrine exception of 2026-11-15 and labelled unofficial/stale. The official Peter Pan GTFS is stale since 2024-12-31 and replaces this source as soon as a current official edition is published. Regional geographic clip applies; seats and tickets unverified"
+      "agency_ids": [
+        "40",
+        "71"
+      ],
+      "route_types": [
+        3
+      ],
+      "description": "UNOFFICIAL \u2014 Peter Pan Bus Lines (agency 40) and Peter Pan (BZ) (agency 71) only, from the third-party UTEL-UIUC Intercity Bus GTFS (Peter Pan rows compiled from Transcor Data Services platform data, collected Aug 2025), imported under the owner doctrine exception of 2026-11-15 and labelled unofficial/stale. The official Peter Pan GTFS is stale since 2024-12-31 and replaces this source as soon as a current official edition is published. Regional geographic clip applies; seats and tickets unverified"
+    },
+    "mta_subway": {
+      "whole_network": true,
+      "description": "Whole MTA New York City Transit subway GTFS, including the Staten Island Railway route the archive itself carries (route SI, route_type 2); no geographic clip"
+    },
+    "mta_bronx": {
+      "whole_network": true,
+      "description": "Whole MTA New York City Transit Bronx bus GTFS; no geographic clip"
+    },
+    "mta_brooklyn": {
+      "whole_network": true,
+      "description": "Whole MTA New York City Transit Brooklyn bus GTFS; no geographic clip"
+    },
+    "mta_manhattan": {
+      "whole_network": true,
+      "description": "Whole MTA New York City Transit Manhattan bus GTFS; no geographic clip"
+    },
+    "mta_queens": {
+      "whole_network": true,
+      "description": "Whole MTA New York City Transit Queens bus GTFS; no geographic clip"
+    },
+    "mta_staten_island": {
+      "whole_network": true,
+      "description": "Whole MTA New York City Transit Staten Island bus GTFS; no geographic clip"
+    },
+    "mta_busco": {
+      "whole_network": true,
+      "description": "Whole MTA Bus Company GTFS; no geographic clip"
     }
   }
 }
