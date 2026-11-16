@@ -1,0 +1,89 @@
+name: Build dev Debian package
+
+# Dev builds: every push to `dev` runs the same gates as a release
+# (both unittest suites) and builds transit-atlas_<version>_all.deb,
+# published as a downloadable Actions artifact — never as a GitHub
+# Release and never from a tag. Releases still come only from
+# release.yml on a v* tag push to main. See docs/RELEASING.md,
+# "Dev builds".
+#
+# Version scheme: build_deb.sh accepts digits and dots ONLY (it
+# rejects anything else as a suspicious version), so a "-dev" suffix
+# cannot be stamped into the package. Dev builds are therefore
+# stamped <BASE_VERSION>.<run number> — four numeric components,
+# where releases always have exactly three. BASE_VERSION is the
+# latest released version (0.0.3 at the time of writing): a dev
+# stamp like 0.0.3.42 sorts after the 0.0.3 release and before the
+# next release (0.0.4) under Debian version comparison, so apt
+# upgrade paths stay sane in both directions, and the monotonic
+# per-workflow run number keeps successive dev builds ordered.
+# Bump BASE_VERSION in the same change that ships a new release.
+# The short commit SHA rides in the artifact name, not the version.
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BASE_VERSION: '0.0.3'
+
+jobs:
+  build-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the pinned Percival ref
+        id: percival-pin
+        run: echo "ref=$(grep -v '^#' packaging/PERCIVAL_PIN | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Check out Percival Core at the pinned ref
+        uses: actions/checkout@v4
+        with:
+          repository: softnessasastrength/percival
+          ref: ${{ steps.percival-pin.outputs.ref }}
+          path: percival-input
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile Python application and developer tools
+        run: python -m compileall -q ./*.py scripts developer_center tests
+
+      - name: Run test suite (build gate)
+        run: python -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Run Percival Core test suite (build gate)
+        working-directory: percival-input
+        run: |
+          python -m compileall -q src api scripts tests
+          python -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Compute the dev version
+        id: dev-version
+        run: |
+          echo "version=${BASE_VERSION}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "short=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build the Debian package
+        env:
+          PERCIVAL_DIR: ${{ github.workspace }}/percival-input
+        run: packaging/build_deb.sh "${{ steps.dev-version.outputs.version }}"
+
+      - name: Upload the dev package as a build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: transit-atlas-dev_${{ steps.dev-version.outputs.version }}_${{ steps.dev-version.outputs.short }}
+          path: dist/transit-atlas_*_all.deb
+          if-no-files-found: error
+          retention-days: 14

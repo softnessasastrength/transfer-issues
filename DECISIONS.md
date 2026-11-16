@@ -1506,3 +1506,38 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   represented; nothing about it is implied. NECTD operates
   deviated-route service in practice; the GTFS models it as
   fixed stops and the Atlas represents the feed as published.
+
+## Dev-branch package builds in CI (2026-11-15)
+
+- **Decision:** every push to `dev` builds the Debian package in CI
+  and publishes it as a downloadable Actions artifact, so dev
+  versions are installable and testable without waiting for a
+  promotion to `main` and a tagged release. New workflow
+  `.github/workflows/build-dev.yml`; `release.yml` and its tag
+  behaviour are untouched, and releases still come only from `v*`
+  tags on `main`.
+- **Shape:** the workflow mirrors `release.yml` step for step —
+  Percival Core checked out at `packaging/PERCIVAL_PIN`, both
+  unittest suites as gates (a red suite fails the build and nothing
+  is packaged), then `packaging/build_deb.sh` — and uploads
+  `dist/transit-atlas_*_all.deb` via `actions/upload-artifact`
+  with 14-day retention. No GitHub Release, no tag, no publish
+  permissions (`contents: read` only). Superseded dev pushes are
+  cancelled in progress per ref. `workflow_dispatch` allows a
+  manual build against any ref.
+- **Version scheme:** `build_deb.sh` accepts digits and dots only
+  in its version argument (anything else exits as a suspicious
+  version), so the conventional `0.0.4-dev…` stamp cannot be used.
+  Dev builds are stamped `<BASE_VERSION>.<run number>` — four
+  numeric components where releases always have exactly three, so
+  a dev build can never be mistaken for a release. `BASE_VERSION`
+  is the latest released version (`0.0.3` at adoption; bump it in
+  the change that ships a new release): under Debian comparison a
+  stamp like `0.0.3.42` sorts after the `0.0.3` release and before
+  `0.0.4`, keeping apt upgrade paths sane in both directions, and
+  the per-workflow run number is monotonic. The short commit SHA
+  rides in the artifact name (`transit-atlas-dev_<version>_<sha>`),
+  not the version.
+- **Docs:** `docs/RELEASING.md` gained a "Dev builds" section
+  (where the artifacts appear, that they are unsigned test builds,
+  and that releases still come only from tags).
