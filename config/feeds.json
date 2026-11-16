@@ -91,5 +91,11 @@
     "url": "https://passio3.com/hart/passioTransit/gtfs/google_transit.zip",
     "official_page": "https://www.hartransit.com/",
     "status": "not_downloaded"
+  },
+  {
+    "id": "rivervalley",
+    "url": "https://data.trilliumtransit.com/gtfs/ninetown-connecticut-us/ninetown-connecticut-us.zip",
+    "official_page": "https://estuarytransit.org/",
+    "status": "not_downloaded"
   }
 ]
