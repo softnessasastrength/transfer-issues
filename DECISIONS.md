@@ -1506,3 +1506,52 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   represented; nothing about it is implied. NECTD operates
   deviated-route service in practice; the GTFS models it as
   fixed stops and the Atlas represents the feed as published.
+
+## Nice TUI: full-screen curses interface for scripts/atlas_tui.py (2026-11-15)
+
+- Owner request (2026-11-15): "Can you give the .deb a nice TUI."
+  `scripts/atlas_tui.py` is upgraded from the plain-text numbered
+  menu to a full-screen curses interface (curses is Python stdlib —
+  the dependency-free doctrine is intact, and the module path and
+  the `transit-atlas tui` launcher wiring are unchanged, so the
+  packaged path is untouched).
+- Screens: a Dashboard (Atlas/Ollama/model status, feed count and
+  in-service freshness from /api/v1/meta, database presence and
+  size, data dir), a Departures board (stop search -> pick -> board,
+  with next/previous-day stepping), a trip Planner (from/to stop
+  picks, HH:MM departure entry, readable itinerary with leg times,
+  routes, headsigns, walk estimates and the planner's own status
+  line), a Services screen (start/stop Atlas and Ollama, prepare
+  core or core+optional feeds, server-log tail), and the Percival
+  chat launcher. Keyboard navigation throughout (arrows/j/k, Enter,
+  Esc/q), a persistent header (live stack status) and footer (key
+  hints), and restrained colour (green/amber/red status only).
+- Fallback is a hard rule, not a nicety: when curses is unavailable
+  or stdin/stdout are not TTYs (or --plain / ATLAS_TUI_PLAIN is
+  given), the original plain-text menu runs instead, and a curses
+  crash falls back to it too. The tool never hard-fails for want of
+  a terminal.
+- Warm-up race fixed (diagnosed 2026-11-15 from the owner's Mac
+  run): server.py warms routing caches *before* listening, so the
+  old flow could launch chat against a port that was not yet
+  accepting connections and report "Atlas API is unavailable."
+  Starting the server now polls /api/v1/meta until it answers
+  (ATLAS_TUI_WARMUP_TIMEOUT, default 240s, with progress shown)
+  before anything — chat, departures, plans — talks to the API.
+  On timeout the message names the server log; no cause is invented.
+- Honesty rules kept: all transit data comes from the real local
+  API; unknown intermediate stop names render as their stop ids
+  rather than invented names; slow first plans show a working
+  screen that says the planner is working, not hung; API errors
+  surface verbatim.
+- Structure for testability: formatting (clock/duration/bytes,
+  departure rows, plan lines, fare line, feed freshness, dashboard
+  lines), the wrap-around Menu, time-input parsing, the warm-up
+  wait (fake opener/clock), and the fallback decision are pure and
+  covered by tests/test_tui.py (18 tests). The curses screens were
+  additionally exercised end-to-end in a PTY against a stub API
+  (dashboard, departures flow, plan flow, clean exit).
+- Deliberately left as follow-ons: no commute-profile surface in
+  the TUI (F-009 evaluation lives in the MCP layer; a TUI surface
+  needs its own design pass), and the Android development menu
+  remains plain-text only (reachable from the fallback menu).
