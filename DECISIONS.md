@@ -465,3 +465,28 @@ rather than blanket ours/theirs. Notable outcomes:
   the bundled `scripts/setup_ollama.sh` selects its Ollama asset and
   pinned digest by `uname -m` (amd64 / arm64), failing loudly on
   anything else.
+- **Install-and-setup in one (owner addendum, 2026-11-15).** The
+  launcher gains `transit-atlas setup`: prepare the data if the
+  database is absent (as the `transit-atlas` user where the system
+  layout requires it), then bring both services up — `systemctl
+  enable --now` under systemd, backgrounded `nohup` servers with
+  logs beside the data directory without it — print both URLs and
+  the stop commands, and stay idempotent on re-runs.
+- **Build-machine independence fix (found during the 0.0.2 bundle
+  verification).** `build_deb.sh`'s mode normalisation followed the
+  app tree's `data` symlink; on a build machine without
+  `/var/lib/transit-atlas/data` (any clean runner — including the
+  release workflow's) the dangling symlink failed the build. Every
+  earlier build had been masked by a locally installed package. The
+  strip pass now covers files and directories only.
+- **Printed instructions must work for the person reading them
+  (found during the 0.0.2 verification).** A non-root smoke test
+  proved the shipped trees are world-readable (the v0.0.1 lockdown —
+  0660 files, 2770 dirs, `root:transit-atlas` — does not recur: the
+  build normalises to 644/755, `root:root`), but a bare
+  `transit-atlas prepare` from a personal account still fails by
+  design: the seed registry and database live in the service-owned
+  `/var/lib/transit-atlas/data`. The postinst banner and
+  `docs/RELEASING.md` now print the working forms — `sudo
+  transit-atlas setup`, or `sudo -u transit-atlas transit-atlas
+  prepare` — instead of the bare command.

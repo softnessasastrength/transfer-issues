@@ -148,7 +148,10 @@ cp "$SCRIPT_DIR/DEBIAN/postinst" "$SCRIPT_DIR/DEBIAN/prerm" \
 # 755, plain files 644, and 755 for the launcher, the maintainer scripts
 # and every file git records as executable, so the package is the same
 # no matter whose checkout built it. Ownership is forced to root:root.
-find "$STAGE" -exec chmod a-st {} +
+# (Files and directories only: the app tree's `data` symlink must not
+# be followed — its target exists on installed machines, not on a
+# clean build machine, and chmod on a dangling symlink fails the build.)
+find "$STAGE" \( -type f -o -type d \) -exec chmod a-st {} +
 find "$STAGE" -type d -exec chmod 755 {} +
 find "$STAGE" -type f -exec chmod 644 {} +
 chmod 755 "$STAGE/usr/bin/transit-atlas" \

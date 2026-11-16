@@ -15,6 +15,57 @@ fi
 export ATLAS_DATA_DIR
 mkdir -p "$ATLAS_DATA_DIR"
 export PORT="${ATLAS_PORT:-8000}"
+
+# setup — install-and-setup in one: prepare the data if the database
+# is absent, then bring both services up. Idempotent: an existing
+# database is left alone and a service that already answers is not
+# started twice.
+setup_all() {
+  if [ -f "$ATLAS_DATA_DIR/atlas.sqlite" ]; then
+    echo "setup: Atlas database already present in $ATLAS_DATA_DIR — skipping prepare."
+  else
+    echo "setup: no Atlas database in $ATLAS_DATA_DIR — preparing data now."
+    echo "       (Downloads the GTFS feeds and builds the database; a few minutes.)"
+    if [ "$(id -u)" = "0" ] && [ "$ATLAS_DATA_DIR" = "/var/lib/transit-atlas/data" ] \
+       && getent passwd transit-atlas >/dev/null 2>&1 && command -v runuser >/dev/null 2>&1; then
+      # The service layout: the database must belong to the user the
+      # services run as, so prepare as that user.
+      runuser -u transit-atlas -- python3 "$ATLAS_HOME/scripts/prepare_data.py"
+    else
+      python3 "$ATLAS_HOME/scripts/prepare_data.py"
+    fi
+  fi
+  if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+    if [ "$(id -u)" != "0" ]; then
+      echo "setup: systemd is in use and enabling units needs root — run: sudo transit-atlas setup" >&2
+      exit 1
+    fi
+    systemctl enable --now transit-atlas.service percival.service
+    echo "Atlas:      http://127.0.0.1:8000"
+    echo "Percival:   http://127.0.0.1:8123"
+    echo "Stop both:  sudo systemctl stop transit-atlas.service percival.service"
+    echo "Status:     systemctl status transit-atlas.service percival.service"
+  else
+    # No systemd (WSL without it, containers): background both servers,
+    # logging alongside the data they serve from.
+    if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/meta', timeout=1)" 2>/dev/null; then
+      echo "setup: Atlas already answering on http://127.0.0.1:8000 — not starting another."
+    else
+      nohup python3 "$ATLAS_HOME/scripts/run_local.py" >>"$ATLAS_DATA_DIR/atlas-server.log" 2>&1 &
+      echo "setup: Atlas started (pid $!), log: $ATLAS_DATA_DIR/atlas-server.log"
+    fi
+    if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8123/api/health', timeout=1)" 2>/dev/null; then
+      echo "setup: Percival already answering on http://127.0.0.1:8123 — not starting another."
+    else
+      nohup python3 "$PERCIVAL_HOME/scripts/run_local.py" >>"$ATLAS_DATA_DIR/percival-server.log" 2>&1 &
+      echo "setup: Percival started (pid $!), log: $ATLAS_DATA_DIR/percival-server.log"
+    fi
+    echo "Atlas:      http://127.0.0.1:8000"
+    echo "Percival:   http://127.0.0.1:8123"
+    echo "Stop both:  pkill -f 'lib/transit-atlas/server.py'; pkill -f 'lib/percival-core/scripts/run_local.py'"
+  fi
+}
+
 cmd="${1:-serve}"; [ $# -gt 0 ] && shift
 case "$cmd" in
   serve)        exec python3 "$ATLAS_HOME/scripts/run_local.py" ;;
@@ -24,7 +75,8 @@ case "$cmd" in
   tui)          exec python3 "$ATLAS_HOME/scripts/atlas_tui.py" "$@" ;;
   setup-ollama) exec "$ATLAS_HOME/scripts/setup_ollama.sh" "$@" ;;
   percival)     exec python3 "$PERCIVAL_HOME/scripts/run_local.py" "$@" ;;
+  setup)        setup_all ;;
   version)      echo "transit-atlas @VERSION@"
                 echo "percival-core @PERCIVAL_SHA@ (softnessasastrength/percival)" ;;
-  *) echo "usage: transit-atlas {serve|lan|prepare|mcp-http|tui|setup-ollama|percival|version}" >&2; exit 2 ;;
+  *) echo "usage: transit-atlas {serve|lan|prepare|mcp-http|tui|setup-ollama|percival|setup|version}" >&2; exit 2 ;;
 esac
