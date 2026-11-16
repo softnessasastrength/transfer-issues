@@ -83,6 +83,11 @@ def build(include_optional=False):
   grouped=collections.defaultdict(list)
   for t in rows(z,'stop_times'):
    if t['trip_id'] not in trips or t['trip_id'] in freq:continue
+   if not t.get('arrival_time') or not t.get('departure_time'):
+    # GTFS requires times only at timepoints; a publisher may leave
+    # intermediate stops untimed. Skip the row -- never the trip, and
+    # never invent a time for the stop -- and count the omission.
+    r['warnings']['untimed_stop_times_skipped']=r['warnings'].get('untimed_stop_times_skipped',0)+1;continue
    try:
     arr,dep=seconds(t['arrival_time']),seconds(t['departure_time']);seq=int(t['stop_sequence'])
     if dep<arr:raise ValueError()

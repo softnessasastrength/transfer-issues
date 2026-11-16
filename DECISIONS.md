@@ -1094,3 +1094,90 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   implied. Route 8 (Coastal Link) is operated jointly with GBT; each
   agency publishes its own trips for it, so the Atlas carries both
   agencies' Coastal Link trips under their own feed ids.
+
+## HART / HARTransit GTFS imported — Danbury coverage (2026-11-15)
+
+- **Source (official):** HARTransit publishes its GTFS on its Passio
+  platform at https://passio3.com/hart/passioTransit/gtfs/google_transit.zip
+  — the URL the FTA NTD GTFS Weblinks dataset lists for Housatonic
+  Area Regional Transit (NTD 10051; FTA-checked in the registry
+  snapshot) and Transitland's `static_current` for feed
+  f-hartransit~ct~us, both checked first-hand this session. It is
+  HART's own feed, not the shared UConn/WRTD Passio archive
+  (passio3.com/uconn/...), which Transitland carries as the separate
+  feed f-university~of~connecticut. No second live HART feed exists:
+  the registries name this one URL (plus a historic archive copy).
+  Retrieved 2026-11-15; 1,026,450 bytes; SHA-256
+  5b68464fd1d6ea8aed1b191fa277984015dccd3c338804977d22ab86d10dab24.
+- **Freshness:** feed_info.txt declares the edition 2026-11-14 →
+  2026-12-15 (publisher Passio Technologies, feed_version 20260917;
+  agency.txt names HARTransit, America/New_York) — a rolling ~31-day
+  Passio window, current at retrieval and covering the 2026-11-17
+  verification date, so the GTFS tier applies and no PDF fallback was
+  needed. Freshness is a polling commitment: poll weekly for the next
+  edition.
+- **Registered** as feed `hart` in config/feeds.json. No
+  coverage.json override: every timed HART stop falls inside the
+  default regional clip (40.9–43.1, −73.8–−70.5), so the scope
+  recorded at import is the default description, like CTtransit,
+  PVTA, WRTA, SEAT, RIPTA, GBT and Norwalk.
+- **Importer fix (genuine defect, flagged per instructions):** the
+  archive times only its timepoints — 17,580 of its 21,422 stop_times
+  rows carry empty arrival/departure times (timepoint 0), which GTFS
+  permits. The importer treated one empty time as a malformed row and
+  discarded the whole trip, so all 624 HART trips were rejected
+  (invalid_or_missing_time ×624) and the feed imported as 0/0/0.
+  import_gtfs.py now skips an untimed row — never the trip, and never
+  an invented time — and counts it under the warning
+  `untimed_stop_times_skipped`; a non-empty malformed time still
+  rejects its trip exactly as before. The change is a no-op for feeds
+  that time every stop: all six companion feeds reproduced their
+  established counts byte-for-byte in the same build.
+  tests/test_hart_feed.py pins both behaviours with a synthetic
+  archive of the same shape.
+- **Service model:** four calendar.txt patterns spanning 2025-01-01
+  → 2027-12-31. Weekday service 23684.61481 carries 12 routes (324
+  trips); a second weekday pattern, 50236.130201, carries only the
+  four LOOP routes (8/9/10/17, 40 trips); Saturday pattern
+  50236.130229 carries 13 routes (180 trips); Sunday pattern
+  50236.130230 carries only the LOOP routes (80 trips).
+  calendar_dates.txt holds 24 exceptions: weekday patterns removed
+  on holidays (Thanksgiving and the day after, Christmas Eve/Day,
+  New Year's, MLK Day, Memorial Day, Labor Day) and the Sunday
+  pattern added on six holidays. Because the importer records the
+  window from the calendar data, sources record 2025-01-01 →
+  2027-12-31: service past the declared 2026-12-15 edition end is
+  the current pattern projected, not a publisher guarantee. The
+  archive has no frequencies.txt; all 624 trips carry stop_times,
+  and every trip's first and last stop is timed. All 575 published
+  stops are referenced by stop_times, but only 125 are ever timed,
+  so only those 125 import (see Limits).
+- **Import counts (2026-11-15 local seven-feed build):** 125 stops /
+  16 routes / 624 trips, zero import errors, one warning
+  (untimed_stop_times_skipped 17,580). check_data_integrity.py PASS
+  on the rebuilt database.
+- **Verification (local seven-feed build, Tue 2026-11-17):** Pulse
+  Point resolves (hart:74163, the feed's most-served stop). Plans
+  from Pulse Point at 08:00 — Danbury → Hartford (MNR Danbury branch
+  to South Norwalk, MNR to New Haven, Hartford Line to Hartford,
+  arrive 12:27) and Hartford → Danbury (Amtrak to New Haven, MNR to
+  South Norwalk and up the Danbury branch, arrive 11:53). 143
+  departures from Pulse Point that day, first 06:05. 60-minute
+  bubble from Pulse Point: 62 reachable — an honest sparse count;
+  the timepoint-only skeleton and long headways mean few same-hour
+  returns (contrast Bridgeport's 467). The Danbury–Norwalk 7 Link is
+  direct in the data: five southbound departures from Pulse Point
+  (06:30, 07:30, 09:00, 15:35, 16:30), four HART departures from its
+  Norwalk WHEELS Hub stop (hart:74703), and a through plan Norwalk
+  WHEELS Hub → Pulse Point riding route hart:3261 end to end
+  (08:45 → 09:45); hart:74703 sits ~90 m from Norwalk Transit's
+  Burnell Blvd Hub (norwalk:9). Standing reference checks unchanged:
+  Court Square → pvta:1495; hartford:6 → pvta:5101 departs 30900,
+  arrives 33428.
+- **Limits:** fixed-route GTFS only, and timepoint-level within it.
+  HART demand-response service is not in the feed and is not
+  represented; nothing about it is implied. 450 published stops
+  appear only as untimed intermediates and are not in the Atlas;
+  trips pass them physically, but the Atlas cannot quote a time
+  there, so it does not pretend to serve them. HART realtime was not
+  touched.
