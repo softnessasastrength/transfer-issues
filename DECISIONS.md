@@ -1260,3 +1260,88 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   implied. The Clinton Trolley's absence is the publisher's (zero
   trips in a fall edition of a seasonal service), not an Atlas
   finding that the trolley does not exist.
+
+## UConn / WRTD shared GTFS imported — Storrs + Willimantic coverage (2026-11-15)
+
+- **Source (official):** UConn Transportation Services publishes one
+  shared GTFS for both agencies on the Passio platform at
+  https://passio3.com/uconn/passioTransit/gtfs/google_transit.zip
+  — the URL the FTA NTD GTFS Weblinks dataset lists for Windham
+  Region Transit District (NTD 10149; FTA check "Success") and
+  Transitland's `static_current` for feed
+  f-university~of~connecticut (operator "University of Connecticut /
+  Windham Region Transit District"), both checked first-hand this
+  session. agency.txt carries a single record naming both:
+  "University of Connecticut (UCONN / WRTD)" (agency_id 1541,
+  https://transpo.uconn.edu/). It is a different feed from HART's own
+  Passio archive (passio3.com/hart/...). No second live feed covers
+  this service: the Mobility Database catalog carries no UConn/WRTD
+  row at all, and WRTD's own homepage links riders to the same UConn
+  Passio portal (uconn.passiogo.com) — there is no WRTD-only archive
+  to import alongside, and the shared archive is imported exactly
+  once under feed id `uconn`. Retrieved 2026-11-15; 394,502 bytes;
+  SHA-256 b1f58af7dd467b94c970d78adfccd6b6dbcfcb5a14899be8af38ebc49dc436b9.
+- **Freshness:** feed_info.txt declares the edition 2026-11-14 →
+  2026-12-15 (publisher Passio Technologies, feed_version 20260917)
+  — the rolling ~31-day Passio window the audit recorded, covering
+  the retrieval date and the verification date (Tue 2026-11-17,
+  confirmed inside the enumerated service). Freshness is a polling
+  commitment: poll weekly for the next edition, as with HART.
+- **Service model:** calendar.txt carries 15 patterns, all spanning
+  2025-01-01 → 2027-12-31, and calendar_dates.txt carries 2,159
+  exceptions — every one a removal (type 2) — across 1,095 dates.
+  The removals are the service definition: they express the UConn
+  academic calendar (the 676 "Summer/Breaks" pattern is removed on
+  677 dates and runs when campus service is reduced, e.g. it is
+  active Tue 2026-11-24 while the campus pattern is removed) and a
+  Village Heights closure detour switchover (the detour 671 patterns
+  run through late November 2026 while the regular 671 patterns are
+  removed; the regular pattern is active again by Tue 2026-12-01).
+  One weekday pattern carries 277 of the 550 trips across most
+  campus routes plus the 674D/E opening/closing trips. The 674 is a
+  loop: a single trip runs Willimantic → Storrs → Willimantic. On
+  Tue 2026-11-17 five patterns are active (991 all-week, 675, the
+  campus pattern, the 674 pattern, the 671 detour pattern), 350
+  trips. Twelve of the Red Line's 51 trips ride a service pattern
+  with no active weekdays and no additions, so as published they
+  never run; the other 39 ride the campus pattern. 42 stop_times
+  rows are untimed, all at one stop (Roanoak Ave at Cameo Dr), which
+  is therefore the only published stop not carried (229 of 230);
+  the importer skips those rows under the PR #107 fix and invents
+  nothing. Because the importer records the window from the calendar
+  data, sources record 2025-01-01 → 2027-12-31: service past the
+  declared 2026-12-15 edition end is the current pattern projected,
+  not a publisher guarantee. The archive has no frequencies.txt.
+- **Import counts (2026-11-15 local seven-feed build):** 229 stops /
+  28 routes / 550 trips, zero import errors, one warning
+  (untimed_stop_times_skipped 42). All six companion feeds reproduced
+  their established counts exactly. check_data_integrity.py PASS on
+  the rebuilt database.
+- **Verification (local seven-feed build, Tue 2026-11-17):** both
+  service areas verified. Storrs: the Nash-Zimmer Transportation
+  Center resolves (uconn:84931 EB / uconn:84932 WB, metres from
+  CTtransit's own NZTC stop cttransit:12794); plans NZTC → Hartford
+  (08:00 → 08:54, CTtransit Storrs–Hartford service) and Hartford →
+  NZTC (08:00 → 09:15) both found; 10 departures from NZTC EB that
+  day, first 06:11; 60-minute bubble from NZTC: 83 reachable.
+  Willimantic: the Windham Intermodal Center resolves (three stop
+  records within ~30 m: uconn:141918, uconn:174794, uconn:208545);
+  plans WIC → Hartford (08:30 → 10:50, 674B to Storrs + CTtransit)
+  and Hartford → WIC (08:00 → 09:51, CTtransit + walk) both found;
+  19 departures from uconn:141918 that day, first 06:23. Interlocks:
+  the 674 runs Storrs → Willimantic direct (arrive 08:51 from an
+  08:00 start) and the 991 runs Willimantic → Norwich
+  Transportation Center direct (10:15 → 10:52). Standing reference
+  checks unchanged: Court Square → pvta:1495; hartford:6 → pvta:5101
+  departs 30900, arrives 33428.
+- **Limits:** fixed-route GTFS only. WRTD Dial-A-Ride and any UConn
+  demand-response service are not in the feed and are not
+  represented; nothing about them is implied. One published stop
+  appears only as untimed rows and is not in the Atlas; trips pass
+  it physically, but the Atlas cannot quote a time there, so it does
+  not pretend to serve it. Post-edition service is a projection of
+  the November pattern (see Service model); if the feed is not
+  republished on its rolling cycle, the lapsed edition must be
+  handled the way LRTA's was — never silently trusted. UConn/WRTD
+  realtime (Passio publishes GTFS-RT under the same /uconn/ path)
+  was not touched.
