@@ -85,5 +85,11 @@
     "url": "https://mystop.norwalktransit.com/InfoPoint/gtfs-zip.ashx",
     "official_page": "https://www.norwalktransit.com/",
     "status": "not_downloaded"
+  },
+  {
+    "id": "hart",
+    "url": "https://passio3.com/hart/passioTransit/gtfs/google_transit.zip",
+    "official_page": "https://www.hartransit.com/",
+    "status": "not_downloaded"
   }
 ]
