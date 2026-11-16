@@ -3,12 +3,14 @@ set -e
 if ! getent passwd transit-atlas >/dev/null; then
   adduser --system --group --home /var/lib/transit-atlas --no-create-home transit-atlas
 fi
-mkdir -p /var/lib/transit-atlas/data
+mkdir -p /var/lib/transit-atlas/data /var/lib/transit-atlas/percival
 chown -R transit-atlas:transit-atlas /var/lib/transit-atlas
 chmod 2775 /var/lib/transit-atlas/data
 if [ -d /run/systemd/system ]; then systemctl daemon-reload || true; fi
 if [ "$1" = "configure" ]; then
-  echo "Transit Atlas installed. First run:  transit-atlas prepare   (downloads the GTFS feeds and builds the database)"
-  echo "Then:                                transit-atlas serve     (http://127.0.0.1:8000)"
+  echo "Transit Atlas installed. One-command setup:  sudo transit-atlas setup"
+  echo "  (prepares the database as the transit-atlas service user and starts both services)"
+  echo "By hand:   sudo -u transit-atlas transit-atlas prepare   (downloads the GTFS feeds, builds the database)"
+  echo "Then:      sudo systemctl start transit-atlas percival   (Atlas http://127.0.0.1:8000, Percival http://127.0.0.1:8123)"
   echo "Optional Percival local model:       sudo transit-atlas setup-ollama"
 fi

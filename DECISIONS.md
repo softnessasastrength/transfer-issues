@@ -436,3 +436,101 @@ rather than blanket ours/theirs. Notable outcomes:
   and 755 for the launcher, the maintainer scripts, shell scripts and
   every file git records as executable, with root ownership forced via
   `dpkg-deb --root-owner-group` — the same package from any checkout.
+
+## Percival Core bundled into the Debian package (2026-11-15)
+
+- **Owner decision (2026-11-15): one package, two services.** From
+  0.0.2 the `transit-atlas` Debian package also carries Percival Core
+  (`softnessasastrength/percival`): the Atlas on 127.0.0.1:8000 and
+  Percival's front door on 127.0.0.1:8123, one install, one launcher
+  (`transit-atlas percival`), two systemd units. The Atlas package
+  already carried the Percival *companion* (MCP, chat, personality,
+  TUI); this bundles Percival *Core* proper — registry, audit,
+  executor, bring-to-me — beside it.
+- **The repositories stay separate.** Percival is never vendored into
+  this repo's history. It enters the package only as a build input:
+  `packaging/build_deb.sh` requires `PERCIVAL_DIR` (a checkout of the
+  pinned ref) and stages the whole tree under `/usr/lib/percival-core`
+  with a `BUILD_INFO` provenance file. A build without the input
+  fails loudly instead of silently shipping the pre-bundle artifact.
+- **The pin is deliberate.** `packaging/PERCIVAL_PIN` records the
+  exact `percival` commit the package bundles (initially
+  `b39a4eeca2963017d73823dff4483d6eaabef0b0`, the head that merged the
+  local runner). Bumping it is its own PR with the bump recorded here;
+  the release workflow checks out the pinned ref and gates on the
+  Percival suite as well as the Atlas suite before building.
+- **ARM64 is a hard requirement.** The owner tests in an ARM64 Linux
+  VM on Apple silicon. Both trees are pure Python stdlib — the
+  package stays `Architecture: all` with zero native binaries — and
+  the bundled `scripts/setup_ollama.sh` selects its Ollama asset and
+  pinned digest by `uname -m` (amd64 / arm64), failing loudly on
+  anything else.
+- **Install-and-setup in one (owner addendum, 2026-11-15).** The
+  launcher gains `transit-atlas setup`: prepare the data if the
+  database is absent (as the `transit-atlas` user where the system
+  layout requires it), then bring both services up — `systemctl
+  enable --now` under systemd, backgrounded `nohup` servers with
+  logs beside the data directory without it — print both URLs and
+  the stop commands, and stay idempotent on re-runs.
+- **Build-machine independence fix (found during the 0.0.2 bundle
+  verification).** `build_deb.sh`'s mode normalisation followed the
+  app tree's `data` symlink; on a build machine without
+  `/var/lib/transit-atlas/data` (any clean runner — including the
+  release workflow's) the dangling symlink failed the build. Every
+  earlier build had been masked by a locally installed package. The
+  strip pass now covers files and directories only.
+- **Printed instructions must work for the person reading them
+  (found during the 0.0.2 verification).** A non-root smoke test
+  proved the shipped trees are world-readable (the v0.0.1 lockdown —
+  0660 files, 2770 dirs, `root:transit-atlas` — does not recur: the
+  build normalises to 644/755, `root:root`), but a bare
+  `transit-atlas prepare` from a personal account still fails by
+  design: the seed registry and database live in the service-owned
+  `/var/lib/transit-atlas/data`. The postinst banner and
+  `docs/RELEASING.md` now print the working forms — `sudo
+  transit-atlas setup`, or `sudo -u transit-atlas transit-atlas
+  prepare` — instead of the bare command.
+
+## setup-ollama extraction — tarball layout defect (2026-11-15)
+
+- **Defect (shipped in the v0.0.1 and v0.0.2 packages):**
+  `scripts/setup_ollama.sh` extracted the pinned Ollama tarball with
+  `--strip-components=1`. The v0.40.16 tarball's top level is `bin/` +
+  `lib/` — `bin/ollama`, with `lib/ollama/` carrying `llama-server`,
+  the `libggml*` libraries, licenses, and the `cuda_v12/`, `cuda_v13/`
+  and `vulkan/` directories (verified against the real archive: the
+  amd64 asset's SHA-256 matches the pinned digest `87bfafb2…`, and
+  its member listing shows exactly this layout). Stripping one
+  component mapped `bin/ollama` to a regular file named `ollama` in
+  the target root; every `lib/ollama/*` member then mapped beneath
+  that file and failed, and `set -e` aborted the setup. The script's
+  own symlink already expected the unstripped layout
+  (`/usr/local/lib/ollama/bin/ollama`).
+- **Live evidence:** the owner's first real `transit-atlas
+  setup-ollama` run (Ubuntu WSL, 2026-11-15): the download completed
+  and the pinned digest verified OK, then tar failed on every lib
+  member with "Cannot open: Not a directory" / "Cannot mkdir: Not a
+  directory" and no Ollama was installed.
+- **Fix:** the extraction no longer strips components. It lives in an
+  `extract_ollama` function that also asserts the layout afterwards —
+  `bin/ollama` executable and `lib/ollama/llama-server` present — and
+  exits nonzero with a clear message if upstream's layout ever
+  changes, so the failure is loud at setup time instead of silent at
+  inference time. Everything else about the script is unchanged
+  (pinned version and per-arch digests, root check, zstd bootstrap,
+  `ollama` user, systemd unit with background fallback, model pull
+  from `/etc/transit-atlas/percival.conf`). A repo-wide grep confirms
+  no other `--strip-components` use exists to twin the defect
+  (`packaging/build_deb.sh` and the release workflow never reference
+  the extraction).
+- **The verification gap that shipped it, and the new rule:** the
+  script was digest-verified but never executed end-to-end, so a
+  wrong flag survived review — a checksum proves the archive is the
+  right one, not that the install works. Rule: an install/setup path
+  is not verified until its real operations have run against a
+  real-shaped input. `tests/test_setup_ollama.py` embodies it: it
+  builds a synthetic `.tar.zst` with the real layout shape and runs
+  the script's own `extract_ollama` against it, plus a flat-layout
+  fixture that must fail the assertion loudly. The test requires a
+  `zstd` binary on PATH (the script installs it via apt on target
+  machines) and skips where none exists.
