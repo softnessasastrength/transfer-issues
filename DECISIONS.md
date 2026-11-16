@@ -1506,3 +1506,95 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   represented; nothing about it is implied. NECTD operates
   deviated-route service in practice; the GTFS models it as
   fixed stops and the Atlas represents the feed as published.
+
+## Northwestern Connecticut Transit District (NWCTD) GTFS imported — Torrington / Litchfield County coverage (2026-11-15)
+
+- **Source (official):** the district's GTFS is hosted at
+  https://hosted-gtfs-feeds.s3.amazonaws.com/NWCTD/gtfs.zip
+  — the weblink the FTA NTD GTFS Weblinks dataset lists for
+  Northwestern Connecticut Transit District (NTD 10131;
+  FTA-validated 2026-01-14, certification flag set). The archive
+  self-identifies: agency.txt names Northwestern Connecticut
+  Transit District (agency_id 10131 — the NTD ID itself,
+  https://www.nwcttransit.com/about-localbusroute/,
+  America/New_York); feed_info.txt names the publisher as
+  Arcadis and the edition as nwctd_03082026. Retrieved
+  2026-11-15; 77,317 bytes; SHA-256
+  4a55e25c960a6c0ebb6afa8a492b7faa884c27364f997b6442840c9a1c174462.
+- **Duplicate-feed check:** exactly one live feed covers this
+  service. The FTA registry carries one weblink row for
+  NTD 10131 and no second producer feed was found. (Neither the
+  Mobility Database nor Transitland carries a record for this
+  service that could be located — checked first-hand against the
+  Database's full schedule catalog and the Transitland Atlas
+  feed tree — consistent with the coverage audit's note that
+  the Database is materially incomplete for Connecticut; the
+  FTA registry is the authoritative cross-check. Secondary
+  consumers such as busmaps.com and the Transit app carry the
+  same routes and stops from this feed.)
+- **Freshness:** feed_info.txt declares 2026-07-20 → 2026-12-31 —
+  current at retrieval and covering the verification date, so
+  the GTFS tier applies and no PDF fallback was needed. One
+  honesty note: the earliest calendar pattern starts 2026-07-28,
+  so the declared window overstates enumerated service by eight
+  days at the front; the window the importer records is the
+  calendar span, 2026-07-28 → 2026-12-31. The window ends
+  2026-12-31: poll for republication before year-end, grouped
+  with Milford and NECTD.
+- **Registered** as feed `nwctd` in config/feeds.json. No
+  coverage.json override: every NWCTD stop falls inside the
+  default regional clip (40.9–43.1, −73.8–−70.5; archive extents
+  41.7269–42.0168, −73.3352–−73.0463), so the scope recorded at
+  import is the default description, like CTtransit, PVTA, WRTA,
+  SEAT, RIPTA, GBT, Norwalk, HART, River Valley, Milford and
+  NECTD.
+- **Service model:** base service lives in calendar.txt as four
+  patterns — Weekdays (Mon–Fri, 36 trips) and Saturday
+  (30 trips), both spanning 2026-07-28 → 2026-12-31, plus two
+  winter patterns, WD_Winter (Mon–Fri) and WND_Winter (Sat),
+  spanning 2026-08-27 → 2026-12-23 and carrying route 1B
+  (Winsted College Only, 6 trips each) alone. The archive has
+  **no calendar_dates.txt at all** — this edition publishes no
+  holiday exceptions, so Thanksgiving and Christmas run the
+  ordinary patterns exactly as published; the Atlas does not
+  infer reductions the publisher did not declare. **No pattern
+  runs on Sunday**: this district publishes no Sunday service.
+  The route named SaturdayTorrington also runs seven of its
+  fourteen trips on the Weekdays pattern, as published. Twelve
+  of the forty-eight published stops are referenced by no trip
+  (among them Litchfield Green, Bantam Post Office and Stop and
+  Shop) and are pruned at import. All 770 stop_times rows are
+  timed, so this feed does not exercise the untimed-row
+  handling. The fare table is published (REGULAR $1.75 with one
+  transfer, YOUTH $1.40, SENIOR $0.85); the Job Access route has
+  no fare_rules rows. There is no frequencies.txt.
+  tests/test_nwctd_feed.py pins the registry entry and this
+  shape — the weekday route set including the winter college
+  trip, Thanksgiving running the ordinary weekday patterns,
+  the Saturday patterns running, Sunday carrying no service,
+  the calendar-span window, and the pruning of an unreferenced
+  published stop — with a synthetic archive of the same shape.
+- **Import counts (2026-11-15 local seven-feed build):** 36 stops /
+  6 routes / 78 trips, zero import errors, zero warnings.
+  check_data_integrity.py PASS on the rebuilt database.
+- **Verification (local seven-feed build, Tue 2026-11-17):** the
+  John St stop in downtown Torrington resolves (nwctd:John St,
+  the feed's most-served stop, 138 stop_times rows). It sits
+  ~25 m from CTtransit's own Mason St @ John St stop
+  (cttransit:13578), and the through journeys ride that
+  interlock: plans from the anchor at 08:00 — NWCTD → Hartford
+  (walk to Mason St @ John St, CTtransit 450 to Waterbury,
+  928 express to Asylum St @ Bushnell Park, walk to Hartford
+  Union Station, depart 08:00 arrive 11:09) and Hartford →
+  NWCTD (CTtransit 83, 928 and 450 to Mason St @ John St, walk
+  to the anchor, depart 08:00 arrive 10:41). 38 departures from
+  the anchor that day, first 06:30. 60-minute bubble from the
+  anchor: 4 reachable — the honest measure of a sparse rural
+  district at that hour. Standing reference checks unchanged:
+  Court Square → pvta:1495; hartford:6 → pvta:5101 departs
+  30900, arrives 33428.
+- **Limits:** fixed-route GTFS only. NWCTD demand-response
+  (dial-a-ride) service is not in the feed and is not
+  represented; nothing about it is implied. NWCTD operates
+  deviated-route service in practice; the GTFS models it as
+  fixed stops and the Atlas represents the feed as published.
