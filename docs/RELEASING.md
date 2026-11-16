@@ -32,6 +32,31 @@ published by hand on 2026-11-15, before this machinery existed. The
 build script's output was reconciled path-by-path against that
 hand-built package; the layout below is the contract both follow.
 
+## Dev builds
+
+Every push to `dev` also builds a package, so the current state of
+`dev` is installable and testable without waiting for a promotion to
+`main` and a tagged release. The `Build dev Debian package` workflow
+(`.github/workflows/build-dev.yml`) mirrors the release workflow's
+gates — it checks out Percival Core at the pinned ref and runs
+**both** test suites; a red suite fails the build and nothing is
+packaged — then builds the `.deb` and uploads it as an **Actions
+artifact** (no GitHub Release, no tag). It can also be run manually
+from the Actions tab against any ref.
+
+To get one: open the repository's **Actions** tab, pick the
+`Build dev Debian package` run for the commit you want, and download
+the `transit-atlas-dev_<version>_<short-sha>` artifact from the run
+page. Artifacts are kept for 14 days.
+
+Dev builds are **unsigned test builds**. Their version stamp is the
+latest released version plus a fourth, run-number component (for
+example `0.0.3.42`): releases always carry exactly three components,
+so a dev build can never be mistaken for one, and the stamp sorts
+after the release it follows and before the next one. The commit a
+dev build came from is in the artifact name. Releases still come
+only from `v*` tags on `main`, as above.
+
 ## Building locally
 
 ```sh
