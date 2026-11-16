@@ -115,5 +115,11 @@
     "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/NECTD/gtfs.zip",
     "official_page": "https://www.nectd.org/index.php",
     "status": "not_downloaded"
+  },
+  {
+    "id": "nwctd",
+    "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/NWCTD/gtfs.zip",
+    "official_page": "https://www.nwcttransit.com/about-localbusroute/",
+    "status": "not_downloaded"
   }
 ]
