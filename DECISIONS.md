@@ -490,3 +490,47 @@ rather than blanket ours/theirs. Notable outcomes:
   `docs/RELEASING.md` now print the working forms — `sudo
   transit-atlas setup`, or `sudo -u transit-atlas transit-atlas
   prepare` — instead of the bare command.
+
+## setup-ollama extraction — tarball layout defect (2026-11-15)
+
+- **Defect (shipped in the v0.0.1 and v0.0.2 packages):**
+  `scripts/setup_ollama.sh` extracted the pinned Ollama tarball with
+  `--strip-components=1`. The v0.40.16 tarball's top level is `bin/` +
+  `lib/` — `bin/ollama`, with `lib/ollama/` carrying `llama-server`,
+  the `libggml*` libraries, licenses, and the `cuda_v12/`, `cuda_v13/`
+  and `vulkan/` directories (verified against the real archive: the
+  amd64 asset's SHA-256 matches the pinned digest `87bfafb2…`, and
+  its member listing shows exactly this layout). Stripping one
+  component mapped `bin/ollama` to a regular file named `ollama` in
+  the target root; every `lib/ollama/*` member then mapped beneath
+  that file and failed, and `set -e` aborted the setup. The script's
+  own symlink already expected the unstripped layout
+  (`/usr/local/lib/ollama/bin/ollama`).
+- **Live evidence:** the owner's first real `transit-atlas
+  setup-ollama` run (Ubuntu WSL, 2026-11-15): the download completed
+  and the pinned digest verified OK, then tar failed on every lib
+  member with "Cannot open: Not a directory" / "Cannot mkdir: Not a
+  directory" and no Ollama was installed.
+- **Fix:** the extraction no longer strips components. It lives in an
+  `extract_ollama` function that also asserts the layout afterwards —
+  `bin/ollama` executable and `lib/ollama/llama-server` present — and
+  exits nonzero with a clear message if upstream's layout ever
+  changes, so the failure is loud at setup time instead of silent at
+  inference time. Everything else about the script is unchanged
+  (pinned version and per-arch digests, root check, zstd bootstrap,
+  `ollama` user, systemd unit with background fallback, model pull
+  from `/etc/transit-atlas/percival.conf`). A repo-wide grep confirms
+  no other `--strip-components` use exists to twin the defect
+  (`packaging/build_deb.sh` and the release workflow never reference
+  the extraction).
+- **The verification gap that shipped it, and the new rule:** the
+  script was digest-verified but never executed end-to-end, so a
+  wrong flag survived review — a checksum proves the archive is the
+  right one, not that the install works. Rule: an install/setup path
+  is not verified until its real operations have run against a
+  real-shaped input. `tests/test_setup_ollama.py` embodies it: it
+  builds a synthetic `.tar.zst` with the real layout shape and runs
+  the script's own `extract_ollama` against it, plus a flat-layout
+  fixture that must fail the assertion loudly. The test requires a
+  `zstd` binary on PATH (the script installs it via apt on target
+  machines) and skips where none exists.
