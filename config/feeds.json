@@ -109,5 +109,11 @@
     "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/Milford/gtfs.zip",
     "official_page": "https://www.milfordtransit.com/",
     "status": "not_downloaded"
+  },
+  {
+    "id": "nectd",
+    "url": "https://hosted-gtfs-feeds.s3.amazonaws.com/NECTD/gtfs.zip",
+    "official_page": "https://www.nectd.org/index.php",
+    "status": "not_downloaded"
   }
 ]

@@ -1419,3 +1419,90 @@ pack is the documented fallback. Full notes: docs/OFFLINE_MAP_PACK.md.
   corridor service through Milford rides in GBT's and Norwalk's
   feeds, not this one — this feed is the district's three local
   loop routes only.
+
+## Northeastern Connecticut Transit District (NECTD) GTFS imported — Quiet Corner coverage (2026-11-15)
+
+- **Source (official):** the district's GTFS is hosted at
+  https://hosted-gtfs-feeds.s3.amazonaws.com/NECTD/gtfs.zip
+  — the weblink the FTA NTD GTFS Weblinks dataset lists for
+  Northeastern Connecticut Transit District (NTD 10156;
+  FTA-validated 2026-01-14), and Transitland's `static_current`
+  for `f-northeastern~connecticut~transit~district` (operator
+  `o-northeastern~connecticut~transit~district`, us_ntd_id
+  10156). The archive self-identifies: agency.txt names
+  Northeastern Connecticut Transit District (agency_id 10156 —
+  the NTD ID itself, https://www.nectd.org/index.php,
+  America/New_York); feed_info.txt names the publisher as
+  Arcadis. Retrieved 2026-11-15; 205,577 bytes; SHA-256
+  495aa7c32127ad119af6dd02dfc441e8ce99d2144c802775a0dc5a64f2bc25f7.
+- **Duplicate-feed check:** exactly one live feed covers this
+  service. The FTA registry carries one weblink row for
+  NTD 10156 and Transitland one feed record; no second producer
+  feed was found. (The Mobility Database carries no record for
+  this service that could be located — consistent with the
+  coverage audit's note that the Database is materially
+  incomplete for Connecticut; the FTA registry is the
+  authoritative cross-check.)
+- **Freshness:** feed_info.txt declares 2025-12-31 → 2026-12-31 —
+  current at retrieval and covering the verification date, so the
+  GTFS tier applies and no PDF fallback was needed. The window
+  ends 2026-12-31: poll for republication before year-end.
+- **Registered** as feed `nectd` in config/feeds.json. No
+  coverage.json override: every NECTD stop falls inside the
+  default regional clip (40.9–43.1, −73.8–−70.5; archive extents
+  41.5854–41.9848, −71.9898–−71.8564), so the scope recorded at
+  import is the default description, like CTtransit, PVTA, WRTA,
+  SEAT, RIPTA, GBT, Norwalk, HART, River Valley and Milford.
+- **Service model:** base service lives in calendar.txt as two
+  patterns — Weekdays (Mon–Fri, 49 trips) and Weekender (Sat–Sun,
+  5 trips) — both spanning 2025-12-31 → 2026-12-31, exactly
+  feed_info's declared window (declared edition and calendar span
+  agree, unlike the Passio and Trillium editions). The archive
+  has **no calendar_dates.txt at all** — this edition publishes
+  no holiday exceptions, so Thanksgiving and Christmas run the
+  ordinary Weekdays pattern exactly as published; the Atlas does
+  not infer reductions the publisher did not declare. The four
+  colour routes (Orange 22 trips, Green 10, Red-Purple Shuttle
+  10, Blue 7) run weekdays only; Sunday service exists, on the
+  Weekender route alone. All 704 stop_times rows are timed and
+  all 50 published stops are referenced by stop_times, so every
+  published stop imports — this feed does not exercise the
+  untimed-row handling. The Green route declares
+  continuous_pickup (a deviated-style flag in the data; the Atlas
+  models the published fixed stops). There is no frequencies.txt.
+  tests/test_nectd_feed.py pins the registry entry and this
+  shape — the weekday colour-route set, Thanksgiving running the
+  ordinary weekday pattern, the Weekender running Saturday and
+  Sunday, and the calendar-span window — with a synthetic archive
+  of the same shape.
+- **Import counts (2026-11-15 local seven-feed build):** 50 stops /
+  5 routes / 54 trips, zero import errors, zero warnings.
+  check_data_integrity.py PASS on the rebuilt database.
+- **Verification (local seven-feed build, Tue 2026-11-17):** the
+  Commerce Ave Commuter Lot in Danielson resolves
+  (nectd:GREEN-1, the feed's most-served stop). Plans from the
+  anchor at 08:00 — NECTD → Hartford (Green route to Killingly
+  Commons, walk to CTtransit's own Killingly Commons stop,
+  CTtransit to Hartford, depart 08:30 arrive 12:16) and
+  Hartford → NECTD (CTtransit to Killingly Commons, walk,
+  Red-Purple Shuttle to the anchor, depart 08:00 arrive 10:50).
+  18 departures from the anchor that day, first 07:30. 60-minute
+  bubble from the anchor: 3 reachable — the honest measure of a
+  sparse rural district at that hour. The Orange route's
+  southern terminus, Lisbon Landing/SEAT Connection
+  (nectd:ORANGE-13), is co-located with SEAT's Lisbon Landing
+  stops: plans to Norwich Transportation Center (depart 08:00
+  arrive 08:55) and from Norwich Transportation Center (depart
+  08:00 arrive 08:25) both found, and the stop carries 5 Orange
+  departures that day. In an eight-feed build (the same subset
+  plus UConn/WRTD), WRTD's Danielson Downtown stop
+  (uconn:84886) sits at identical coordinates to nectd:GREEN-1,
+  and the anchor plans to the Windham Intermodal Center via the
+  993 (depart 08:00 arrive 09:22), with the reverse also found.
+  Standing reference checks unchanged: Court Square → pvta:1495;
+  hartford:6 → pvta:5101 departs 30900, arrives 33428.
+- **Limits:** fixed-route GTFS only. NECTD demand-response
+  (dial-a-ride) service is not in the feed and is not
+  represented; nothing about it is implied. NECTD operates
+  deviated-route service in practice; the GTFS models it as
+  fixed stops and the Atlas represents the feed as published.
