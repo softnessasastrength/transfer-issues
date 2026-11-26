@@ -168,7 +168,8 @@ internal object OfflineRouter {
                 if (item.time < (arrivals[item.stop] ?: Int.MAX_VALUE)) {
                     arrivals[item.stop] = item.time; paths[item.stop] = item.path
                 }
-                val wait = if (initial && item.stop == at && item.time == time) 0 else buffer
+                // Every stop reached by walking before the first ride is ready on arrival.
+                val wait = if (initial) 0 else buffer
                 ready[item.stop] = min(ready[item.stop] ?: Int.MAX_VALUE, item.time + wait)
                 for (transfer in outgoing[item.stop].orEmpty()) {
                     val next = item.time + transfer.seconds
