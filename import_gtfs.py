@@ -56,7 +56,14 @@ def build(include_optional=False):
   feed=source['id'];source['official_page']=source.get('official_page') or PAGES.get(feed,source.get('url',''));path=DATA/(feed+'.zip');r={'feed':feed,'errors':{},'warnings':{},'counts':{}}; reports.append(r)
   if source.get('optional') and not include_optional:
    source['status']='optional_disabled';source['scope']='Optional feed; enable explicitly to import';continue
-  if not path.exists():continue
+  if not path.exists():
+   # The replacement database contains no rows for this source. Keep the
+   # publisher and refresh diagnostics, but discard the previous archive facts.
+   source['status']='not_downloaded'
+   for field in ('service_start','service_end','scope','agencies','feed_info',
+                 'sha256','retrieved_at','last_modified','bytes','download_url'):
+    source.pop(field,None)
+   continue
   print('Importing',feed,flush=True);source['sha256']=hashlib.sha256(path.read_bytes()).hexdigest();z=zipfile.ZipFile(path);prefix=lambda x:feed+':'+x
   required={'agency.txt','stops.txt','routes.txt','trips.txt','stop_times.txt'}
   if required-set(n.rsplit('/',1)[-1] for n in z.namelist()):raise ValueError(feed+' missing required files')
