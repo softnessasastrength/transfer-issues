@@ -266,6 +266,22 @@ class MtaSubwayBuildTests(MtaBuildFixture):
     feed_id = 'mta_subway'
     files = SUBWAY_FILES
 
+    def test_rebuild_with_missing_archive_clears_imported_coverage(self):
+        self.assertEqual(self.source()['status'], 'imported')
+        self.assertGreater(self.counts()['trips'], 0)
+        (self.data / (self.feed_id + '.zip')).unlink()
+
+        with io.StringIO() as sink, patch('sys.stdout', sink):
+            import_gtfs.build()
+
+        self.assertEqual(self.counts(), {'stops': 0, 'routes': 0, 'trips': 0})
+        source = self.source()
+        self.assertEqual(source['status'], 'not_downloaded')
+        for field in ('service_start', 'service_end', 'scope', 'agencies',
+                      'feed_info', 'sha256'):
+            self.assertNotIn(field, source)
+
+
     def test_import_counts_provenance_and_sir(self):
         # Four platform stops are referenced by trips and their
         # four parent stations are retained as parents; the
