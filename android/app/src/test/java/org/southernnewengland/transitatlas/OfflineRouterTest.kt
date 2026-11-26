@@ -23,8 +23,21 @@ class OfflineRouterTest {
         assertEquals(listOf("walk", "rail:r"), result.legs.map { it.route })
     }
 
-    @Test fun transferBufferPreventsBoarding() {
-        assertNull(OfflineRouter.plan(fixture(), a.id, c.id, 0, 1200, buffer = 600))
+    @Test fun initialWalkDoesNotConsumeTransferBuffer() {
+        val result = OfflineRouter.plan(fixture(), a.id, c.id, 0, 1200, buffer = 600)
+        assertEquals(900, result?.arrival)
+    }
+
+    @Test fun transferBufferAppliesAfterAlightingAndWalking() {
+        val d = OfflineRouter.Stop("ct:d", "Alighting stop", 41.0001, -72.0)
+        val base = fixture()
+        val data = base.copy(
+            stops = base.stops + (d.id to d),
+            links = listOf(OfflineRouter.Link(a.id, d.id, 100, 300, "ct:t", "ct:r", 1)) + base.links,
+            transfers = listOf(OfflineRouter.Transfer(d.id, b.id, 60, "proximity-estimate"))
+        )
+        assertEquals(900, OfflineRouter.plan(data, a.id, c.id, 0, 1200, buffer = 240)?.arrival)
+        assertNull(OfflineRouter.plan(data, a.id, c.id, 0, 1200, buffer = 241))
     }
 
     @Test fun lateArrivalCannotBoard() {
