@@ -1,7 +1,5 @@
 """Guard CI coverage and failure visibility for the portable developer workflows."""
-import fnmatch
 from pathlib import Path
-import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -9,16 +7,13 @@ WORKFLOW = ROOT / '.github/workflows/routing-verification.yml'
 
 
 class CiContractTests(unittest.TestCase):
-    def test_python_and_shell_changes_select_verification(self):
+    def test_verification_runs_for_all_prs_and_merge_groups(self):
         source = WORKFLOW.read_text()
-        path_block = source.split('    paths:\n', 1)[1].split('  workflow_dispatch:', 1)[0]
-        patterns = re.findall(r"^      - '([^']+)'$", path_block, re.MULTILINE)
-        for path in ('developer_center/reports.py', 'crostini-dev.sh', 'termux-atlas.sh',
-                     'scripts/verify_lan_catalog.py', 'import_gtfs.py',
-                     'offline_packages.py', 'tests/test_developer_reports.py',
-                     'android/app/src/main/AndroidManifest.xml'):
-            with self.subTest(path=path):
-                self.assertTrue(any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns))
+        triggers = source.split('on:\n', 1)[1].split('\n\n', 1)[0]
+        self.assertRegex(triggers, r'(?m)^  pull_request:$')
+        self.assertRegex(triggers, r'(?m)^  merge_group:\n    types: \[checks_requested\]$')
+        self.assertRegex(triggers, r'(?m)^  push:\n    branches: \[main\]$')
+        self.assertNotRegex(triggers, r'(?m)^\s+paths(?:-ignore)?:')
 
     def test_captured_test_failure_is_not_hidden_by_tee(self):
         source = WORKFLOW.read_text()

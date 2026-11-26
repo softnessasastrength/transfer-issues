@@ -1,15 +1,15 @@
 name: Transit Atlas routing verification
 on:
   pull_request:
-    paths:
-      - 'android/**'
-      - '*.py'
-      - '*.sh'
-      - 'scripts/**'
-      - 'developer_center/**'
-      - 'tests/**'
-      - '.github/workflows/routing-verification.yml'
+  merge_group:
+    types: [checks_requested]
+  push:
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -27,6 +29,8 @@ jobs:
       - name: Validate launcher shell syntax
         run: |
           for script in ./*.sh; do bash -n "$script"; done
+      - name: Check desktop JavaScript syntax
+        run: node --check web/app.js
       - name: Run synthetic regression tests
         shell: bash
         run: |
@@ -45,6 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
